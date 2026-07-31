@@ -3,7 +3,7 @@
 **Service:** hospital-api
 **Product:** Codevertex Afya
 **Language:** Go 1.26
-**Production domain (planned):** `hospitalapi.codevertexafrica.com`
+**Production domain (planned):** `afyaapi.codevertexafrica.com`
 **Last updated:** 2026-07-31
 **Status:** Sprint-0 scaffold shipped (config/logging/db-pool/redis/nats/health/JWKS-auth wired, `go build`/`go vet` clean, health/readiness/protected-route smoke-tested). No domain ent schemas or business logic yet.
 
