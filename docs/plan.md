@@ -34,21 +34,27 @@ hospital-api is the Hospital Management Information System (HMIS) backbone for t
 
 ## Phased Roadmap
 
+**Last revised:** 2026-07-31 (Round 2 — expanded to cover the full hospital department catalog after
+market research; see `.claude/plans/hospital-service-codevertex-afya-2026-07-31.md` § Round 2).
+
 | Sprint | Capability | Status |
 |---|---|---|
-| 0 | Foundations: repo scaffold, config/logging/db/redis/nats wiring, health checks, JWKS auth middleware | ✅ Scaffold shipped (this round) |
+| 0 | Foundations: repo scaffold, config/logging/db/redis/nats wiring, health checks, JWKS auth middleware | ✅ Scaffold shipped |
 | 1 | Patient registry, OPD reception/queuing, Triage — migrated from pos-api's `Patient`/`PatientVisit`/`TriageRecord` | ⏳ Planned |
 | 2 | Consultation & Examination — `ExaminationRecord`, `DiagnosisCatalog` (global reference + tenant custom) | ⏳ Planned |
 | 3 | Laboratory — `LabOrder`/`LabOrderLine`, `LabTest` catalogue (global reference data) | ⏳ Planned |
-| 4 | Pharmacy & Dispensing — migrated from pos-api's `Prescription`/`PrescriptionLine`/`ControlledSubstanceLog`; calls `inventory-api` for drug master/lot/interactions | ⏳ Planned |
-| 5 | Billing & Insurance — calls `treasury-api` for invoices + SHA/SHIF/NHIF eligibility/claims (same pattern as pos-api's treasury client) | ⏳ Planned |
+| 4 | Pharmacy & Dispensing — migrated from pos-api's `Prescription`/`PrescriptionLine`/`ControlledSubstanceLog`; calls `inventory-api` for drug master/lot/interactions; includes the standalone-chemist module-toggle configuration (see `docs/migration-pos-pharmacy.md` § 6) | ⏳ Planned |
+| 5 | Billing & Insurance — calls `treasury-api` for invoices + SHA/SHIF/NHIF eligibility/claims (eTIMS opt-in per tenant/service) | ⏳ Planned |
 | 6 | Inpatient — Ward/Bed/Admission, discharge summaries | ⏳ Planned |
-| 7 | Specialized care programmes — ANC, PNC, ART, TB, Immunization, Morgue (HosiPoa-parity features) | ⏳ Planned |
-| 8 | Subscriptions/licensing (`service_tag: hospital`) + reporting/analytics | ⏳ Planned |
-| 9 | Compliance hardening — Kenya DPA consent capture, audit trail, 20-year retention policy, Certificate of Data Handler alignment | ⏳ Planned |
-| 10 | Launch — production readiness, runbooks, pos-api pharmacy-code decommission | ⏳ Planned |
+| 7 | Theatre/OT scheduling + ICU/Critical-care monitoring | ⏳ Planned |
+| 8 | Blood Bank & Transfusion — donor registry, cross-match, transfusion records (built on inventory-api's lot tracking for physical blood units) | ⏳ Planned |
+| 9 | Ambulance & Emergency Dispatch (thin reference into logistics-api's existing Task/FleetMember/PricingRule — no new dispatch engine) + Asset/Equipment integration (reference inventory-api's existing Asset/AssetMaintenance) | ⏳ Planned |
+| 10 | Specialized care programmes — ANC, PNC, ART, TB, Immunization, Morgue (HosiPoa-parity features) + KHIS/DHIS2 aggregate reporting (ADX standard) | ⏳ Planned |
+| 11 | Subscriptions/licensing (`service_tag: hospital`) + reporting/analytics dashboards | ⏳ Planned |
+| 12 | Compliance hardening — Kenya DPA consent capture, audit trail, 20-year retention policy, Certificate of Data Handler alignment | ⏳ Planned |
+| 13 | Launch — production readiness, runbooks, **decisive pos-api pharmacy-code decommission** (see `docs/migration-pos-pharmacy.md` Phase D) | ⏳ Planned |
 
-See `docs/sprints/sprint-0-foundations.md` for the detailed breakdown of what shipped this round.
+See `docs/sprints/` for the detailed breakdown of every sprint (one file per sprint, `sprint-N-topic.md`).
 
 ---
 
@@ -71,13 +77,22 @@ See `docs/sprints/sprint-0-foundations.md` for the detailed breakdown of what sh
 1. **Reception & OPD queue** — patient registration/check-in, appointment booking, single EMR shared by every module.
 2. **Consultation** — doctor/dental/MCH/specialist queues, structured examination notes, diagnosis capture, referral to lab/pharmacy.
 3. **Laboratory** — test requests, sample tracking, result capture and delivery back to the requesting clinician.
-4. **Pharmacy & Dispensing** — prescription dispensing, OTC sale, drug-interaction/allergy checks (via inventory-api), controlled-substance dual-witness register.
+4. **Pharmacy & Dispensing** — prescription dispensing, OTC sale, drug-interaction/allergy checks (via inventory-api), controlled-substance dual-witness register. Module-togglable down to a standalone chemist/dispensary configuration (see `docs/migration-pos-pharmacy.md` § 6) — **this is now the only place pharmacy logic lives on the whole platform**; pos-api never carries it.
 5. **Inpatient** — ward/bed assignment, admission-to-discharge, discharge summaries.
-6. **Billing & Insurance** — per-encounter charges aggregated into a treasury invoice; SHA/SHIF/NHIF eligibility verification and claims submission via treasury-api's existing insurance connector; KRA eTIMS transmission (treasury-owned) is an **opt-in per tenant/service**, not applied to every encounter by default — many clinical services are not required to carry a fiscal invoice.
-7. **Specialized care programmes** — ANC, PNC, ART, TB, Immunization tracking (MOH-reporting aligned), Morgue management.
-8. **Patient communications** — SMS/WhatsApp appointment reminders, lab-result-ready, prescription-ready alerts via notifications-api.
-9. **Reporting** — occupancy, revenue, and clinical-throughput dashboards (delegating financial aggregation to treasury-api, never re-summing).
-10. **Compliance & audit** — Kenya Data Protection Act-aligned consent capture, audit trail, and retention policy for sensitive health data.
+6. **Theatre / Operating Room** — surgery scheduling, OT checklist, staff/case-load assignment (booking-pattern mirrors pos-api's existing Facility/FacilityBooking resource-booking shape, but is clinically owned here).
+7. **ICU / Critical Care** — bed-level vitals/monitoring flags, staff assignment, escalation alerts.
+8. **Blood Bank & Transfusion** — donor registry, cross-match requests, transfusion records; physical blood-unit stock is tracked as a lot-tracked, short-shelf-life item in inventory-api (not a bespoke blood inventory system).
+9. **Ambulance & Emergency Dispatch** — thin reference into logistics-api's existing Task (`task_type: ambulance_dispatch`, an additive string value, no schema change)/FleetMember (tagged `ambulance`)/PricingRule (`distance` rule type, matching Kenya's base-fee-plus-per-km ambulance pricing model) — hospital-api does not build a second dispatch/fleet engine. Optional recurring "ambulance membership" product (mirrors St John Kenya's individual/family annual plan) billed via treasury-api.
+10. **Asset / Equipment integration** — surfaces inventory-api's existing `Asset`/`AssetMaintenance` register (already covers biomedical equipment, beds, ambulances-as-capital-assets, warranty, maintenance schedules) as "Biomedical Equipment" in the hospital-api UI; hospital-api references `asset_id`, never owns a parallel asset register. Depreciation accounting is already wired via treasury-api's `FixedAssetDepreciation`.
+11. **Billing & Insurance** — per-encounter charges aggregated into a treasury invoice; SHA/SHIF/NHIF eligibility verification and claims submission via treasury-api's existing insurance connector; KRA eTIMS transmission (treasury-owned) is an **opt-in per tenant/service**, not applied to every encounter by default — many clinical services are not required to carry a fiscal invoice.
+12. **Specialized care programmes** — ANC, PNC, ART, TB, Immunization tracking (MOH-reporting aligned), Morgue management.
+13. **KHIS/DHIS2 aggregate reporting** — indicator export via the ADX standard for public/donor-funded programmes (ART, TB, immunization) that must report into Kenya's national KHIS, distinct from SHA/Taifa Care insurance-claims reporting.
+14. **CSSD (sterilization) & Dietary** — lightweight tracking modules for sub-departments that support inpatient care.
+15. **Patient communications** — SMS/WhatsApp appointment reminders, lab-result-ready, prescription-ready alerts via notifications-api.
+16. **Reporting** — occupancy, revenue, and clinical-throughput dashboards (delegating financial aggregation to treasury-api, never re-summing).
+17. **Compliance & audit** — Kenya Data Protection Act-aligned consent capture, audit trail, and retention policy for sensitive health data.
+
+**Explicitly out of scope for Codevertex Afya v1** (deferred, not silently dropped): full PACS/RIS radiology image storage (an integration point to a third-party PACS via DICOM, not stored in hospital-api itself), payroll/HR duty rostering (already owned by `erp-api` — hospital-api references staff via `auth_service_user_id` like every other service), and full facilities/security/visitor-management (out of scope for a health-records system).
 
 ---
 
@@ -86,6 +101,7 @@ See `docs/sprints/sprint-0-foundations.md` for the detailed breakdown of what sh
 - [Architecture](architecture.md)
 - [Integrations](integrations.md)
 - [Entity Relationship Diagram](erd.md)
+- [pos-api Pharmacy Migration Plan](migration-pos-pharmacy.md)
 - [Sprint Plans](sprints/)
 - `shared-docs/CROSS-SERVICE-DATA-OWNERSHIP.md` — canonical cross-service data-ownership matrix
 - `shared-docs/TRINITY-AUTHORIZATION-PATTERN.md` — RBAC + Licensing + Resources authorization model

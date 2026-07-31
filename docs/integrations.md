@@ -43,6 +43,64 @@ snapshot, not re-modeled locally.
 **Subscribes to:** `inventory.lot.expiry_warning`, `inventory.stock.low` — surfaced to pharmacy
 staff via a dashboard alert, not re-published as a new event type.
 
+### 1.5 Biomedical equipment / hospital assets (already built — reuse, don't rebuild)
+
+**Discovery (2026-07-31):** `inventory-api` already has `Asset` and `AssetMaintenance` ent schemas
+(`inventory-service/inventory-api/internal/ent/{asset,assetmaintenance}.go`) covering asset tag,
+category, serial/model/manufacturer, purchase/current/salvage value, depreciation rate+method, KRA
+capital-allowance class, location, `outlet_id`, assigned-to/custodian, optional link to an
+inventory `Item`, status/condition, warranty expiry, and a full maintenance-schedule +
+`AssetMaintenance` history (type, scheduled/completed dates, performed-by, cost, findings, downtime
+hours). This is exactly a biomedical-equipment/hospital-bed/ambulance-as-capital-asset register.
+
+**Calls:** `GET /v1/{tenant}/inventory/assets`, `GET /v1/{tenant}/inventory/assets/{id}`,
+`GET/POST /v1/{tenant}/inventory/assets/{id}/maintenance` (exact paths TBD when inventory-api's
+asset handlers are confirmed — coordinate with inventory-api's own `docs/integrations.md`).
+hospital-api's UI surfaces this data as "Biomedical Equipment" and lets clinical staff see e.g.
+"ventilator X is due for maintenance" — it does **not** own a parallel asset table. Depreciation
+accounting for the same asset is already wired via `treasury-api`'s `FixedAssetDepreciation`
+(references `asset_id`) — hospital-api never posts depreciation.
+
+### 1.6 Blood-unit stock (lot-tracked, no bespoke blood inventory)
+
+Physical blood bags are modeled as a short-shelf-life, lot-tracked item category
+(`InventoryLot`) in inventory-api, the same mechanism already used for drug batch/expiry. hospital-api's
+Blood Bank module (`DonorRecord`, `CrossmatchRequest`, `TransfusionRecord`) references `lot_id` for
+the physical unit and calls the same consumption/reservation endpoints pharmacy dispensing uses —
+no second inventory system for blood.
+
+---
+
+## 2A. Logistics Service Integration — Ambulance & Emergency Dispatch
+
+**ADR (2026-07-31):** Ambulance dispatch is a **thin reference into logistics-api**, not a new
+fleet/dispatch/pricing engine inside hospital-api. Kenyan private-ambulance pricing (researched this
+round) is a fixed call-out fee plus a per-km rate from base→call-out→hospital→return-to-base —
+this maps exactly to logistics-api's existing `PricingRule` (`rule_type: "distance"`,
+`distance_tiers` JSON). logistics-api's `Task.task_type` is a free-form string field (documented
+values: `food_delivery | retail_delivery | outlet_transfer | commercial_courier | drop_shipping |
+pickup | return | ride`) — adding `ambulance_dispatch` requires **zero schema/migration change** in
+logistics-api, exactly the additive-metadata approach preferred over a new table.
+
+**Flow:**
+```
+1. hospital-api calls POST /v1/{tenant}/tasks on logistics-api (S2S via shared/service-client)
+   { task_type: "ambulance_dispatch", source_service: "hospital-service", pickup_location, ... }
+2. logistics-api assigns a FleetMember tagged "ambulance" (specialization_tags), returns task_id
+3. hospital-api stores logistics_task_id on its own AmbulanceBooking row (reference only)
+4. hospital-api subscribes to logistics.task.assigned / logistics.task.completed for status updates
+5. Billing: the distance-based fare from the completed task is passed to treasury-api as a line
+   item on the patient's invoice, same as any other billable service (see § 2.1)
+```
+
+**Optional (Phase 3+):** a recurring "ambulance membership" product (individual/family annual plan,
+mirroring St John Kenya's existing model) — billed as a treasury-api recurring/subscription charge,
+not a new billing engine.
+
+**hospital-api does NOT**: store rider/vehicle profiles, dispatch task lifecycle, or pricing rules —
+all of that stays in logistics-api exactly as it does for every other service that dispatches tasks
+(ordering-backend, pos-api).
+
 ---
 
 ## 2. Treasury Service Integration
@@ -93,6 +151,24 @@ facilities aren't blocked.
 
 ---
 
+## 2B. KHIS/DHIS2 Aggregate Reporting Integration
+
+**ADR (2026-07-31):** Kenya's Health Information Systems Interoperability Framework (KHISIF)
+requires facilities — especially public and donor-funded ones running ART/TB/immunization
+programmes — to submit aggregate health indicators to the national KHIS (powered by DHIS2) via the
+**ADX (Aggregate Data Exchange)** standard. This is **distinct from SHA/Taifa Care** (which is
+insurance-claims reporting, owned by treasury-api) — KHIS reporting is public-health surveillance,
+computed from hospital-api's own specialized-programme records (ANC, PNC, ART, TB, Immunization).
+
+**Scope (Phase 2, Sprint 10):** hospital-api computes the required indicator aggregates from its own
+data on a schedule and exports them in ADX XML/JSON to the tenant-configured KHIS endpoint (or
+provides a downloadable export for facilities that submit manually — many Kenyan facilities still do
+this via the KHIS web UI directly). hospital-api does **not** implement the DHIS2 platform itself,
+only the export side. Facility Master Facility List (MFL) code is stored as tenant metadata, not a
+new schema table.
+
+---
+
 ## 3. Auth Service Integration
 
 Standard SSO pattern, identical to every sibling service:
@@ -135,36 +211,12 @@ Credit-gated SMS follows the same pattern notifications-api already uses for `is
 
 ## 6. Migration ADR — Pharmacy/Clinical Logic Currently in pos-api
 
-**Decision (2026-07-31):** All clinical/pharmacy workflow logic currently living in
+**See the dedicated plan: [`docs/migration-pos-pharmacy.md`](migration-pos-pharmacy.md).**
+
+**Decision (revised 2026-07-31):** All clinical/pharmacy workflow logic currently living in
 `pos-service/pos-api` moves to hospital-api in full, once hospital-api reaches feature parity.
-**No backward-compatibility shim is kept** — per the platform's own migration-notes convention
-(`shared-docs/CROSS-SERVICE-DATA-OWNERSHIP.md` § Migration Notes), this is a clean cut, not a
-dual-write period.
-
-**To be removed from pos-api once hospital-api ships the equivalent:**
-- Ent schemas: `Patient`, `PatientVisit`, `TriageRecord`, `ExaminationRecord`, `LabOrder`,
-  `LabOrderLine`, `LabTest`, `DiagnosisCatalog`, `Prescription`, `PrescriptionLine`,
-  `ControlledSubstanceLog`, `DrugInteractionCheck`.
-- Handlers: `pharmacy.go`, `pharmacy_checkout.go`, `pharmacy_controlled.go`, `clinical.go`,
-  `clinical_records.go`, `clinical_triage.go`, `clinical_examination.go`, `clinical_lab.go`,
-  `clinical_bills.go`, `clinical_catalog.go`, `clinical_settings.go`, `report_pdf_pharmacy.go`.
-- Modules: `internal/modules/printing/dispensing_label.go`, `cmd/seed/seed_clinical_catalogs.go`.
-- Migrations: `20260520213213_sprint8_9_pharmacy_service.sql`,
-  `20260525014738_add_pharmacy_regulatory_fields.sql`, `20260721220942_prescription_metadata.sql`,
-  `20260723141538_controlled_substance_log_lot_fields.sql`,
-  `20260725054849_opd_clinical_workflow.sql`,
-  `20260727230708_lab_test_catalog_diagnoses_workflow_mode.sql`.
-- Frontend: `pos-ui` routes/components under `pharmacy/**`, `patients`, `examination`,
-  `components/clinical/**`, `PharmacyTerminalView.tsx`, `PharmacyWorkflowTab.tsx`,
-  `hooks/usePharmacy.ts`, `hooks/useClinical.ts`, `lib/api/{pharmacy,clinical}.ts`.
-- Docs: `pos-service/pos-api/docs/sprints/sprint-8-pharmacy-module.md`,
-  `sprint-9-service-module.md` (superseded by this service's sprint docs).
-
-**pos-api keeps:** the standalone "Codevertex Dawa" retail-pharmacy/chemist product — OTC till
-sale of drug SKUs sourced from inventory-api, no clinical workflow, no prescriptions. A tenant uses
-either pos-api Dawa (chemist) or hospital-api's pharmacy module (hospital/clinic), never both for
-the same outlet.
-
-**Execution note:** this migration is **not part of the current round** (docs + pricing + scaffold
-only). It happens once hospital-api's pharmacy module (Sprint 4) reaches feature parity with what
-pos-api already has in production.
+**No backward-compatibility shim is kept** — this is a clean cut, not a dual-write period. **pos-api
+keeps no pharmacy logic at all, for any facility size** — a standalone chemist is simply
+hospital-api's Pharmacy module used in isolation (see the migration doc § 6), not a separate
+pos-api "Dawa" product. This corrects the original 2026-07-31 draft of this ADR, which incorrectly
+proposed pos-api retain a standalone chemist product.

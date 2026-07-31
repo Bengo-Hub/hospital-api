@@ -19,9 +19,10 @@ building blocks that already exist elsewhere in the ecosystem (see Data Authorit
 
 | Facility type | What they use |
 |---|---|
+| Standalone chemist/dispensary (Pharmacy-only module toggle, below Afya Clinic) | Pharmacy dispensing + OTC sale only — no Consultation/Lab/Inpatient. Direct replacement for the retired pos-api "Dawa" use-case (see `migration-pos-pharmacy.md`) |
 | Dispensary / health centre (Afya Clinic tier) | Reception, Consultation, Pharmacy, Billing, referred-out lab |
 | Sub-county hospital (Afya Facility tier) | + in-house Laboratory, Inpatient, SHA/SHIF+NHIF claims, controlled-substance register |
-| County referral / large private hospital (Afya Hospital tier) | + Theatre/Maternity/Morgue, specialized programmes (ANC/PNC/ART/TB/Immunization), multi-branch |
+| County referral / large private hospital (Afya Hospital tier) | + Theatre/OT, ICU, Blood Bank, Ambulance dispatch, Asset/Biomedical-equipment tracking, Maternity/Morgue, specialized programmes (ANC/PNC/ART/TB/Immunization), KHIS/DHIS2 reporting, multi-branch |
 
 ## Layer Overview
 
@@ -35,26 +36,38 @@ building blocks that already exist elsewhere in the ecosystem (see Data Authorit
 
 ## Data Authority (owns vs. references)
 
+**Last revised:** 2026-07-31 (Round 2 — added Theatre/ICU/Blood Bank/Ambulance-reference/Asset-reference rows after the expanded department-catalog research; see the plan's Round 2 section).
+
 hospital-api **owns**:
 - `Patient`, `PatientVisit`/Encounter, `TriageRecord`, `ExaminationRecord`
 - `DiagnosisCatalog` (tenant-custom entries only — the standard/default catalogue is global reference data, see `erd.md` Conventions)
 - `LabOrder`/`LabOrderLine` (the `LabTest` catalogue itself is global reference data + tenant-custom additions)
-- `Prescription`/`PrescriptionLine`, `ControlledSubstanceLog`
+- `Prescription`/`PrescriptionLine`, `ControlledSubstanceLog` — **the only place this logic lives on the platform**; see `migration-pos-pharmacy.md` for why pos-api carries none of it
 - `Ward`/`Bed`/`Admission`, discharge summaries
+- `TheatreBooking` (OT scheduling), `ICUEpisode` (critical-care monitoring flags)
+- `DonorRecord`, `CrossmatchRequest`, `TransfusionRecord` (clinical blood-bank records — physical blood units are inventory-api lots, not owned here)
+- `AmbulanceBooking` (thin reference row only — see below, not a dispatch/fleet engine)
 - `Appointment`/OPD queue, `Referral`
 - Specialized-care programme records: ANC, PNC, ART, TB, Immunization, Morgue
+- KHIS/DHIS2 aggregate-reporting export configuration/history (the indicators themselves are computed from owned clinical data, not duplicated elsewhere)
 
 hospital-api **references, never duplicates** (per `shared-docs/CROSS-SERVICE-DATA-OWNERSHIP.md`):
 
 | Domain | Owner | How hospital-api accesses it |
 |---|---|---|
 | Drug/item master, lot/expiry, drug-interaction rules, controlled-substance schedule, KRA eTIMS item codes | `inventory-api` | REST via `shared/service-client`, references `inventory_item_id`/`lot_id` |
+| **Blood-unit stock (as a lot-tracked, short-shelf-life item category)** | `inventory-api` | Same `InventoryLot` mechanism as drugs — no bespoke blood inventory system; hospital-api's Blood Bank module references `lot_id` on `TransfusionRecord` |
+| **Biomedical equipment / hospital assets (beds, ventilators, ambulances-as-capital-assets), maintenance schedules** | `inventory-api` (**already implemented** — `Asset`/`AssetMaintenance` ent schemas) | REST, references `asset_id`; hospital-api surfaces this as "Biomedical Equipment" in its UI without owning a parallel register |
+| **Asset depreciation accounting** | `treasury-api` (**already implemented** — `FixedAssetDepreciation`, references inventory-api's `asset_id`) | Read-only display; hospital-api never posts depreciation itself |
+| **Ambulance/fleet vehicles, drivers, dispatch tasks, distance-based pricing** | `logistics-api` (**already implemented** — `FleetMember`, `Task` with a free-string `task_type` field, `PricingRule` with `rule_type: "distance"`) | hospital-api creates a `Task` with `task_type: "ambulance_dispatch"` (an additive string value — **zero schema change needed** in logistics-api) exactly like `ordering-backend` creates delivery tasks; `AmbulanceBooking` stores only the returned `logistics_task_id` |
 | Invoices, quotations, insurance claims/coverage/remittance (SHA/SHIF/NHIF, future Taifa Care HMIS), payments, KRA eTIMS transmission (opt-in per tenant) | `treasury-api` | REST via `shared/service-client`, references `invoice_id`/`payment_intent_id`/`insurance_claim_id` |
 | Tenant/user identity, roles, global role/permission catalogue | `auth-api` | JWT (JWKS) validated via `shared-auth-client`; `tenant_id`/`user_id` references only |
-| Hospital `service_tag` subscription plans/tiers/entitlements | `subscriptions-api` | JWT `sub_*` claims + REST fallback |
+| Hospital `service_tag` subscription plans/tiers/entitlements (incl. the standalone-chemist module-toggle configuration) | `subscriptions-api` | JWT `sub_*` claims + REST fallback |
 | SMS/WhatsApp patient reminders | `notifications-api` | Outbox event → notifications-api consumer (never a direct SMS/email send from hospital-api) |
 
-**Entities that must NOT exist in hospital-api**: item/drug master rows, `InventoryLot`, `DrugInteractionRule` (all inventory-api); `Invoice`, `Quotation`, `InsuranceClaim`/`InsurancePlan`/`InsuranceProvider` (all treasury-api); full user/tenant profile rows beyond the minimal JIT reference (auth-api). If any of these ever appear as local tables, that is a data-ownership violation — remove and replace with a reference ID + S2S call.
+**Entities that must NOT exist in hospital-api**: item/drug master rows, `InventoryLot`, `DrugInteractionRule`, `Asset`/`AssetMaintenance` (all inventory-api); `Invoice`, `Quotation`, `InsuranceClaim`/`InsurancePlan`/`InsuranceProvider`, `FixedAssetDepreciation` (all treasury-api); fleet/vehicle/driver records, dispatch task lifecycle, pricing-rule engines (all logistics-api — hospital-api's `AmbulanceBooking` is a reference row, not a competing fleet system); full user/tenant profile rows beyond the minimal JIT reference (auth-api). If any of these ever appear as local tables, that is a data-ownership violation — remove and replace with a reference ID + S2S call.
+
+**Entities that must NOT exist in pos-api** (post-migration, see `migration-pos-pharmacy.md`): `Patient`, `PatientVisit`, `TriageRecord`, `ExaminationRecord`, `LabOrder`/`Line`, `Prescription`/`Line`, `ControlledSubstanceLog`, `DrugInteractionCheck` — pos-api's remaining use-cases are exactly `retail`, `hospitality`, `quick_service`, `services`.
 
 ## Runtime Document Generation (future)
 

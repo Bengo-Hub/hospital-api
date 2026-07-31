@@ -83,6 +83,34 @@ Sprint 1 onward, not yet implemented.
 
 ---
 
+## Theatre & Critical Care (Afya Hospital tier)
+
+| Table | Key Columns | Description |
+|---|---|---|
+| `theatre_booking` | `id`, `patient_visit_id`, `theatre_room`, `surgery_type`, `scheduled_at`, `status`, `checklist_json` | OT scheduling + surgical checklist |
+| `icu_episode` | `id`, `admission_id`, `bed_id`, `severity_flag`, `monitoring_notes`, `started_at`, `ended_at` | Critical-care episode tracking |
+
+---
+
+## Blood Bank & Transfusion (Afya Hospital tier)
+
+| Table | Key Columns | Description |
+|---|---|---|
+| `donor_record` | `id`, `tenant_id`, `full_name`, `blood_group`, `last_donation_at`, `eligibility_status` | Blood donor registry |
+| `crossmatch_request` | `id`, `patient_visit_id`, `blood_group`, `units_requested`, `status` | Cross-match request for a patient |
+| `transfusion_record` | `id`, `crossmatch_request_id`, `inventory_lot_id`, `administered_at`, `administered_by` | Transfusion event; `inventory_lot_id` references the physical blood-bag lot tracked in inventory-api (no local blood-stock table) |
+
+---
+
+## Ambulance & Emergency Dispatch (thin reference — Afya Hospital tier)
+
+| Table | Key Columns | Description |
+|---|---|---|
+| `ambulance_booking` | `id`, `patient_visit_id` (nullable — may precede registration), `logistics_task_id`, `pickup_location`, `status`, `fare_amount` | Reference row only; dispatch/fleet/pricing all live in logistics-api (`task_type: "ambulance_dispatch"`) |
+| `ambulance_membership` | `id`, `tenant_id`, `crm_contact_id`, `plan_type` (individual/family), `expires_at` | Optional recurring membership product; billed via treasury-api, not a new billing engine |
+
+---
+
 ## Specialized Care Programmes
 
 | Table | Key Columns | Description |
@@ -104,6 +132,8 @@ Data Authority table and `shared-docs/CROSS-SERVICE-DATA-OWNERSHIP.md`):
 | Reference field | Owner service |
 |---|---|
 | `inventory_item_id`, `inventory_lot_id` | inventory-api |
+| `asset_id` (biomedical equipment, beds, ambulance capital assets — already modeled as `Asset`/`AssetMaintenance`) | inventory-api |
 | `invoice_id`, `payment_intent_id`, `insurance_claim_id` | treasury-api |
+| `logistics_task_id` (ambulance dispatch task) | logistics-api |
 | `auth_service_user_id`, `tenant_id` | auth-api |
 | `crm_contact_id` (optional, billing-contact linkage) | marketflow-api |
