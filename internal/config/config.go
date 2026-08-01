@@ -82,10 +82,10 @@ type AuthConfig struct {
 // ServicesConfig holds the S2S base URLs for the services hospital-api calls
 // by reference instead of duplicating their data (see docs/integrations.md).
 type ServicesConfig struct {
-	InventoryURL      string `envconfig:"INVENTORY_SERVICE_URL" default:"https://inventoryapi.codevertexafrica.com"`
-	TreasuryURL       string `envconfig:"TREASURY_SERVICE_URL" default:"https://booksapi.codevertexafrica.com"`
-	NotificationsURL  string `envconfig:"NOTIFICATIONS_SERVICE_URL" default:"https://notificationsapi.codevertexafrica.com"`
-	SubscriptionsURL  string `envconfig:"SUBSCRIPTIONS_SERVICE_URL" default:"https://pricingapi.codevertexafrica.com"`
+	InventoryURL     string `envconfig:"INVENTORY_SERVICE_URL" default:"https://inventoryapi.codevertexafrica.com"`
+	TreasuryURL      string `envconfig:"TREASURY_SERVICE_URL" default:"https://booksapi.codevertexafrica.com"`
+	NotificationsURL string `envconfig:"NOTIFICATIONS_SERVICE_URL" default:"https://notificationsapi.codevertexafrica.com"`
+	SubscriptionsURL string `envconfig:"SUBSCRIPTIONS_SERVICE_URL" default:"https://pricingapi.codevertexafrica.com"`
 }
 
 // Load gathers configuration from environment variables and optional .env files.

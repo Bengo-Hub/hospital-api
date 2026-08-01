@@ -1,0 +1,86 @@
+package handlers
+
+import (
+	"net/http"
+
+	"github.com/Bengo-Hub/httpware"
+	authclient "github.com/Bengo-Hub/shared-auth-client"
+	"github.com/google/uuid"
+
+	"github.com/bengobox/hospital-service/internal/modules/rbac"
+)
+
+// AuthMeHandler returns the current user from JWT claims, enriched with service-level
+// roles and permissions from the local RBAC database.
+type AuthMeHandler struct {
+	rbacService *rbac.Service
+}
+
+// NewAuthMeHandler creates a new AuthMeHandler.
+func NewAuthMeHandler(rbacService *rbac.Service) *AuthMeHandler {
+	return &AuthMeHandler{rbacService: rbacService}
+}
+
+// GetMe returns the current user with merged JWT + service-level RBAC data.
+// GET /api/v1/{tenant}/hospital/auth/me
+func (h *AuthMeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	claims, ok := authclient.ClaimsFromContext(r.Context())
+	if !ok || claims.Subject == "" {
+		respondError(w, http.StatusUnauthorized, "missing auth context")
+		return
+	}
+
+	roles := claims.Roles
+	if roles == nil {
+		roles = []string{}
+	}
+	permissions := claims.Permissions
+	if permissions == nil {
+		permissions = []string{}
+	}
+
+	ctx := r.Context()
+	tenantID := httpware.GetTenantID(ctx)
+	if tenantID == "" {
+		tenantID = claims.TenantID
+	}
+	if tenantID != "" && h.rbacService != nil {
+		if tenantUUID, err := uuid.Parse(tenantID); err == nil {
+			userUUID, _ := uuid.Parse(claims.Subject)
+			if svcRoles, err := h.rbacService.GetUserRoles(ctx, tenantUUID, userUUID); err == nil {
+				for _, sr := range svcRoles {
+					roles = appendUniqueStr(roles, sr.RoleCode)
+				}
+			}
+			if svcPerms, err := h.rbacService.GetUserPermissions(ctx, tenantUUID, userUUID); err == nil {
+				for _, sp := range svcPerms {
+					permissions = appendUniqueStr(permissions, sp.PermissionCode)
+				}
+			}
+		}
+	}
+
+	out := map[string]interface{}{
+		"id":                claims.Subject,
+		"email":             claims.Email,
+		"tenant_id":         claims.TenantID,
+		"tenant_slug":       claims.GetTenantSlug(),
+		"is_platform_owner": claims.IsPlatformOwner,
+		"roles":             roles,
+		"permissions":       permissions,
+	}
+	respondJSON(w, http.StatusOK, out)
+}
+
+func appendUniqueStr(slice []string, val string) []string {
+	for _, s := range slice {
+		if s == val {
+			return slice
+		}
+	}
+	return append(slice, val)
+}
+
+func respondError(w http.ResponseWriter, status int, message string) {
+	respondJSON(w, status, map[string]string{"error": message})
+}

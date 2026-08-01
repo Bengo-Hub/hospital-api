@@ -1,0 +1,258 @@
+package identity
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	sharedevents "github.com/Bengo-Hub/shared-events"
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
+
+	"github.com/bengobox/hospital-service/internal/ent"
+)
+
+// hospitalAcceptedUseCases is the set of outlet use_cases that hospital-api supports.
+// Outlets with other use_cases (retail, warehouse, logistics, ...) are ACKed and skipped.
+var hospitalAcceptedUseCases = map[string]bool{
+	"hospital": true,
+}
+
+// authStream is the NATS JetStream stream name that auth-api publishes to.
+const authStream = "auth"
+
+// AuthOutletEventHandler syncs auth.outlet.* events from auth-api into the
+// local hospital-api outlets table.
+type AuthOutletEventHandler struct {
+	client       *ent.Client
+	tenantSyncer interface {
+		SyncTenant(ctx context.Context, slug string) (uuid.UUID, error)
+	}
+	logger *zap.Logger
+}
+
+// NewAuthOutletEventHandler creates a new outlet event handler.
+func NewAuthOutletEventHandler(client *ent.Client, ts interface {
+	SyncTenant(ctx context.Context, slug string) (uuid.UUID, error)
+}, logger *zap.Logger) *AuthOutletEventHandler {
+	return &AuthOutletEventHandler{
+		client:       client,
+		tenantSyncer: ts,
+		logger:       logger.Named("identity.auth_outlet_events"),
+	}
+}
+
+// SubscribeToOutletEvents subscribes to auth.outlet.* JetStream subjects with durable consumers.
+func (h *AuthOutletEventHandler) SubscribeToOutletEvents(nc *nats.Conn) error {
+	if nc == nil {
+		h.logger.Warn("NATS not available, skipping auth outlet event subscriptions")
+		return nil
+	}
+
+	js, err := nc.JetStream()
+	if err != nil {
+		return fmt.Errorf("auth outlet events: jetstream init: %w", err)
+	}
+
+	// Ensure the auth stream exists (auth-api creates it; guard against startup race).
+	if _, err := js.StreamInfo(authStream); err != nil {
+		if _, addErr := js.AddStream(&nats.StreamConfig{
+			Name:      authStream,
+			Subjects:  []string{"auth.>"},
+			Retention: nats.LimitsPolicy,
+			MaxAge:    72 * time.Hour,
+			Storage:   nats.FileStorage,
+		}); addErr != nil && addErr != nats.ErrStreamNameAlreadyInUse {
+			h.logger.Warn("auth outlet events: ensure auth stream failed", zap.Error(addErr))
+		}
+	}
+
+	type sub struct {
+		subject string
+		durable string
+		handler func(context.Context, *sharedevents.Event) error
+	}
+	subs := []sub{
+		{"auth.outlet.created", "hospital-auth-outlet-created", h.handleUpsert},
+		{"auth.outlet.updated", "hospital-auth-outlet-updated", h.handleUpsert},
+		{"auth.outlet.archived", "hospital-auth-outlet-archived", h.handleArchive},
+	}
+
+	for _, s := range subs {
+		s := s
+		sharedevents.SubscribeQueueWithRebind(h.logger, js, "auth", s.subject, s.durable, func(msg *nats.Msg) {
+			evt, err := sharedevents.FromJSON(msg.Data)
+			if err != nil {
+				h.logger.Error("failed to unmarshal outlet event",
+					zap.String("subject", s.subject), zap.Error(err))
+				_ = msg.Nak()
+				return
+			}
+			ctx := context.Background()
+			if err := s.handler(ctx, evt); err != nil {
+				h.logger.Error("failed to handle outlet event",
+					zap.String("subject", s.subject), zap.Error(err))
+				_ = msg.Nak()
+				return
+			}
+			_ = msg.Ack()
+		},
+			nats.Durable(s.durable),
+			nats.AckExplicit(),
+			nats.AckWait(30*time.Second),
+			nats.MaxDeliver(5),
+			nats.DeliverAll(),
+		)
+	}
+
+	h.logger.Info("outlet event subscriptions active",
+		zap.String("subjects", "auth.outlet.created, auth.outlet.updated, auth.outlet.archived"))
+	return nil
+}
+
+// outletAddressJSON merges the auth event's location/contact fields into the mirror's
+// address_json: "street" = the physical address/location line, "contact_phones" = the
+// labeled phone list from auth outlet metadata, and "contact_email" = the branch's own
+// email. prev keeps any keys other writers may have stored.
+func outletAddressJSON(prev map[string]any, evt *sharedevents.Event) map[string]any {
+	address, _ := evt.Payload["address"].(string)
+	meta, _ := evt.Payload["metadata"].(map[string]any)
+	var phones any
+	var email string
+	if meta != nil {
+		phones = meta["contact_phones"]
+		email, _ = meta["contact_email"].(string)
+	}
+	if address == "" && phones == nil && email == "" {
+		return nil // nothing to write; leave the mirror untouched
+	}
+	merged := map[string]any{}
+	for k, v := range prev {
+		merged[k] = v
+	}
+	if address != "" {
+		merged["street"] = address
+	}
+	if phones != nil {
+		merged["contact_phones"] = phones
+	}
+	if email != "" {
+		merged["contact_email"] = email
+	}
+	return merged
+}
+
+// handleUpsert creates or updates a local outlet mirror from auth.outlet.created/updated.
+func (h *AuthOutletEventHandler) handleUpsert(ctx context.Context, evt *sharedevents.Event) error {
+	outletIDStr, _ := evt.Payload["outlet_id"].(string)
+	code, _ := evt.Payload["code"].(string)
+	name, _ := evt.Payload["name"].(string)
+	useCase, _ := evt.Payload["use_case"].(string)
+	isHQ, _ := evt.Payload["is_hq"].(bool)
+	status, _ := evt.Payload["status"].(string)
+	if status == "" {
+		status = "active"
+	}
+
+	// Skip outlets that don't apply to hospital-api (retail branches, warehouses, ...).
+	if useCase != "" && !hospitalAcceptedUseCases[useCase] {
+		h.logger.Info("skipping outlet: use_case not applicable to hospital-api",
+			zap.String("outlet_id", outletIDStr),
+			zap.String("use_case", useCase))
+		return nil
+	}
+
+	outletID, err := uuid.Parse(outletIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid outlet_id %q: %w", outletIDStr, err)
+	}
+	if evt.TenantID == uuid.Nil {
+		return fmt.Errorf("missing tenant_id in outlet event")
+	}
+
+	// Prefer tenant_slug from the event payload. Fall back to local tenant table lookup.
+	tenantSlug, _ := evt.Payload["tenant_slug"].(string)
+	if tenantSlug == "" {
+		if t, tErr := h.client.Tenant.Get(ctx, evt.TenantID); tErr == nil {
+			tenantSlug = t.Slug
+		}
+	}
+	if tenantSlug == "" {
+		return fmt.Errorf("tenant_slug unavailable for outlet %s (tenant %s) — retry after tenant sync", outletIDStr, evt.TenantID)
+	}
+
+	// Ensure the tenant row exists locally (outlets FK-references tenants).
+	if _, tErr := h.client.Tenant.Get(ctx, evt.TenantID); tErr != nil {
+		if h.tenantSyncer != nil {
+			if _, syncErr := h.tenantSyncer.SyncTenant(ctx, tenantSlug); syncErr != nil {
+				return fmt.Errorf("tenant %q not in local DB and sync failed: %w", tenantSlug, syncErr)
+			}
+		} else {
+			return fmt.Errorf("tenant %q not in local DB and no syncer configured", tenantSlug)
+		}
+	}
+
+	existing, findErr := h.client.Outlet.Get(ctx, outletID)
+	if findErr != nil {
+		createQ := h.client.Outlet.Create().
+			SetID(outletID).
+			SetTenantID(evt.TenantID).
+			SetTenantSlug(tenantSlug).
+			SetCode(code).
+			SetName(name).
+			SetIsHq(isHQ).
+			SetStatus(status)
+		if useCase != "" {
+			createQ = createQ.SetUseCase(useCase)
+		}
+		if addr := outletAddressJSON(nil, evt); addr != nil {
+			createQ = createQ.SetAddressJSON(addr)
+		}
+		if _, err := createQ.Save(ctx); err != nil {
+			return fmt.Errorf("create outlet mirror: %w", err)
+		}
+		h.logger.Info("outlet created from auth event",
+			zap.String("outlet_id", outletID.String()),
+			zap.String("code", code))
+		return nil
+	}
+
+	upd := h.client.Outlet.UpdateOne(existing).
+		SetName(name).
+		SetIsHq(isHQ).
+		SetStatus(status).
+		SetUpdatedAt(time.Now())
+	if useCase != "" {
+		upd = upd.SetUseCase(useCase)
+	}
+	if addr := outletAddressJSON(existing.AddressJSON, evt); addr != nil {
+		upd = upd.SetAddressJSON(addr)
+	}
+	if _, err := upd.Save(ctx); err != nil {
+		return fmt.Errorf("update outlet mirror: %w", err)
+	}
+	h.logger.Info("outlet updated from auth event",
+		zap.String("outlet_id", outletID.String()),
+		zap.String("code", code))
+	return nil
+}
+
+// handleArchive sets status = "archived" for the outlet.
+// If the outlet was never synced to hospital-api (filtered by use_case), this is a no-op.
+func (h *AuthOutletEventHandler) handleArchive(ctx context.Context, evt *sharedevents.Event) error {
+	outletIDStr, _ := evt.Payload["outlet_id"].(string)
+	outletID, err := uuid.Parse(outletIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid outlet_id %q: %w", outletIDStr, err)
+	}
+
+	if err := h.client.Outlet.UpdateOneID(outletID).SetStatus("archived").Exec(ctx); err != nil {
+		if ent.IsNotFound(err) {
+			return nil // outlet was never synced to hospital-api — safe to ignore
+		}
+		return fmt.Errorf("archive outlet mirror: %w", err)
+	}
+	h.logger.Info("outlet archived from auth event", zap.String("outlet_id", outletID.String()))
+	return nil
+}

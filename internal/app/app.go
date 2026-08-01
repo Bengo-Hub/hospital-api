@@ -2,12 +2,17 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/schema"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -15,21 +20,23 @@ import (
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 
 	"github.com/bengobox/hospital-service/internal/config"
+	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/migrate"
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
+	"github.com/bengobox/hospital-service/internal/modules/identity"
+	"github.com/bengobox/hospital-service/internal/modules/rbac"
+	"github.com/bengobox/hospital-service/internal/modules/tenant"
 	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
 	"github.com/bengobox/hospital-service/internal/platform/events"
 	"github.com/bengobox/hospital-service/internal/shared/logger"
 )
 
-// App holds the wired runtime for the hospital service.
-//
-// This is a Sprint-0 scaffold: config/logging/db-pool/redis/nats/health/router
-// are wired for real, but there is no ent client, no domain schema, and no
-// outbox publisher yet (those need at least one ent schema to exist). Sprint 0
-// adds the first ent schemas (Patient, PatientVisit, ...) and wires them here
-// the same way library-api/inventory-api wire theirs.
+// App holds the wired runtime for the hospital service — Trinity Authorization plumbing
+// (JWKS auth, RBAC, tenant/outlet sync, subscription gating, /auth/me) on top of the
+// Sprint-0 scaffold. Clinical domain schemas (Patient, Prescription, LabOrder, ...) are
+// deliberately NOT part of this: see docs/migration-pos-pharmacy.md Phase A / Sprint 4.
 type App struct {
 	cfg        *config.Config
 	log        *zap.Logger
@@ -37,6 +44,10 @@ type App struct {
 	db         *pgxpool.Pool
 	cache      *redis.Client
 	events     *nats.Conn
+	orm        *ent.Client
+
+	authEventHandler       *identity.AuthEventHandler
+	authOutletEventHandler *identity.AuthOutletEventHandler
 }
 
 // New constructs and wires the application.
@@ -68,7 +79,46 @@ func New(ctx context.Context) (*App, error) {
 
 	healthHandler := handlers.NewHealthHandler(log, dbPool, redisClient, natsConn)
 
-	// auth-service JWT validator (JWKS) + optional S2S API key.
+	// ── Ent ORM client (RBAC + tenant/outlet/user sync tables) ────────────────
+	sqlDB, err := sql.Open("pgx", cfg.Postgres.URL)
+	if err != nil {
+		return nil, fmt.Errorf("ent driver init: %w", err)
+	}
+	sqlDB.SetMaxIdleConns(cfg.Postgres.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.Postgres.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(cfg.Postgres.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+
+	drv := entsql.OpenDB(dialect.Postgres, sqlDB)
+	ormClient := ent.NewClient(ent.Driver(drv))
+
+	// Run versioned migrations only when explicitly enabled. In production, migrations are
+	// applied by the entrypoint (or a migration Job) before the server starts.
+	if cfg.Postgres.RunMigrations {
+		if err := ormClient.Schema.Create(ctx, schema.WithDir(migrate.Dir)); err != nil {
+			return nil, fmt.Errorf("ent schema create: %w", err)
+		}
+		log.Info("versioned migrations applied (POSTGRES_RUN_MIGRATIONS=true)")
+	}
+
+	// ── Tenant/outlet sync + RBAC + JIT identity ──────────────────────────────
+	tenantSyncer := tenant.NewSyncer(ormClient, cfg.Auth.ServiceURL).WithDB(sqlDB)
+
+	rbacRepo := rbac.NewEntRepository(ormClient)
+	rbacService := rbac.NewService(rbacRepo, log)
+	if seedErr := rbacService.SeedRoles(ctx); seedErr != nil {
+		log.Warn("rbac: seed global roles/permissions failed (will retry via JIT)", zap.Error(seedErr))
+	}
+
+	identitySvc := identity.NewService(ormClient, tenantSyncer)
+	identitySvc.SetRBACService(rbacService)
+
+	authMeHandler := handlers.NewAuthMeHandler(rbacService)
+
+	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
+	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
+
+	// ── auth-service JWT validator (JWKS) + optional S2S API key ──────────────
 	authConfig := authclient.DefaultConfig(cfg.Auth.JWKSUrl, cfg.Auth.Issuer, cfg.Auth.Audience)
 	authConfig.CacheTTL = cfg.Auth.JWKSCacheTTL
 	authConfig.RefreshInterval = cfg.Auth.JWKSRefreshInterval
@@ -90,6 +140,10 @@ func New(ctx context.Context) (*App, error) {
 		Health:         healthHandler,
 		AuthMiddleware: authMiddleware,
 		AllowedOrigins: cfg.HTTP.AllowedOrigins,
+		EntClient:      ormClient,
+		IdentitySvc:    identitySvc,
+		RBACSvc:        rbacService,
+		AuthMe:         authMeHandler,
 	}
 	chiRouter := router.New(deps)
 
@@ -103,17 +157,33 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	return &App{
-		cfg:        cfg,
-		log:        log,
-		httpServer: httpServer,
-		db:         dbPool,
-		cache:      redisClient,
-		events:     natsConn,
+		cfg:                    cfg,
+		log:                    log,
+		httpServer:             httpServer,
+		db:                     dbPool,
+		cache:                  redisClient,
+		events:                 natsConn,
+		orm:                    ormClient,
+		authEventHandler:       authEventHandler,
+		authOutletEventHandler: authOutletEventHandler,
 	}, nil
 }
 
 // Run starts the HTTP server and blocks until ctx is cancelled.
 func (a *App) Run(ctx context.Context) error {
+	if a.events != nil {
+		if a.authEventHandler != nil {
+			if err := a.authEventHandler.SubscribeToAuthEvents(a.events); err != nil {
+				a.log.Warn("auth user event subscriptions not started", zap.Error(err))
+			}
+		}
+		if a.authOutletEventHandler != nil {
+			if err := a.authOutletEventHandler.SubscribeToOutletEvents(a.events); err != nil {
+				a.log.Warn("auth outlet event subscriptions not started", zap.Error(err))
+			}
+		}
+	}
+
 	errCh := make(chan error, 1)
 	if a.cfg.HTTP.TLSCertFile != "" && a.cfg.HTTP.TLSKeyFile != "" {
 		a.log.Info("hospital service starting with HTTPS", zap.String("addr", a.httpServer.Addr))
@@ -147,6 +217,11 @@ func (a *App) Close() {
 	}
 	if a.cache != nil {
 		_ = a.cache.Close()
+	}
+	if a.orm != nil {
+		if err := a.orm.Close(); err != nil {
+			a.log.Warn("ent client close failed", zap.Error(err))
+		}
 	}
 	if a.db != nil {
 		a.db.Close()
