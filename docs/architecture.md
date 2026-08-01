@@ -82,12 +82,15 @@ client quotation PDF, which is not a runtime API feature.
 
 hospital-api follows the platform's three-layer authorization model (`shared-docs/TRINITY-AUTHORIZATION-PATTERN.md`):
 
-1. **RBAC (auth-api)** — global roles/permissions in the JWT (`superuser`, `admin`, `manager`, `staff`, ...). Implemented today via `shared-auth-client`'s JWKS validator + `AuthMiddleware.RequireAuth` (see `internal/http/router/router.go`).
-2. **Licensing (subscriptions-api)** — `service_tag: "hospital"` plan/tier entitlements embedded as `sub_*` JWT claims (mutations-only enforcement, matching every sibling service). Not yet wired — planned for the sprint that adds the first mutating endpoint.
-3. **Resources (hospital-api itself)** — fine-grained `hospital.{module}.{action}` permission codes (e.g. `hospital.prescriptions.dispense`, `hospital.lab_orders.result`) in a local RBAC module, JIT-provisioned from JWT claims, global role catalogue (no `tenant_id` on the role tables — see `erd.md` Conventions). Not yet implemented — planned alongside the first domain module (Sprint 1).
+1. **RBAC (auth-api)** — global roles/permissions in the JWT (`superuser`, `admin`, `manager`, `staff`, `doctor`, `nurse`, `pharmacist`, `records_clerk`, ...). Implemented via `shared-auth-client`'s JWKS validator + `AuthMiddleware.RequireAuth` (see `internal/http/router/router.go`).
+2. **Licensing (subscriptions-api)** — `service_tag: "hospital"` plan/tier entitlements (`AFYA_CLINIC`/`AFYA_FACILITY`/`AFYA_HOSPITAL`) embedded as `sub_*` JWT claims. **Shipped 2026-08-01**: `internal/platform/subscriptions/{client,gate,features}.go`, `SubscriptionGate()` wired in the router chain, mutations-only, fails open on lookup failure.
+3. **Resources (hospital-api itself)** — fine-grained `hospital.{module}.{action}` permission codes in a local RBAC module (`internal/modules/rbac`), JIT-provisioned from JWT claims via `internal/modules/identity` (self-heals role assignment on every authenticated request, not just first login), global role catalogue (no `tenant_id` on the role tables — see `erd.md` Conventions). **Shipped 2026-08-01** as plumbing; no domain permission codes exist yet beyond the seed set, since there are no domain modules to gate (Sprint 4+).
 
 Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses the standard `X-Outlet-ID` header + `httpware.WithOutletID` context pattern, optional and additive — absent means tenant-wide data.
 
 ## Changelog
 
 - **2026-07-31** — Initial architecture doc written alongside the Sprint-0 scaffold. Layer overview, data-authority table, and Trinity wiring plan established ahead of any domain code.
+- **2026-08-01** — Trinity wiring plan executed: RBAC/JIT identity/tenant+outlet sync/subscription
+  gating all shipped (see `docs/integrations.md` §3/§4 for the up-to-date status). Still no
+  clinical domain schemas — that's `docs/migration-pos-pharmacy.md` Phase A / Sprint 4.

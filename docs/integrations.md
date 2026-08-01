@@ -173,23 +173,40 @@ new schema table.
 
 Standard SSO pattern, identical to every sibling service:
 - JWT validation via `shared-auth-client` (JWKS, RS256, audience `codevertex`).
-- JIT user provisioning on first request with a valid token but no local user row.
-- `GET /api/v1/{tenant}/hospital/auth/me` (planned) returns hospital-specific role + fine-grained
+- JIT user provisioning on first request with a valid token but no local user row
+  (`internal/modules/identity`, `EnsureUserFromToken` — self-heals role assignment on every
+  request, not just first creation).
+- `GET /api/v1/{tenant}/hospital/auth/me` returns hospital-specific role + fine-grained
   `hospital.{module}.{action}` permissions, merged with the global JWT roles (Trinity Layer 3).
 
-**Status:** JWKS validator + `RequireAuth` middleware are wired today (`internal/app/app.go`); the
-`/auth/me` endpoint and local RBAC tables are not implemented yet (Sprint 1).
+**Status (2026-08-01): SHIPPED.** JWKS validator + `RequireAuth` (`internal/app/app.go`), local
+RBAC tables (`internal/modules/rbac`, ent schemas `HospitalPermission`/`HospitalRole`/
+`RolePermission`/`UserRoleAssignment`), tenant/outlet sync with self-healing UUID-drift repoint
+(`internal/modules/tenant/syncer.go`), `auth.user.*`/`auth.outlet.*` NATS event subscribers
+(`internal/modules/identity`), and the full middleware chain (`RequireAuth` → `SubscriptionGate`
+→ JIT → `TenantV2` → `OutletContext` → route) are all wired in `internal/http/router/router.go`.
+auth-service registers `hospital-ui` as an OAuth client and a `"hospital"` outlet use_case
+(`ApplicableServices("hospital") -> ["hospital-api"]`) — outlet-sync events now actually reach
+this service. Still Sprint 4+ work: no clinical ent schemas yet (Patient/Prescription/etc., see
+`docs/migration-pos-pharmacy.md`), so there are no permission-gated domain routes beyond the
+placeholder `/ping` yet — only the plumbing those routes will sit behind.
 
 ---
 
 ## 4. Subscriptions Service Integration
 
-**Planned `service_tag`:** `hospital`, three tiers (`AFYA_CLINIC`, `AFYA_FACILITY`, `AFYA_HOSPITAL`)
-matching `d:\Projects\Codevertex\CODEVERTEX AFRICA HOSPITAL MANAGEMENT SYSTEMS PRICING MODEL.md`.
-Feature gates to register: `inpatient_module` (Clinic add-on / included from Facility up),
-`in_house_lab`, `insurance_claims`, `multi_branch`, `specialized_programmes`, `api_access`.
-Mutations-only subscription enforcement, matching every other domain service (auth-api and
-subscriptions-api themselves are exempt).
+**Status (2026-08-01): SHIPPED.** `service_tag: "hospital"`, three tiers (`AFYA_CLINIC`,
+`AFYA_FACILITY`, `AFYA_HOSPITAL`, + one-time perpetual licenses for Clinic/Facility + annual
+support plans for all three) seeded in `subscriptions-service/subscriptions-api/cmd/seed/
+plans_hospital.go`, matching `CODEVERTEX AFRICA HOSPITAL MANAGEMENT SYSTEMS PRICING MODEL.md`.
+Full cross-service feature matrix per tier (clinical core every tier; `in_house_lab`,
+`inpatient_module`, `controlled_substance_register`, `insurance_claims` from Facility;
+`theatre_module`, `specialized_programmes`, `multi_branch`, `api_access`, ERP HR/payroll, and
+logistics `ambulance_dispatch` at Hospital tier only, per the pricing doc) — see the file header
+comment there for the full block-by-block breakdown. hospital-api's own consumer side
+(`internal/platform/subscriptions/{client,gate,features}.go`) is wired: mutations-only
+enforcement via `SubscriptionGate()` in the router chain, fails open on a subscriptions-api
+lookup failure (never lock out an active tenant), matching every other domain service.
 
 ---
 
