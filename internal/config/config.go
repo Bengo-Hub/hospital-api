@@ -85,7 +85,7 @@ type ServicesConfig struct {
 	InventoryURL     string `envconfig:"INVENTORY_SERVICE_URL" default:"https://inventoryapi.codevertexafrica.com"`
 	TreasuryURL      string `envconfig:"TREASURY_SERVICE_URL" default:"https://booksapi.codevertexafrica.com"`
 	NotificationsURL string `envconfig:"NOTIFICATIONS_SERVICE_URL" default:"https://notificationsapi.codevertexafrica.com"`
-	SubscriptionsURL string `envconfig:"SUBSCRIPTIONS_SERVICE_URL" default:"https://pricingapi.codevertexafrica.com"`
+	SubscriptionsURL string `envconfig:"SUBSCRIPTION_BASE_URL" default:"https://pricingapi.codevertexafrica.com"`
 }
 
 // Load gathers configuration from environment variables and optional .env files.
