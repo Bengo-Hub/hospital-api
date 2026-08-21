@@ -12,6 +12,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 )
 
@@ -90,6 +91,7 @@ func (h *AuthEventHandler) SubscribeToAuthEvents(nc *nats.Conn) error {
 	subs := []sub{
 		{"auth.user.created", "hospital-auth-user-created", h.handleUserCreated},
 		{"auth.user.updated", "hospital-auth-user-updated", h.handleUserUpdated},
+		{"auth.user.deleted", "hospital-auth-user-deleted", h.handleUserDeleted},
 	}
 
 	for _, s := range subs {
@@ -121,6 +123,38 @@ func (h *AuthEventHandler) SubscribeToAuthEvents(nc *nats.Conn) error {
 
 	h.logger.Info("auth event subscriptions active",
 		zap.String("subjects", "auth.user.created, auth.user.updated"))
+	return nil
+}
+
+// handleUserDeleted hard-deletes this user's local hospital-api rows after auth-api
+// permanently deletes the account (AdminPurgeUser). UserRoleAssignment has a real
+// OnDelete:NoAction FK to hospital_users, so it must go first.
+func (h *AuthEventHandler) handleUserDeleted(ctx context.Context, evt *sharedevents.Event) error {
+	userIDStr, _ := evt.Payload["user_id"].(string)
+	authServiceUserID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid user_id %q: %w", userIDStr, err)
+	}
+
+	tx, err := h.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("start tx: %w", err)
+	}
+
+	if _, err := tx.UserRoleAssignment.Delete().Where(userroleassignment.UserID(authServiceUserID)).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("delete user role assignments: %w", err)
+	}
+	if _, err := tx.HospitalUser.Delete().Where(hospitaluser.AuthServiceUserID(authServiceUserID)).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("delete hospital user: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	h.logger.Info("user hard-deleted from auth.user.deleted event", zap.String("user_id", userIDStr))
 	return nil
 }
 
