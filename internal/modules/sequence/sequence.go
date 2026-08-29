@@ -18,6 +18,16 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
 )
 
+// sqliteForUpdateUnsupported is the exact, stable message ent's query builder emits when
+// .ForUpdate() is used against the SQLite dialect (see entgo.io/ent/dialect/sql/builder.go's
+// Selector.ForUpdate — SQLite has no row-level locking, so ent refuses rather than silently
+// dropping the correctness-relevant clause). Production always runs against Postgres, where this
+// never fires; it only exists so an in-memory sqlite ent client (integration tests, no
+// mattn/go-sqlite3/cgo required in this environment) can allocate a sequence at all — a single-
+// connection in-memory test DB has no concurrent writer to protect against, so falling back to an
+// unlocked read there is safe, not a correctness compromise.
+const sqliteForUpdateUnsupported = "SELECT .. FOR UPDATE/SHARE not supported in SQLite"
+
 // Kinds of sequences.
 const (
 	KindMRN         = "mrn"
@@ -92,6 +102,11 @@ func Next(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID, kind, defaultPref
 		Where(documentsequence.TenantID(tenantID), documentsequence.Kind(kind)).
 		ForUpdate().
 		Only(ctx)
+	if err != nil && strings.Contains(err.Error(), sqliteForUpdateUnsupported) {
+		seq, err = tx.DocumentSequence.Query().
+			Where(documentsequence.TenantID(tenantID), documentsequence.Kind(kind)).
+			Only(ctx)
+	}
 	if ent.IsNotFound(err) {
 		reset := defaultReset(kind)
 		seq, err = tx.DocumentSequence.Create().
