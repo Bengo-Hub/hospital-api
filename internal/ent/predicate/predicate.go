@@ -12,6 +12,9 @@ type BillableCharge func(*sql.Selector)
 // BillableItemCatalog is the predicate function for billableitemcatalog builders.
 type BillableItemCatalog func(*sql.Selector)
 
+// ControlledSubstanceLog is the predicate function for controlledsubstancelog builders.
+type ControlledSubstanceLog func(*sql.Selector)
+
 // DiagnosisCatalogDefault is the predicate function for diagnosiscatalogdefault builders.
 type DiagnosisCatalogDefault func(*sql.Selector)
 
@@ -20,6 +23,9 @@ type DiagnosisCatalogEntry func(*sql.Selector)
 
 // DocumentSequence is the predicate function for documentsequence builders.
 type DocumentSequence func(*sql.Selector)
+
+// DrugInteractionCheck is the predicate function for druginteractioncheck builders.
+type DrugInteractionCheck func(*sql.Selector)
 
 // ExaminationRecord is the predicate function for examinationrecord builders.
 type ExaminationRecord func(*sql.Selector)
@@ -62,6 +68,12 @@ type PatientNextOfKin func(*sql.Selector)
 
 // PatientVisit is the predicate function for patientvisit builders.
 type PatientVisit func(*sql.Selector)
+
+// Prescription is the predicate function for prescription builders.
+type Prescription func(*sql.Selector)
+
+// PrescriptionLine is the predicate function for prescriptionline builders.
+type PrescriptionLine func(*sql.Selector)
 
 // Referral is the predicate function for referral builders.
 type Referral func(*sql.Selector)

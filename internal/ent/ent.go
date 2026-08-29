@@ -14,9 +14,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
+	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
+	"github.com/bengobox/hospital-service/internal/ent/druginteractioncheck"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
@@ -31,6 +33,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/prescription"
+	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -98,9 +102,11 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			billablecharge.Table:          billablecharge.ValidColumn,
 			billableitemcatalog.Table:     billableitemcatalog.ValidColumn,
+			controlledsubstancelog.Table:  controlledsubstancelog.ValidColumn,
 			diagnosiscatalogdefault.Table: diagnosiscatalogdefault.ValidColumn,
 			diagnosiscatalogentry.Table:   diagnosiscatalogentry.ValidColumn,
 			documentsequence.Table:        documentsequence.ValidColumn,
+			druginteractioncheck.Table:    druginteractioncheck.ValidColumn,
 			examinationrecord.Table:       examinationrecord.ValidColumn,
 			hospitalpermission.Table:      hospitalpermission.ValidColumn,
 			hospitalrole.Table:            hospitalrole.ValidColumn,
@@ -115,6 +121,8 @@ func checkColumn(t, c string) error {
 			patientaccount.Table:          patientaccount.ValidColumn,
 			patientnextofkin.Table:        patientnextofkin.ValidColumn,
 			patientvisit.Table:            patientvisit.ValidColumn,
+			prescription.Table:            prescription.ValidColumn,
+			prescriptionline.Table:        prescriptionline.ValidColumn,
 			referral.Table:                referral.ValidColumn,
 			rolepermission.Table:          rolepermission.ValidColumn,
 			tenant.Table:                  tenant.ValidColumn,

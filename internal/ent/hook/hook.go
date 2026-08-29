@@ -33,6 +33,18 @@ func (f BillableItemCatalogFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BillableItemCatalogMutation", m)
 }
 
+// The ControlledSubstanceLogFunc type is an adapter to allow the use of ordinary
+// function as ControlledSubstanceLog mutator.
+type ControlledSubstanceLogFunc func(context.Context, *ent.ControlledSubstanceLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ControlledSubstanceLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ControlledSubstanceLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ControlledSubstanceLogMutation", m)
+}
+
 // The DiagnosisCatalogDefaultFunc type is an adapter to allow the use of ordinary
 // function as DiagnosisCatalogDefault mutator.
 type DiagnosisCatalogDefaultFunc func(context.Context, *ent.DiagnosisCatalogDefaultMutation) (ent.Value, error)
@@ -67,6 +79,18 @@ func (f DocumentSequenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DocumentSequenceMutation", m)
+}
+
+// The DrugInteractionCheckFunc type is an adapter to allow the use of ordinary
+// function as DrugInteractionCheck mutator.
+type DrugInteractionCheckFunc func(context.Context, *ent.DrugInteractionCheckMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DrugInteractionCheckFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DrugInteractionCheckMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DrugInteractionCheckMutation", m)
 }
 
 // The ExaminationRecordFunc type is an adapter to allow the use of ordinary
@@ -235,6 +259,30 @@ func (f PatientVisitFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PatientVisitMutation", m)
+}
+
+// The PrescriptionFunc type is an adapter to allow the use of ordinary
+// function as Prescription mutator.
+type PrescriptionFunc func(context.Context, *ent.PrescriptionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PrescriptionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PrescriptionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PrescriptionMutation", m)
+}
+
+// The PrescriptionLineFunc type is an adapter to allow the use of ordinary
+// function as PrescriptionLine mutator.
+type PrescriptionLineFunc func(context.Context, *ent.PrescriptionLineMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PrescriptionLineFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PrescriptionLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PrescriptionLineMutation", m)
 }
 
 // The ReferralFunc type is an adapter to allow the use of ordinary

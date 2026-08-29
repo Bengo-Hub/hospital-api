@@ -16,12 +16,16 @@ type Tx struct {
 	BillableCharge *BillableChargeClient
 	// BillableItemCatalog is the client for interacting with the BillableItemCatalog builders.
 	BillableItemCatalog *BillableItemCatalogClient
+	// ControlledSubstanceLog is the client for interacting with the ControlledSubstanceLog builders.
+	ControlledSubstanceLog *ControlledSubstanceLogClient
 	// DiagnosisCatalogDefault is the client for interacting with the DiagnosisCatalogDefault builders.
 	DiagnosisCatalogDefault *DiagnosisCatalogDefaultClient
 	// DiagnosisCatalogEntry is the client for interacting with the DiagnosisCatalogEntry builders.
 	DiagnosisCatalogEntry *DiagnosisCatalogEntryClient
 	// DocumentSequence is the client for interacting with the DocumentSequence builders.
 	DocumentSequence *DocumentSequenceClient
+	// DrugInteractionCheck is the client for interacting with the DrugInteractionCheck builders.
+	DrugInteractionCheck *DrugInteractionCheckClient
 	// ExaminationRecord is the client for interacting with the ExaminationRecord builders.
 	ExaminationRecord *ExaminationRecordClient
 	// HospitalPermission is the client for interacting with the HospitalPermission builders.
@@ -50,6 +54,10 @@ type Tx struct {
 	PatientNextOfKin *PatientNextOfKinClient
 	// PatientVisit is the client for interacting with the PatientVisit builders.
 	PatientVisit *PatientVisitClient
+	// Prescription is the client for interacting with the Prescription builders.
+	Prescription *PrescriptionClient
+	// PrescriptionLine is the client for interacting with the PrescriptionLine builders.
+	PrescriptionLine *PrescriptionLineClient
 	// Referral is the client for interacting with the Referral builders.
 	Referral *ReferralClient
 	// RolePermission is the client for interacting with the RolePermission builders.
@@ -193,9 +201,11 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.BillableCharge = NewBillableChargeClient(tx.config)
 	tx.BillableItemCatalog = NewBillableItemCatalogClient(tx.config)
+	tx.ControlledSubstanceLog = NewControlledSubstanceLogClient(tx.config)
 	tx.DiagnosisCatalogDefault = NewDiagnosisCatalogDefaultClient(tx.config)
 	tx.DiagnosisCatalogEntry = NewDiagnosisCatalogEntryClient(tx.config)
 	tx.DocumentSequence = NewDocumentSequenceClient(tx.config)
+	tx.DrugInteractionCheck = NewDrugInteractionCheckClient(tx.config)
 	tx.ExaminationRecord = NewExaminationRecordClient(tx.config)
 	tx.HospitalPermission = NewHospitalPermissionClient(tx.config)
 	tx.HospitalRole = NewHospitalRoleClient(tx.config)
@@ -210,6 +220,8 @@ func (tx *Tx) init() {
 	tx.PatientAccount = NewPatientAccountClient(tx.config)
 	tx.PatientNextOfKin = NewPatientNextOfKinClient(tx.config)
 	tx.PatientVisit = NewPatientVisitClient(tx.config)
+	tx.Prescription = NewPrescriptionClient(tx.config)
+	tx.PrescriptionLine = NewPrescriptionLineClient(tx.config)
 	tx.Referral = NewReferralClient(tx.config)
 	tx.RolePermission = NewRolePermissionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)

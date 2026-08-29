@@ -90,6 +90,42 @@ var (
 			},
 		},
 	}
+	// ControlledSubstanceLogsColumns holds the columns for the "controlled_substance_logs" table.
+	ControlledSubstanceLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "prescription_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "item_sku", Type: field.TypeString},
+		{Name: "item_name", Type: field.TypeString},
+		{Name: "quantity_dispensed", Type: field.TypeFloat64},
+		{Name: "dispensed_by", Type: field.TypeUUID},
+		{Name: "patient_name", Type: field.TypeString, Nullable: true},
+		{Name: "patient_id_number", Type: field.TypeString, Nullable: true},
+		{Name: "witness_staff_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "lot_number", Type: field.TypeString, Nullable: true},
+		{Name: "lot_expiry_date", Type: field.TypeTime, Nullable: true},
+		{Name: "dispensed_at", Type: field.TypeTime},
+	}
+	// ControlledSubstanceLogsTable holds the schema information for the "controlled_substance_logs" table.
+	ControlledSubstanceLogsTable = &schema.Table{
+		Name:       "controlled_substance_logs",
+		Columns:    ControlledSubstanceLogsColumns,
+		PrimaryKey: []*schema.Column{ControlledSubstanceLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "controlledsubstancelog_tenant_id_prescription_id",
+				Unique:  false,
+				Columns: []*schema.Column{ControlledSubstanceLogsColumns[1], ControlledSubstanceLogsColumns[3]},
+			},
+			{
+				Name:    "controlledsubstancelog_tenant_id_dispensed_at",
+				Unique:  false,
+				Columns: []*schema.Column{ControlledSubstanceLogsColumns[1], ControlledSubstanceLogsColumns[14]},
+			},
+		},
+	}
 	// DiagnosisCatalogDefaultsColumns holds the columns for the "diagnosis_catalog_defaults" table.
 	DiagnosisCatalogDefaultsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -166,6 +202,30 @@ var (
 				Name:    "documentsequence_tenant_id_kind",
 				Unique:  true,
 				Columns: []*schema.Column{DocumentSequencesColumns[1], DocumentSequencesColumns[2]},
+			},
+		},
+	}
+	// DrugInteractionChecksColumns holds the columns for the "drug_interaction_checks" table.
+	DrugInteractionChecksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "prescription_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "drug_skus", Type: field.TypeJSON, Nullable: true},
+		{Name: "result", Type: field.TypeString, Default: "clear"},
+		{Name: "details", Type: field.TypeJSON, Nullable: true},
+		{Name: "checked_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "checked_at", Type: field.TypeTime},
+	}
+	// DrugInteractionChecksTable holds the schema information for the "drug_interaction_checks" table.
+	DrugInteractionChecksTable = &schema.Table{
+		Name:       "drug_interaction_checks",
+		Columns:    DrugInteractionChecksColumns,
+		PrimaryKey: []*schema.Column{DrugInteractionChecksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "druginteractioncheck_tenant_id_prescription_id",
+				Unique:  false,
+				Columns: []*schema.Column{DrugInteractionChecksColumns[1], DrugInteractionChecksColumns[2]},
 			},
 		},
 	}
@@ -711,6 +771,95 @@ var (
 			},
 		},
 	}
+	// PrescriptionsColumns holds the columns for the "prescriptions" table.
+	PrescriptionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "patient_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "visit_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "examination_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "external_facility_name", Type: field.TypeString, Nullable: true},
+		{Name: "prescription_number", Type: field.TypeString},
+		{Name: "prescriber_name", Type: field.TypeString, Nullable: true},
+		{Name: "prescriber_license", Type: field.TypeString, Nullable: true},
+		{Name: "patient_name", Type: field.TypeString, Nullable: true},
+		{Name: "patient_dob", Type: field.TypeTime, Nullable: true},
+		{Name: "patient_id_number", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "pharmacist_review", "flagged", "approved", "locked", "partially_dispensed", "dispensed", "rejected", "cancelled"}, Default: "pending"},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "dispensed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "dispensed_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PrescriptionsTable holds the schema information for the "prescriptions" table.
+	PrescriptionsTable = &schema.Table{
+		Name:       "prescriptions",
+		Columns:    PrescriptionsColumns,
+		PrimaryKey: []*schema.Column{PrescriptionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "prescription_tenant_id_prescription_number",
+				Unique:  true,
+				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[7]},
+			},
+			{
+				Name:    "prescription_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[13]},
+			},
+			{
+				Name:    "prescription_tenant_id_patient_id",
+				Unique:  false,
+				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[3]},
+			},
+			{
+				Name:    "prescription_tenant_id_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[4]},
+			},
+		},
+	}
+	// PrescriptionLinesColumns holds the columns for the "prescription_lines" table.
+	PrescriptionLinesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "inventory_item_sku", Type: field.TypeString, Nullable: true},
+		{Name: "drug_name", Type: field.TypeString},
+		{Name: "dosage", Type: field.TypeString, Nullable: true},
+		{Name: "form", Type: field.TypeString, Nullable: true},
+		{Name: "instructions", Type: field.TypeString, Nullable: true},
+		{Name: "quantity_prescribed", Type: field.TypeFloat64},
+		{Name: "quantity_dispensed", Type: field.TypeFloat64, Default: 0},
+		{Name: "unit_price", Type: field.TypeFloat64, Default: 0},
+		{Name: "lot_number", Type: field.TypeString, Nullable: true},
+		{Name: "expiry_date", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "dispensed", "partially_dispensed", "cancelled"}, Default: "pending"},
+		{Name: "prescription_id", Type: field.TypeUUID},
+	}
+	// PrescriptionLinesTable holds the schema information for the "prescription_lines" table.
+	PrescriptionLinesTable = &schema.Table{
+		Name:       "prescription_lines",
+		Columns:    PrescriptionLinesColumns,
+		PrimaryKey: []*schema.Column{PrescriptionLinesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "prescription_lines_prescriptions_lines",
+				Columns:    []*schema.Column{PrescriptionLinesColumns[13]},
+				RefColumns: []*schema.Column{PrescriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "prescriptionline_tenant_id_prescription_id",
+				Unique:  false,
+				Columns: []*schema.Column{PrescriptionLinesColumns[1], PrescriptionLinesColumns[13]},
+			},
+		},
+	}
 	// ReferralsColumns holds the columns for the "referrals" table.
 	ReferralsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -922,9 +1071,11 @@ var (
 	Tables = []*schema.Table{
 		BillableChargesTable,
 		BillableItemCatalogsTable,
+		ControlledSubstanceLogsTable,
 		DiagnosisCatalogDefaultsTable,
 		DiagnosisCatalogEntriesTable,
 		DocumentSequencesTable,
+		DrugInteractionChecksTable,
 		ExaminationRecordsTable,
 		HospitalPermissionsTable,
 		HospitalRolesTable,
@@ -939,6 +1090,8 @@ var (
 		PatientAccountsTable,
 		PatientNextOfKinsTable,
 		PatientVisitsTable,
+		PrescriptionsTable,
+		PrescriptionLinesTable,
 		ReferralsTable,
 		RolePermissionsTable,
 		TenantsTable,
@@ -955,6 +1108,7 @@ func init() {
 	LabOrderLinesTable.ForeignKeys[0].RefTable = LabOrdersTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
 	PatientVisitsTable.ForeignKeys[0].RefTable = PatientsTable
+	PrescriptionLinesTable.ForeignKeys[0].RefTable = PrescriptionsTable
 	ReferralsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	RolePermissionsTable.ForeignKeys[0].RefTable = HospitalRolesTable
 	RolePermissionsTable.ForeignKeys[1].RefTable = HospitalPermissionsTable

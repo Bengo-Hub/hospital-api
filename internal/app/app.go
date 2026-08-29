@@ -27,8 +27,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
+	inventoryclient "github.com/bengobox/hospital-service/internal/modules/inventory"
 	"github.com/bengobox/hospital-service/internal/modules/lab"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
+	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/refdata"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
@@ -165,6 +167,11 @@ func New(ctx context.Context) (*App, error) {
 	labSvc := lab.NewService(ormClient, billingSvc, log)
 	labHandler := handlers.NewLabHandler(labSvc)
 
+	// ── Sprint 4: pharmacy / dispensing ────────────────────────────────────
+	inventorySvc := inventoryclient.NewClient(cfg.Services.InventoryURL, cfg.Auth.APIKey, log)
+	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log)
+	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc)
+
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
@@ -198,6 +205,7 @@ func New(ctx context.Context) (*App, error) {
 		Consultation:   consultationHandler,
 		Billing:        billingHandler,
 		Lab:            labHandler,
+		Pharmacy:       pharmacyHandler,
 	}
 	chiRouter := router.New(deps)
 

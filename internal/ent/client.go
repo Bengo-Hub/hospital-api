@@ -18,9 +18,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
+	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
+	"github.com/bengobox/hospital-service/internal/ent/druginteractioncheck"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
@@ -35,6 +37,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/prescription"
+	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -51,12 +55,16 @@ type Client struct {
 	BillableCharge *BillableChargeClient
 	// BillableItemCatalog is the client for interacting with the BillableItemCatalog builders.
 	BillableItemCatalog *BillableItemCatalogClient
+	// ControlledSubstanceLog is the client for interacting with the ControlledSubstanceLog builders.
+	ControlledSubstanceLog *ControlledSubstanceLogClient
 	// DiagnosisCatalogDefault is the client for interacting with the DiagnosisCatalogDefault builders.
 	DiagnosisCatalogDefault *DiagnosisCatalogDefaultClient
 	// DiagnosisCatalogEntry is the client for interacting with the DiagnosisCatalogEntry builders.
 	DiagnosisCatalogEntry *DiagnosisCatalogEntryClient
 	// DocumentSequence is the client for interacting with the DocumentSequence builders.
 	DocumentSequence *DocumentSequenceClient
+	// DrugInteractionCheck is the client for interacting with the DrugInteractionCheck builders.
+	DrugInteractionCheck *DrugInteractionCheckClient
 	// ExaminationRecord is the client for interacting with the ExaminationRecord builders.
 	ExaminationRecord *ExaminationRecordClient
 	// HospitalPermission is the client for interacting with the HospitalPermission builders.
@@ -85,6 +93,10 @@ type Client struct {
 	PatientNextOfKin *PatientNextOfKinClient
 	// PatientVisit is the client for interacting with the PatientVisit builders.
 	PatientVisit *PatientVisitClient
+	// Prescription is the client for interacting with the Prescription builders.
+	Prescription *PrescriptionClient
+	// PrescriptionLine is the client for interacting with the PrescriptionLine builders.
+	PrescriptionLine *PrescriptionLineClient
 	// Referral is the client for interacting with the Referral builders.
 	Referral *ReferralClient
 	// RolePermission is the client for interacting with the RolePermission builders.
@@ -108,9 +120,11 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.BillableCharge = NewBillableChargeClient(c.config)
 	c.BillableItemCatalog = NewBillableItemCatalogClient(c.config)
+	c.ControlledSubstanceLog = NewControlledSubstanceLogClient(c.config)
 	c.DiagnosisCatalogDefault = NewDiagnosisCatalogDefaultClient(c.config)
 	c.DiagnosisCatalogEntry = NewDiagnosisCatalogEntryClient(c.config)
 	c.DocumentSequence = NewDocumentSequenceClient(c.config)
+	c.DrugInteractionCheck = NewDrugInteractionCheckClient(c.config)
 	c.ExaminationRecord = NewExaminationRecordClient(c.config)
 	c.HospitalPermission = NewHospitalPermissionClient(c.config)
 	c.HospitalRole = NewHospitalRoleClient(c.config)
@@ -125,6 +139,8 @@ func (c *Client) init() {
 	c.PatientAccount = NewPatientAccountClient(c.config)
 	c.PatientNextOfKin = NewPatientNextOfKinClient(c.config)
 	c.PatientVisit = NewPatientVisitClient(c.config)
+	c.Prescription = NewPrescriptionClient(c.config)
+	c.PrescriptionLine = NewPrescriptionLineClient(c.config)
 	c.Referral = NewReferralClient(c.config)
 	c.RolePermission = NewRolePermissionClient(c.config)
 	c.Tenant = NewTenantClient(c.config)
@@ -224,9 +240,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                  cfg,
 		BillableCharge:          NewBillableChargeClient(cfg),
 		BillableItemCatalog:     NewBillableItemCatalogClient(cfg),
+		ControlledSubstanceLog:  NewControlledSubstanceLogClient(cfg),
 		DiagnosisCatalogDefault: NewDiagnosisCatalogDefaultClient(cfg),
 		DiagnosisCatalogEntry:   NewDiagnosisCatalogEntryClient(cfg),
 		DocumentSequence:        NewDocumentSequenceClient(cfg),
+		DrugInteractionCheck:    NewDrugInteractionCheckClient(cfg),
 		ExaminationRecord:       NewExaminationRecordClient(cfg),
 		HospitalPermission:      NewHospitalPermissionClient(cfg),
 		HospitalRole:            NewHospitalRoleClient(cfg),
@@ -241,6 +259,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PatientAccount:          NewPatientAccountClient(cfg),
 		PatientNextOfKin:        NewPatientNextOfKinClient(cfg),
 		PatientVisit:            NewPatientVisitClient(cfg),
+		Prescription:            NewPrescriptionClient(cfg),
+		PrescriptionLine:        NewPrescriptionLineClient(cfg),
 		Referral:                NewReferralClient(cfg),
 		RolePermission:          NewRolePermissionClient(cfg),
 		Tenant:                  NewTenantClient(cfg),
@@ -267,9 +287,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                  cfg,
 		BillableCharge:          NewBillableChargeClient(cfg),
 		BillableItemCatalog:     NewBillableItemCatalogClient(cfg),
+		ControlledSubstanceLog:  NewControlledSubstanceLogClient(cfg),
 		DiagnosisCatalogDefault: NewDiagnosisCatalogDefaultClient(cfg),
 		DiagnosisCatalogEntry:   NewDiagnosisCatalogEntryClient(cfg),
 		DocumentSequence:        NewDocumentSequenceClient(cfg),
+		DrugInteractionCheck:    NewDrugInteractionCheckClient(cfg),
 		ExaminationRecord:       NewExaminationRecordClient(cfg),
 		HospitalPermission:      NewHospitalPermissionClient(cfg),
 		HospitalRole:            NewHospitalRoleClient(cfg),
@@ -284,6 +306,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PatientAccount:          NewPatientAccountClient(cfg),
 		PatientNextOfKin:        NewPatientNextOfKinClient(cfg),
 		PatientVisit:            NewPatientVisitClient(cfg),
+		Prescription:            NewPrescriptionClient(cfg),
+		PrescriptionLine:        NewPrescriptionLineClient(cfg),
 		Referral:                NewReferralClient(cfg),
 		RolePermission:          NewRolePermissionClient(cfg),
 		Tenant:                  NewTenantClient(cfg),
@@ -318,12 +342,14 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.BillableCharge, c.BillableItemCatalog, c.DiagnosisCatalogDefault,
-		c.DiagnosisCatalogEntry, c.DocumentSequence, c.ExaminationRecord,
-		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.LabOrder,
-		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
-		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
-		c.Referral, c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
+		c.BillableCharge, c.BillableItemCatalog, c.ControlledSubstanceLog,
+		c.DiagnosisCatalogDefault, c.DiagnosisCatalogEntry, c.DocumentSequence,
+		c.DrugInteractionCheck, c.ExaminationRecord, c.HospitalPermission,
+		c.HospitalRole, c.HospitalUser, c.LabOrder, c.LabOrderLine,
+		c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet,
+		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
+		c.Prescription, c.PrescriptionLine, c.Referral, c.RolePermission, c.Tenant,
+		c.TriageRecord, c.UserRoleAssignment,
 	} {
 		n.Use(hooks...)
 	}
@@ -333,12 +359,14 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.BillableCharge, c.BillableItemCatalog, c.DiagnosisCatalogDefault,
-		c.DiagnosisCatalogEntry, c.DocumentSequence, c.ExaminationRecord,
-		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.LabOrder,
-		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
-		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
-		c.Referral, c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
+		c.BillableCharge, c.BillableItemCatalog, c.ControlledSubstanceLog,
+		c.DiagnosisCatalogDefault, c.DiagnosisCatalogEntry, c.DocumentSequence,
+		c.DrugInteractionCheck, c.ExaminationRecord, c.HospitalPermission,
+		c.HospitalRole, c.HospitalUser, c.LabOrder, c.LabOrderLine,
+		c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet,
+		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
+		c.Prescription, c.PrescriptionLine, c.Referral, c.RolePermission, c.Tenant,
+		c.TriageRecord, c.UserRoleAssignment,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -351,12 +379,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillableCharge.mutate(ctx, m)
 	case *BillableItemCatalogMutation:
 		return c.BillableItemCatalog.mutate(ctx, m)
+	case *ControlledSubstanceLogMutation:
+		return c.ControlledSubstanceLog.mutate(ctx, m)
 	case *DiagnosisCatalogDefaultMutation:
 		return c.DiagnosisCatalogDefault.mutate(ctx, m)
 	case *DiagnosisCatalogEntryMutation:
 		return c.DiagnosisCatalogEntry.mutate(ctx, m)
 	case *DocumentSequenceMutation:
 		return c.DocumentSequence.mutate(ctx, m)
+	case *DrugInteractionCheckMutation:
+		return c.DrugInteractionCheck.mutate(ctx, m)
 	case *ExaminationRecordMutation:
 		return c.ExaminationRecord.mutate(ctx, m)
 	case *HospitalPermissionMutation:
@@ -385,6 +417,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PatientNextOfKin.mutate(ctx, m)
 	case *PatientVisitMutation:
 		return c.PatientVisit.mutate(ctx, m)
+	case *PrescriptionMutation:
+		return c.Prescription.mutate(ctx, m)
+	case *PrescriptionLineMutation:
+		return c.PrescriptionLine.mutate(ctx, m)
 	case *ReferralMutation:
 		return c.Referral.mutate(ctx, m)
 	case *RolePermissionMutation:
@@ -679,6 +715,139 @@ func (c *BillableItemCatalogClient) mutate(ctx context.Context, m *BillableItemC
 		return (&BillableItemCatalogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown BillableItemCatalog mutation op: %q", m.Op())
+	}
+}
+
+// ControlledSubstanceLogClient is a client for the ControlledSubstanceLog schema.
+type ControlledSubstanceLogClient struct {
+	config
+}
+
+// NewControlledSubstanceLogClient returns a client for the ControlledSubstanceLog from the given config.
+func NewControlledSubstanceLogClient(c config) *ControlledSubstanceLogClient {
+	return &ControlledSubstanceLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `controlledsubstancelog.Hooks(f(g(h())))`.
+func (c *ControlledSubstanceLogClient) Use(hooks ...Hook) {
+	c.hooks.ControlledSubstanceLog = append(c.hooks.ControlledSubstanceLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `controlledsubstancelog.Intercept(f(g(h())))`.
+func (c *ControlledSubstanceLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ControlledSubstanceLog = append(c.inters.ControlledSubstanceLog, interceptors...)
+}
+
+// Create returns a builder for creating a ControlledSubstanceLog entity.
+func (c *ControlledSubstanceLogClient) Create() *ControlledSubstanceLogCreate {
+	mutation := newControlledSubstanceLogMutation(c.config, OpCreate)
+	return &ControlledSubstanceLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ControlledSubstanceLog entities.
+func (c *ControlledSubstanceLogClient) CreateBulk(builders ...*ControlledSubstanceLogCreate) *ControlledSubstanceLogCreateBulk {
+	return &ControlledSubstanceLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ControlledSubstanceLogClient) MapCreateBulk(slice any, setFunc func(*ControlledSubstanceLogCreate, int)) *ControlledSubstanceLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ControlledSubstanceLogCreateBulk{err: fmt.Errorf("calling to ControlledSubstanceLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ControlledSubstanceLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ControlledSubstanceLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ControlledSubstanceLog.
+func (c *ControlledSubstanceLogClient) Update() *ControlledSubstanceLogUpdate {
+	mutation := newControlledSubstanceLogMutation(c.config, OpUpdate)
+	return &ControlledSubstanceLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ControlledSubstanceLogClient) UpdateOne(_m *ControlledSubstanceLog) *ControlledSubstanceLogUpdateOne {
+	mutation := newControlledSubstanceLogMutation(c.config, OpUpdateOne, withControlledSubstanceLog(_m))
+	return &ControlledSubstanceLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ControlledSubstanceLogClient) UpdateOneID(id uuid.UUID) *ControlledSubstanceLogUpdateOne {
+	mutation := newControlledSubstanceLogMutation(c.config, OpUpdateOne, withControlledSubstanceLogID(id))
+	return &ControlledSubstanceLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ControlledSubstanceLog.
+func (c *ControlledSubstanceLogClient) Delete() *ControlledSubstanceLogDelete {
+	mutation := newControlledSubstanceLogMutation(c.config, OpDelete)
+	return &ControlledSubstanceLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ControlledSubstanceLogClient) DeleteOne(_m *ControlledSubstanceLog) *ControlledSubstanceLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ControlledSubstanceLogClient) DeleteOneID(id uuid.UUID) *ControlledSubstanceLogDeleteOne {
+	builder := c.Delete().Where(controlledsubstancelog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ControlledSubstanceLogDeleteOne{builder}
+}
+
+// Query returns a query builder for ControlledSubstanceLog.
+func (c *ControlledSubstanceLogClient) Query() *ControlledSubstanceLogQuery {
+	return &ControlledSubstanceLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeControlledSubstanceLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ControlledSubstanceLog entity by its id.
+func (c *ControlledSubstanceLogClient) Get(ctx context.Context, id uuid.UUID) (*ControlledSubstanceLog, error) {
+	return c.Query().Where(controlledsubstancelog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ControlledSubstanceLogClient) GetX(ctx context.Context, id uuid.UUID) *ControlledSubstanceLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ControlledSubstanceLogClient) Hooks() []Hook {
+	return c.hooks.ControlledSubstanceLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *ControlledSubstanceLogClient) Interceptors() []Interceptor {
+	return c.inters.ControlledSubstanceLog
+}
+
+func (c *ControlledSubstanceLogClient) mutate(ctx context.Context, m *ControlledSubstanceLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ControlledSubstanceLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ControlledSubstanceLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ControlledSubstanceLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ControlledSubstanceLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ControlledSubstanceLog mutation op: %q", m.Op())
 	}
 }
 
@@ -1078,6 +1247,139 @@ func (c *DocumentSequenceClient) mutate(ctx context.Context, m *DocumentSequence
 		return (&DocumentSequenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown DocumentSequence mutation op: %q", m.Op())
+	}
+}
+
+// DrugInteractionCheckClient is a client for the DrugInteractionCheck schema.
+type DrugInteractionCheckClient struct {
+	config
+}
+
+// NewDrugInteractionCheckClient returns a client for the DrugInteractionCheck from the given config.
+func NewDrugInteractionCheckClient(c config) *DrugInteractionCheckClient {
+	return &DrugInteractionCheckClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `druginteractioncheck.Hooks(f(g(h())))`.
+func (c *DrugInteractionCheckClient) Use(hooks ...Hook) {
+	c.hooks.DrugInteractionCheck = append(c.hooks.DrugInteractionCheck, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `druginteractioncheck.Intercept(f(g(h())))`.
+func (c *DrugInteractionCheckClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DrugInteractionCheck = append(c.inters.DrugInteractionCheck, interceptors...)
+}
+
+// Create returns a builder for creating a DrugInteractionCheck entity.
+func (c *DrugInteractionCheckClient) Create() *DrugInteractionCheckCreate {
+	mutation := newDrugInteractionCheckMutation(c.config, OpCreate)
+	return &DrugInteractionCheckCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DrugInteractionCheck entities.
+func (c *DrugInteractionCheckClient) CreateBulk(builders ...*DrugInteractionCheckCreate) *DrugInteractionCheckCreateBulk {
+	return &DrugInteractionCheckCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DrugInteractionCheckClient) MapCreateBulk(slice any, setFunc func(*DrugInteractionCheckCreate, int)) *DrugInteractionCheckCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DrugInteractionCheckCreateBulk{err: fmt.Errorf("calling to DrugInteractionCheckClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DrugInteractionCheckCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DrugInteractionCheckCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DrugInteractionCheck.
+func (c *DrugInteractionCheckClient) Update() *DrugInteractionCheckUpdate {
+	mutation := newDrugInteractionCheckMutation(c.config, OpUpdate)
+	return &DrugInteractionCheckUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DrugInteractionCheckClient) UpdateOne(_m *DrugInteractionCheck) *DrugInteractionCheckUpdateOne {
+	mutation := newDrugInteractionCheckMutation(c.config, OpUpdateOne, withDrugInteractionCheck(_m))
+	return &DrugInteractionCheckUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DrugInteractionCheckClient) UpdateOneID(id uuid.UUID) *DrugInteractionCheckUpdateOne {
+	mutation := newDrugInteractionCheckMutation(c.config, OpUpdateOne, withDrugInteractionCheckID(id))
+	return &DrugInteractionCheckUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DrugInteractionCheck.
+func (c *DrugInteractionCheckClient) Delete() *DrugInteractionCheckDelete {
+	mutation := newDrugInteractionCheckMutation(c.config, OpDelete)
+	return &DrugInteractionCheckDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DrugInteractionCheckClient) DeleteOne(_m *DrugInteractionCheck) *DrugInteractionCheckDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DrugInteractionCheckClient) DeleteOneID(id uuid.UUID) *DrugInteractionCheckDeleteOne {
+	builder := c.Delete().Where(druginteractioncheck.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DrugInteractionCheckDeleteOne{builder}
+}
+
+// Query returns a query builder for DrugInteractionCheck.
+func (c *DrugInteractionCheckClient) Query() *DrugInteractionCheckQuery {
+	return &DrugInteractionCheckQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDrugInteractionCheck},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DrugInteractionCheck entity by its id.
+func (c *DrugInteractionCheckClient) Get(ctx context.Context, id uuid.UUID) (*DrugInteractionCheck, error) {
+	return c.Query().Where(druginteractioncheck.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DrugInteractionCheckClient) GetX(ctx context.Context, id uuid.UUID) *DrugInteractionCheck {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DrugInteractionCheckClient) Hooks() []Hook {
+	return c.hooks.DrugInteractionCheck
+}
+
+// Interceptors returns the client interceptors.
+func (c *DrugInteractionCheckClient) Interceptors() []Interceptor {
+	return c.inters.DrugInteractionCheck
+}
+
+func (c *DrugInteractionCheckClient) mutate(ctx context.Context, m *DrugInteractionCheckMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DrugInteractionCheckCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DrugInteractionCheckUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DrugInteractionCheckUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DrugInteractionCheckDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DrugInteractionCheck mutation op: %q", m.Op())
 	}
 }
 
@@ -3247,6 +3549,304 @@ func (c *PatientVisitClient) mutate(ctx context.Context, m *PatientVisitMutation
 	}
 }
 
+// PrescriptionClient is a client for the Prescription schema.
+type PrescriptionClient struct {
+	config
+}
+
+// NewPrescriptionClient returns a client for the Prescription from the given config.
+func NewPrescriptionClient(c config) *PrescriptionClient {
+	return &PrescriptionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `prescription.Hooks(f(g(h())))`.
+func (c *PrescriptionClient) Use(hooks ...Hook) {
+	c.hooks.Prescription = append(c.hooks.Prescription, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `prescription.Intercept(f(g(h())))`.
+func (c *PrescriptionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Prescription = append(c.inters.Prescription, interceptors...)
+}
+
+// Create returns a builder for creating a Prescription entity.
+func (c *PrescriptionClient) Create() *PrescriptionCreate {
+	mutation := newPrescriptionMutation(c.config, OpCreate)
+	return &PrescriptionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Prescription entities.
+func (c *PrescriptionClient) CreateBulk(builders ...*PrescriptionCreate) *PrescriptionCreateBulk {
+	return &PrescriptionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PrescriptionClient) MapCreateBulk(slice any, setFunc func(*PrescriptionCreate, int)) *PrescriptionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PrescriptionCreateBulk{err: fmt.Errorf("calling to PrescriptionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PrescriptionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PrescriptionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Prescription.
+func (c *PrescriptionClient) Update() *PrescriptionUpdate {
+	mutation := newPrescriptionMutation(c.config, OpUpdate)
+	return &PrescriptionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PrescriptionClient) UpdateOne(_m *Prescription) *PrescriptionUpdateOne {
+	mutation := newPrescriptionMutation(c.config, OpUpdateOne, withPrescription(_m))
+	return &PrescriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PrescriptionClient) UpdateOneID(id uuid.UUID) *PrescriptionUpdateOne {
+	mutation := newPrescriptionMutation(c.config, OpUpdateOne, withPrescriptionID(id))
+	return &PrescriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Prescription.
+func (c *PrescriptionClient) Delete() *PrescriptionDelete {
+	mutation := newPrescriptionMutation(c.config, OpDelete)
+	return &PrescriptionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PrescriptionClient) DeleteOne(_m *Prescription) *PrescriptionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PrescriptionClient) DeleteOneID(id uuid.UUID) *PrescriptionDeleteOne {
+	builder := c.Delete().Where(prescription.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PrescriptionDeleteOne{builder}
+}
+
+// Query returns a query builder for Prescription.
+func (c *PrescriptionClient) Query() *PrescriptionQuery {
+	return &PrescriptionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePrescription},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Prescription entity by its id.
+func (c *PrescriptionClient) Get(ctx context.Context, id uuid.UUID) (*Prescription, error) {
+	return c.Query().Where(prescription.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PrescriptionClient) GetX(ctx context.Context, id uuid.UUID) *Prescription {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLines queries the lines edge of a Prescription.
+func (c *PrescriptionClient) QueryLines(_m *Prescription) *PrescriptionLineQuery {
+	query := (&PrescriptionLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prescription.Table, prescription.FieldID, id),
+			sqlgraph.To(prescriptionline.Table, prescriptionline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prescription.LinesTable, prescription.LinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PrescriptionClient) Hooks() []Hook {
+	return c.hooks.Prescription
+}
+
+// Interceptors returns the client interceptors.
+func (c *PrescriptionClient) Interceptors() []Interceptor {
+	return c.inters.Prescription
+}
+
+func (c *PrescriptionClient) mutate(ctx context.Context, m *PrescriptionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PrescriptionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PrescriptionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PrescriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PrescriptionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Prescription mutation op: %q", m.Op())
+	}
+}
+
+// PrescriptionLineClient is a client for the PrescriptionLine schema.
+type PrescriptionLineClient struct {
+	config
+}
+
+// NewPrescriptionLineClient returns a client for the PrescriptionLine from the given config.
+func NewPrescriptionLineClient(c config) *PrescriptionLineClient {
+	return &PrescriptionLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `prescriptionline.Hooks(f(g(h())))`.
+func (c *PrescriptionLineClient) Use(hooks ...Hook) {
+	c.hooks.PrescriptionLine = append(c.hooks.PrescriptionLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `prescriptionline.Intercept(f(g(h())))`.
+func (c *PrescriptionLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PrescriptionLine = append(c.inters.PrescriptionLine, interceptors...)
+}
+
+// Create returns a builder for creating a PrescriptionLine entity.
+func (c *PrescriptionLineClient) Create() *PrescriptionLineCreate {
+	mutation := newPrescriptionLineMutation(c.config, OpCreate)
+	return &PrescriptionLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PrescriptionLine entities.
+func (c *PrescriptionLineClient) CreateBulk(builders ...*PrescriptionLineCreate) *PrescriptionLineCreateBulk {
+	return &PrescriptionLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PrescriptionLineClient) MapCreateBulk(slice any, setFunc func(*PrescriptionLineCreate, int)) *PrescriptionLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PrescriptionLineCreateBulk{err: fmt.Errorf("calling to PrescriptionLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PrescriptionLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PrescriptionLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PrescriptionLine.
+func (c *PrescriptionLineClient) Update() *PrescriptionLineUpdate {
+	mutation := newPrescriptionLineMutation(c.config, OpUpdate)
+	return &PrescriptionLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PrescriptionLineClient) UpdateOne(_m *PrescriptionLine) *PrescriptionLineUpdateOne {
+	mutation := newPrescriptionLineMutation(c.config, OpUpdateOne, withPrescriptionLine(_m))
+	return &PrescriptionLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PrescriptionLineClient) UpdateOneID(id uuid.UUID) *PrescriptionLineUpdateOne {
+	mutation := newPrescriptionLineMutation(c.config, OpUpdateOne, withPrescriptionLineID(id))
+	return &PrescriptionLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PrescriptionLine.
+func (c *PrescriptionLineClient) Delete() *PrescriptionLineDelete {
+	mutation := newPrescriptionLineMutation(c.config, OpDelete)
+	return &PrescriptionLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PrescriptionLineClient) DeleteOne(_m *PrescriptionLine) *PrescriptionLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PrescriptionLineClient) DeleteOneID(id uuid.UUID) *PrescriptionLineDeleteOne {
+	builder := c.Delete().Where(prescriptionline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PrescriptionLineDeleteOne{builder}
+}
+
+// Query returns a query builder for PrescriptionLine.
+func (c *PrescriptionLineClient) Query() *PrescriptionLineQuery {
+	return &PrescriptionLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePrescriptionLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PrescriptionLine entity by its id.
+func (c *PrescriptionLineClient) Get(ctx context.Context, id uuid.UUID) (*PrescriptionLine, error) {
+	return c.Query().Where(prescriptionline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PrescriptionLineClient) GetX(ctx context.Context, id uuid.UUID) *PrescriptionLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPrescription queries the prescription edge of a PrescriptionLine.
+func (c *PrescriptionLineClient) QueryPrescription(_m *PrescriptionLine) *PrescriptionQuery {
+	query := (&PrescriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prescriptionline.Table, prescriptionline.FieldID, id),
+			sqlgraph.To(prescription.Table, prescription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, prescriptionline.PrescriptionTable, prescriptionline.PrescriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PrescriptionLineClient) Hooks() []Hook {
+	return c.hooks.PrescriptionLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *PrescriptionLineClient) Interceptors() []Interceptor {
+	return c.inters.PrescriptionLine
+}
+
+func (c *PrescriptionLineClient) mutate(ctx context.Context, m *PrescriptionLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PrescriptionLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PrescriptionLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PrescriptionLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PrescriptionLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PrescriptionLine mutation op: %q", m.Op())
+	}
+}
+
 // ReferralClient is a client for the Referral schema.
 type ReferralClient struct {
 	config
@@ -4043,19 +4643,21 @@ func (c *UserRoleAssignmentClient) mutate(ctx context.Context, m *UserRoleAssign
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		BillableCharge, BillableItemCatalog, DiagnosisCatalogDefault,
-		DiagnosisCatalogEntry, DocumentSequence, ExaminationRecord, HospitalPermission,
-		HospitalRole, HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
+		BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
+		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
+		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
+		HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
 		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
-		PatientNextOfKin, PatientVisit, Referral, RolePermission, Tenant, TriageRecord,
-		UserRoleAssignment []ent.Hook
+		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, Referral,
+		RolePermission, Tenant, TriageRecord, UserRoleAssignment []ent.Hook
 	}
 	inters struct {
-		BillableCharge, BillableItemCatalog, DiagnosisCatalogDefault,
-		DiagnosisCatalogEntry, DocumentSequence, ExaminationRecord, HospitalPermission,
-		HospitalRole, HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
+		BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
+		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
+		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
+		HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
 		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
-		PatientNextOfKin, PatientVisit, Referral, RolePermission, Tenant, TriageRecord,
-		UserRoleAssignment []ent.Interceptor
+		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, Referral,
+		RolePermission, Tenant, TriageRecord, UserRoleAssignment []ent.Interceptor
 	}
 )

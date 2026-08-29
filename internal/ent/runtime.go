@@ -7,9 +7,11 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
+	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
+	"github.com/bengobox/hospital-service/internal/ent/druginteractioncheck"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
@@ -24,6 +26,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/prescription"
+	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -96,6 +100,28 @@ func init() {
 	billableitemcatalogDescID := billableitemcatalogFields[0].Descriptor()
 	// billableitemcatalog.DefaultID holds the default value on creation for the id field.
 	billableitemcatalog.DefaultID = billableitemcatalogDescID.Default.(func() uuid.UUID)
+	controlledsubstancelogFields := schema.ControlledSubstanceLog{}.Fields()
+	_ = controlledsubstancelogFields
+	// controlledsubstancelogDescItemSku is the schema descriptor for item_sku field.
+	controlledsubstancelogDescItemSku := controlledsubstancelogFields[4].Descriptor()
+	// controlledsubstancelog.ItemSkuValidator is a validator for the "item_sku" field. It is called by the builders before save.
+	controlledsubstancelog.ItemSkuValidator = controlledsubstancelogDescItemSku.Validators[0].(func(string) error)
+	// controlledsubstancelogDescItemName is the schema descriptor for item_name field.
+	controlledsubstancelogDescItemName := controlledsubstancelogFields[5].Descriptor()
+	// controlledsubstancelog.ItemNameValidator is a validator for the "item_name" field. It is called by the builders before save.
+	controlledsubstancelog.ItemNameValidator = controlledsubstancelogDescItemName.Validators[0].(func(string) error)
+	// controlledsubstancelogDescQuantityDispensed is the schema descriptor for quantity_dispensed field.
+	controlledsubstancelogDescQuantityDispensed := controlledsubstancelogFields[6].Descriptor()
+	// controlledsubstancelog.QuantityDispensedValidator is a validator for the "quantity_dispensed" field. It is called by the builders before save.
+	controlledsubstancelog.QuantityDispensedValidator = controlledsubstancelogDescQuantityDispensed.Validators[0].(func(float64) error)
+	// controlledsubstancelogDescDispensedAt is the schema descriptor for dispensed_at field.
+	controlledsubstancelogDescDispensedAt := controlledsubstancelogFields[14].Descriptor()
+	// controlledsubstancelog.DefaultDispensedAt holds the default value on creation for the dispensed_at field.
+	controlledsubstancelog.DefaultDispensedAt = controlledsubstancelogDescDispensedAt.Default.(func() time.Time)
+	// controlledsubstancelogDescID is the schema descriptor for id field.
+	controlledsubstancelogDescID := controlledsubstancelogFields[0].Descriptor()
+	// controlledsubstancelog.DefaultID holds the default value on creation for the id field.
+	controlledsubstancelog.DefaultID = controlledsubstancelogDescID.Default.(func() uuid.UUID)
 	diagnosiscatalogdefaultFields := schema.DiagnosisCatalogDefault{}.Fields()
 	_ = diagnosiscatalogdefaultFields
 	// diagnosiscatalogdefaultDescCode is the schema descriptor for code field.
@@ -184,6 +210,20 @@ func init() {
 	documentsequenceDescID := documentsequenceFields[0].Descriptor()
 	// documentsequence.DefaultID holds the default value on creation for the id field.
 	documentsequence.DefaultID = documentsequenceDescID.Default.(func() uuid.UUID)
+	druginteractioncheckFields := schema.DrugInteractionCheck{}.Fields()
+	_ = druginteractioncheckFields
+	// druginteractioncheckDescResult is the schema descriptor for result field.
+	druginteractioncheckDescResult := druginteractioncheckFields[4].Descriptor()
+	// druginteractioncheck.DefaultResult holds the default value on creation for the result field.
+	druginteractioncheck.DefaultResult = druginteractioncheckDescResult.Default.(string)
+	// druginteractioncheckDescCheckedAt is the schema descriptor for checked_at field.
+	druginteractioncheckDescCheckedAt := druginteractioncheckFields[7].Descriptor()
+	// druginteractioncheck.DefaultCheckedAt holds the default value on creation for the checked_at field.
+	druginteractioncheck.DefaultCheckedAt = druginteractioncheckDescCheckedAt.Default.(func() time.Time)
+	// druginteractioncheckDescID is the schema descriptor for id field.
+	druginteractioncheckDescID := druginteractioncheckFields[0].Descriptor()
+	// druginteractioncheck.DefaultID holds the default value on creation for the id field.
+	druginteractioncheck.DefaultID = druginteractioncheckDescID.Default.(func() uuid.UUID)
 	examinationrecordFields := schema.ExaminationRecord{}.Fields()
 	_ = examinationrecordFields
 	// examinationrecordDescExaminedAt is the schema descriptor for examined_at field.
@@ -546,6 +586,48 @@ func init() {
 	patientvisitDescID := patientvisitFields[0].Descriptor()
 	// patientvisit.DefaultID holds the default value on creation for the id field.
 	patientvisit.DefaultID = patientvisitDescID.Default.(func() uuid.UUID)
+	prescriptionFields := schema.Prescription{}.Fields()
+	_ = prescriptionFields
+	// prescriptionDescPrescriptionNumber is the schema descriptor for prescription_number field.
+	prescriptionDescPrescriptionNumber := prescriptionFields[7].Descriptor()
+	// prescription.PrescriptionNumberValidator is a validator for the "prescription_number" field. It is called by the builders before save.
+	prescription.PrescriptionNumberValidator = prescriptionDescPrescriptionNumber.Validators[0].(func(string) error)
+	// prescriptionDescCreatedAt is the schema descriptor for created_at field.
+	prescriptionDescCreatedAt := prescriptionFields[18].Descriptor()
+	// prescription.DefaultCreatedAt holds the default value on creation for the created_at field.
+	prescription.DefaultCreatedAt = prescriptionDescCreatedAt.Default.(func() time.Time)
+	// prescriptionDescUpdatedAt is the schema descriptor for updated_at field.
+	prescriptionDescUpdatedAt := prescriptionFields[19].Descriptor()
+	// prescription.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	prescription.DefaultUpdatedAt = prescriptionDescUpdatedAt.Default.(func() time.Time)
+	// prescription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	prescription.UpdateDefaultUpdatedAt = prescriptionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// prescriptionDescID is the schema descriptor for id field.
+	prescriptionDescID := prescriptionFields[0].Descriptor()
+	// prescription.DefaultID holds the default value on creation for the id field.
+	prescription.DefaultID = prescriptionDescID.Default.(func() uuid.UUID)
+	prescriptionlineFields := schema.PrescriptionLine{}.Fields()
+	_ = prescriptionlineFields
+	// prescriptionlineDescDrugName is the schema descriptor for drug_name field.
+	prescriptionlineDescDrugName := prescriptionlineFields[4].Descriptor()
+	// prescriptionline.DrugNameValidator is a validator for the "drug_name" field. It is called by the builders before save.
+	prescriptionline.DrugNameValidator = prescriptionlineDescDrugName.Validators[0].(func(string) error)
+	// prescriptionlineDescQuantityPrescribed is the schema descriptor for quantity_prescribed field.
+	prescriptionlineDescQuantityPrescribed := prescriptionlineFields[8].Descriptor()
+	// prescriptionline.QuantityPrescribedValidator is a validator for the "quantity_prescribed" field. It is called by the builders before save.
+	prescriptionline.QuantityPrescribedValidator = prescriptionlineDescQuantityPrescribed.Validators[0].(func(float64) error)
+	// prescriptionlineDescQuantityDispensed is the schema descriptor for quantity_dispensed field.
+	prescriptionlineDescQuantityDispensed := prescriptionlineFields[9].Descriptor()
+	// prescriptionline.DefaultQuantityDispensed holds the default value on creation for the quantity_dispensed field.
+	prescriptionline.DefaultQuantityDispensed = prescriptionlineDescQuantityDispensed.Default.(float64)
+	// prescriptionlineDescUnitPrice is the schema descriptor for unit_price field.
+	prescriptionlineDescUnitPrice := prescriptionlineFields[10].Descriptor()
+	// prescriptionline.DefaultUnitPrice holds the default value on creation for the unit_price field.
+	prescriptionline.DefaultUnitPrice = prescriptionlineDescUnitPrice.Default.(float64)
+	// prescriptionlineDescID is the schema descriptor for id field.
+	prescriptionlineDescID := prescriptionlineFields[0].Descriptor()
+	// prescriptionline.DefaultID holds the default value on creation for the id field.
+	prescriptionline.DefaultID = prescriptionlineDescID.Default.(func() uuid.UUID)
 	referralFields := schema.Referral{}.Fields()
 	_ = referralFields
 	// referralDescReferredTo is the schema descriptor for referred_to field.

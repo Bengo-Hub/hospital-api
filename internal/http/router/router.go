@@ -45,6 +45,8 @@ type Deps struct {
 	Billing *handlers.BillingHandler
 	// Sprint 3: lab ordering, worklist, result capture, test catalog.
 	Lab *handlers.LabHandler
+	// Sprint 4: prescription lifecycle, dispensing, controlled-substance register.
+	Pharmacy *handlers.PharmacyHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -199,6 +201,28 @@ func New(d Deps) http.Handler {
 					Post("/lab-orders/lines/{lineID}/result", d.Lab.EnterResult)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
 					Get("/lab-test-catalog", d.Lab.ListCatalog)
+			}
+
+			// Sprint 4 — Pharmacy / Dispensing (the core migration target).
+			if d.Pharmacy != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyPrescribe)).
+					Post("/prescriptions", d.Pharmacy.CreatePrescription)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
+					Get("/prescriptions", d.Pharmacy.ListPrescriptions)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
+					Get("/prescriptions/{prescriptionID}", d.Pharmacy.GetPrescription)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Post("/prescriptions/{prescriptionID}/approve", d.Pharmacy.ApprovePrescription)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Post("/prescriptions/{prescriptionID}/lock", d.Pharmacy.LockPrescription)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Post("/prescriptions/{prescriptionID}/reject", d.Pharmacy.RejectPrescription)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Post("/prescriptions/{prescriptionID}/cancel", d.Pharmacy.CancelPrescription)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyDispense)).
+					Post("/prescriptions/{prescriptionID}/dispense", d.Pharmacy.Dispense)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Get("/pharmacy/controlled-substances", d.Pharmacy.ListControlledSubstanceLogs)
 			}
 		})
 	})
