@@ -16,6 +16,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
+	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -315,7 +316,9 @@ type EnterResultRequest struct {
 }
 
 // EnterResult records a result for one line. When every line in the order has a result, the
-// order is marked "resulted" and a hospital.lab_order.resulted event is published.
+// order is marked "resulted", the associated visit advances to "lab_complete" (from
+// "awaiting_lab" only), the ordering ExaminationRecord (if any) is reopened to "in_progress" so
+// the case re-surfaces for the clinician, and a hospital.lab_order.resulted event is published.
 func (s *Service) EnterResult(ctx context.Context, tenantID, lineID uuid.UUID, req EnterResultRequest) (*ent.LabOrderLine, error) {
 	line, err := s.client.LabOrderLine.Query().
 		Where(laborderline.ID(lineID), laborderline.TenantID(tenantID)).
@@ -369,12 +372,55 @@ func (s *Service) EnterResult(ctx context.Context, tenantID, lineID uuid.UUID, r
 		}
 	}
 	if allResulted {
-		if _, uerr := tx.LabOrder.UpdateOneID(line.LabOrderID).
+		updatedOrder, uerr := tx.LabOrder.UpdateOneID(line.LabOrderID).
 			SetStatus(laborder.StatusResulted).
 			SetCompletedAt(now).
-			Save(ctx); uerr != nil {
+			Save(ctx)
+		if uerr != nil {
+			err = uerr
 			return nil, fmt.Errorf("lab: mark order resulted: %w", uerr)
 		}
+
+		// A fully-resulted order is a dead end for the visit unless we actively advance it: nothing
+		// else transitions a visit OUT of "awaiting_lab", so without this the clinician has no signal
+		// the results are back. Guarded the same way patients/consultation guard their own visit-status
+		// transitions — only a visit CreateReferral actually put into "awaiting_lab" advances; one that
+		// reached here some other way (already completed/cancelled) is left untouched.
+		visit, verr := tx.PatientVisit.Query().
+			Where(patientvisit.ID(updatedOrder.VisitID), patientvisit.TenantID(tenantID)).
+			Only(ctx)
+		if verr != nil {
+			err = verr
+			return nil, fmt.Errorf("lab: visit not found: %w", verr)
+		}
+		if next, ok := nextVisitStatusAfterLabComplete(visit.Status); ok {
+			if _, serr := tx.PatientVisit.UpdateOneID(updatedOrder.VisitID).
+				SetStatus(next).Save(ctx); serr != nil {
+				err = serr
+				return nil, fmt.Errorf("lab: advance visit to lab_complete: %w", serr)
+			}
+		}
+
+		// Reopen the ordering ExaminationRecord (when this order was raised from one) so the case
+		// re-surfaces for the clinician to review results and finalize diagnosis/treatment, mirroring
+		// pos-api's SubmitLabResults which reopens its equivalent examination record on the same event.
+		if updatedOrder.ExaminationID != nil {
+			exam, eerr := tx.ExaminationRecord.Query().
+				Where(examinationrecord.ID(*updatedOrder.ExaminationID), examinationrecord.TenantID(tenantID)).
+				Only(ctx)
+			if eerr != nil {
+				err = eerr
+				return nil, fmt.Errorf("lab: examination record not found: %w", eerr)
+			}
+			if next, ok := nextExaminationStatusAfterLabComplete(exam.Status); ok {
+				if _, serr := tx.ExaminationRecord.UpdateOneID(*updatedOrder.ExaminationID).
+					SetStatus(next).Save(ctx); serr != nil {
+					err = serr
+					return nil, fmt.Errorf("lab: reopen examination record: %w", serr)
+				}
+			}
+		}
+
 		if pubErr := events.Publish(ctx, tx.OutboxEvent, tenantID, line.LabOrderID.String(), events.EventLabOrderResulted, map[string]any{
 			"lab_order_id": line.LabOrderID.String(),
 		}); pubErr != nil {
@@ -386,6 +432,36 @@ func (s *Service) EnterResult(ctx context.Context, tenantID, lineID uuid.UUID, r
 		return nil, fmt.Errorf("lab: commit result: %w", err)
 	}
 	return updated, nil
+}
+
+// nextVisitStatusAfterLabComplete decides whether fully resulting a lab order (every line has a
+// result) should advance the associated visit's status to "lab_complete", returning ok=false when
+// it shouldn't move at all. Only a visit sitting in "awaiting_lab" — the state
+// consultation.CreateReferral put it in when the doctor sent it to lab — advances; a visit that
+// reached here some other way (already completed/cancelled, or never referred to lab at all) is
+// left untouched rather than blindly overwritten, same guard style as
+// patients.nextVisitStatusAfterTriage / consultation.nextVisitStatusAfterExamination.
+func nextVisitStatusAfterLabComplete(current patientvisit.Status) (next patientvisit.Status, ok bool) {
+	if current == patientvisit.StatusAwaitingLab {
+		return patientvisit.StatusLabComplete, true
+	}
+	return "", false
+}
+
+// nextExaminationStatusAfterLabComplete decides whether fully resulting a lab order should reopen
+// the ordering ExaminationRecord back to "in_progress" so the case re-surfaces for the clinician
+// to review results and finalize diagnosis/treatment — mirroring pos-api's SubmitLabResults, which
+// reopens its equivalent examination record unconditionally on the same event. Here the reopen is
+// guarded instead: an examination already "in_progress" is left alone (no redundant write); one
+// sitting "awaiting_lab" or "completed" is reopened — "completed" covers a clinician who finalized
+// a note before referring to lab (e.g. confirmatory tests ordered after an initial diagnosis).
+func nextExaminationStatusAfterLabComplete(current examinationrecord.Status) (next examinationrecord.Status, ok bool) {
+	switch current {
+	case examinationrecord.StatusAwaitingLab, examinationrecord.StatusCompleted:
+		return examinationrecord.StatusInProgress, true
+	default:
+		return "", false
+	}
 }
 
 // CatalogTest is the merged global+tenant lab test catalogue row returned to callers.
