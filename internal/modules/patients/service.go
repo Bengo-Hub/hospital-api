@@ -166,10 +166,7 @@ func (s *Service) CheckInVisit(ctx context.Context, tenantID uuid.UUID, req Chec
 		return nil, fmt.Errorf("patients: allocate visit_number: %w", err)
 	}
 
-	visitType := patientvisit.VisitTypeOPD
-	if req.VisitType == string(patientvisit.VisitTypeIPD) {
-		visitType = patientvisit.VisitTypeIPD
-	}
+	visitType := resolveVisitType(req.VisitType)
 
 	create := tx.PatientVisit.Create().
 		SetTenantID(tenantID).
@@ -305,8 +302,8 @@ func (s *Service) RecordTriage(ctx context.Context, tenantID uuid.UUID, req Reco
 		return nil, fmt.Errorf("patients: create triage record: %w", err)
 	}
 
-	if visit.Status == patientvisit.StatusRegistered {
-		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).SetStatus(patientvisit.StatusTriaged).Save(ctx); err != nil {
+	if next, ok := nextVisitStatusAfterTriage(visit.Status); ok {
+		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).SetStatus(next).Save(ctx); err != nil {
 			return nil, fmt.Errorf("patients: advance visit status: %w", err)
 		}
 	}
@@ -315,4 +312,25 @@ func (s *Service) RecordTriage(ctx context.Context, tenantID uuid.UUID, req Reco
 		return nil, fmt.Errorf("patients: commit triage: %w", err)
 	}
 	return t, nil
+}
+
+// resolveVisitType normalizes the requested visit type to a valid patientvisit.VisitType. Only
+// an exact "IPD" match opts into inpatient; anything else (empty string, "OPD", or a garbage
+// value) defaults to OPD, matching CheckInVisit's pre-extraction inline behaviour.
+func resolveVisitType(reqVisitType string) patientvisit.VisitType {
+	if reqVisitType == string(patientvisit.VisitTypeIPD) {
+		return patientvisit.VisitTypeIPD
+	}
+	return patientvisit.VisitTypeOPD
+}
+
+// nextVisitStatusAfterTriage decides whether recording a triage reading should advance the
+// visit's status to "triaged", and returns ok=false when it shouldn't. A re-triage on a visit
+// that has already moved past the initial "registered" stage does not rewind the workflow — the
+// caller leaves the visit's status untouched in that case.
+func nextVisitStatusAfterTriage(current patientvisit.Status) (next patientvisit.Status, ok bool) {
+	if current == patientvisit.StatusRegistered {
+		return patientvisit.StatusTriaged, true
+	}
+	return "", false
 }

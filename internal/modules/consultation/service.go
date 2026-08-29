@@ -65,10 +65,7 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		}
 	}()
 
-	queueType := examinationrecord.QueueTypeDoctor
-	if v := examinationrecord.QueueType(req.QueueType); v != "" {
-		queueType = v
-	}
+	queueType := resolveQueueType(req.QueueType)
 	create := tx.ExaminationRecord.Create().
 		SetTenantID(tenantID).
 		SetVisitID(req.VisitID).
@@ -87,12 +84,8 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		return nil, fmt.Errorf("consultation: create examination record: %w", err)
 	}
 
-	if req.Complete && visit.Status != patientvisit.StatusCompleted {
-		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).SetStatus(patientvisit.StatusCompleted).Save(ctx); err != nil {
-			return nil, fmt.Errorf("consultation: advance visit status: %w", err)
-		}
-	} else if !req.Complete && visit.Status == patientvisit.StatusTriaged {
-		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).SetStatus(patientvisit.StatusInExamination).Save(ctx); err != nil {
+	if next, ok := nextVisitStatusAfterExamination(visit.Status, req.Complete); ok {
+		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).SetStatus(next).Save(ctx); err != nil {
 			return nil, fmt.Errorf("consultation: advance visit status: %w", err)
 		}
 	}
@@ -101,6 +94,35 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		return nil, fmt.Errorf("consultation: commit examination: %w", err)
 	}
 	return rec, nil
+}
+
+// resolveQueueType normalizes the requested queue type to an examinationrecord.QueueType,
+// defaulting to "doctor" when the caller didn't specify one. It does NOT validate the value
+// against the enum's legal set (doctor/dental/mch/specialist) — an unrecognised non-empty string
+// passes through unchanged, exactly as before this extraction, and is rejected later by ent's
+// generated QueueTypeValidator at Save time.
+func resolveQueueType(reqQueueType string) examinationrecord.QueueType {
+	if v := examinationrecord.QueueType(reqQueueType); v != "" {
+		return v
+	}
+	return examinationrecord.QueueTypeDoctor
+}
+
+// nextVisitStatusAfterExamination decides whether recording an examination should advance the
+// visit's status, and to what, returning ok=false when it shouldn't move at all. Completing an
+// examination (complete=true) advances the visit to "completed" unless it's already there.
+// Saving an in-progress note (complete=false) only advances a freshly-triaged visit into
+// "in_examination" — it leaves a visit that's already further along (or not yet triaged)
+// untouched.
+func nextVisitStatusAfterExamination(current patientvisit.Status, complete bool) (next patientvisit.Status, ok bool) {
+	switch {
+	case complete && current != patientvisit.StatusCompleted:
+		return patientvisit.StatusCompleted, true
+	case !complete && current == patientvisit.StatusTriaged:
+		return patientvisit.StatusInExamination, true
+	default:
+		return "", false
+	}
 }
 
 // GetExamination fetches an examination record by ID, tenant-scoped.
@@ -204,14 +226,7 @@ func (s *Service) CreateReferral(ctx context.Context, tenantID uuid.UUID, req Cr
 		return nil, fmt.Errorf("consultation: create referral: %w", err)
 	}
 
-	var nextStatus patientvisit.Status
-	switch req.ReferredTo {
-	case "lab":
-		nextStatus = patientvisit.StatusAwaitingLab
-	case "pharmacy":
-		nextStatus = patientvisit.StatusPrescribed
-	}
-	if nextStatus != "" {
+	if nextStatus, ok := nextVisitStatusAfterReferral(req.ReferredTo); ok {
 		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).
 			Where(patientvisit.TenantID(tenantID)).
 			SetStatus(nextStatus).Save(ctx); err != nil {
@@ -223,6 +238,20 @@ func (s *Service) CreateReferral(ctx context.Context, tenantID uuid.UUID, req Cr
 		return nil, fmt.Errorf("consultation: commit referral: %w", err)
 	}
 	return r, nil
+}
+
+// nextVisitStatusAfterReferral maps a referral's destination to the visit status it should
+// advance to. Destinations with no defined status transition ("external_facility", "specialist",
+// or anything unrecognised) return ok=false and leave the visit's status untouched.
+func nextVisitStatusAfterReferral(referredTo string) (next patientvisit.Status, ok bool) {
+	switch referredTo {
+	case "lab":
+		return patientvisit.StatusAwaitingLab, true
+	case "pharmacy":
+		return patientvisit.StatusPrescribed, true
+	default:
+		return "", false
+	}
 }
 
 // ListReferrals returns every referral raised for a visit.
