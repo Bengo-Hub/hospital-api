@@ -8,13 +8,13 @@
 
 - `ward` — `tenant_id`, `outlet_id`, `name`, `capacity`.
 - `bed` — `ward_id`, `bed_number`, `status` (available/occupied/cleaning/out_of_service).
-- `admission` — `patient_visit_id`, `bed_id`, `admitted_at`, `discharged_at`, `discharge_summary`.
+- `admission` — `patient_visit_id`, `bed_id`, `admitted_at`, `discharged_at`, `discharge_summary`. Creates a `PatientAccount` (Sprint 5) with `admission_id` set and `settlement_required_before: discharge` — ward/day-rate charges, and every other department's charges during the stay (lab, pharmacy, theatre), accrue onto this SAME account rather than each posting a separate mini-invoice.
 
 ## Endpoints
 
 - `POST /{tenant}/hospital/admissions` — admit a patient to a bed.
 - `GET /{tenant}/hospital/wards/{id}/occupancy` — live bed-occupancy view.
-- `POST /{tenant}/hospital/admissions/{id}/discharge` — discharge + write summary + trigger folio checkout (Sprint 5's checkout flow).
+- `POST /{tenant}/hospital/admissions/{id}/discharge` — discharge + write summary. Blocked (409) while the linked `PatientAccount.balance > 0` — surfaces Record Payment / Apply Insurance / Write-Off / next-of-kin-settles options (Sprint 5's `settle`/`override-settlement` endpoints) rather than silently allowing discharge with an unpaid folio.
 - `PATCH /{tenant}/hospital/beds/{id}/status` — housekeeping/bed-turnover status (available → cleaning → available), a lightweight status field, not a full housekeeping module.
 
 ## Afya Clinic "Inpatient add-on" scope note

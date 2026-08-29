@@ -24,7 +24,7 @@ Sprint 1 onward, not yet implemented.
 | `hospital_permission` | `permission_code` (unique), `module`, `action` | Trinity Layer 3 fine-grained permission catalogue (`hospital.{module}.{action}`) |
 | `hospital_role` | `role_code` (unique), `is_system_role` | Global roles (`hospital_admin`, `doctor`, `lab_technician`, `pharmacist`, `cashier`, `receptionist`) — same permissions for every tenant |
 | `role_permission` | `role_id`, `permission_id` | Role → permission junction |
-| `diagnosis_catalog_default` | `code` (ICD-10-ish), `name`, `category` | Default diagnosis catalogue seeded once, tenants may add custom entries (those carry `tenant_id`) |
+| `diagnosis_catalog_default` | `code` (ICD-11), `name`, `category` | Default diagnosis catalogue seeded once, tenants may add custom entries (those carry `tenant_id`). Confirmed ICD-11 (not ICD-10) by the official DHA claim-submission spec's sample payload, see `docs/sha-taifacare-api-specs/` |
 | `lab_test_catalog_default` | `code`, `name`, `specimen_type`, `reference_range` | Default lab-test catalogue seeded once, tenants may add custom entries |
 
 ---
@@ -43,7 +43,7 @@ Sprint 1 onward, not yet implemented.
 
 | Table | Key Columns | Description |
 |---|---|---|
-| `patient` | `id`, `tenant_id`, `mrn` (unique per tenant), `full_name`, `dob`, `sex`, `phone`, `next_of_kin`, `crm_contact_id` (nullable) | Patient master record (medical record number) — retained per Kenya DPA's 20-year minimum |
+| `patient` | `id`, `tenant_id`, `mrn` (unique per tenant), `full_name`, `dob`, `sex`, `phone`, `next_of_kin`, `crm_contact_id` (nullable), `client_registry_id` (nullable) | Patient master record (medical record number) — retained per Kenya DPA's 20-year minimum. `client_registry_id` is the national Client Registry `CR...` identifier returned by DHA's registry lookup (see `docs/sha-taifacare-api-specs/`), stored as a reference so treasury-api's claims never need a second lookup, never treated as a locally-generated ID |
 | `patient_visit` | `id`, `tenant_id`, `patient_id`, `outlet_id`, `visit_type` (OPD/IPD), `status`, `checked_in_at`, `discharged_at` | One row per encounter, the spine every clinical module hangs off |
 | `referral` | `id`, `tenant_id`, `patient_visit_id`, `referred_to`, `reason`, `status` | Inter-facility or inter-department referral |
 
@@ -70,6 +70,20 @@ Sprint 1 onward, not yet implemented.
 | `prescription_line` | `id`, `prescription_id`, `inventory_item_id`, `dose`, `duration`, `drug_name_snapshot`, `lot_id_snapshot` | One line per drug, drug master fetched live from inventory-api, snapshotted at dispense time |
 | `controlled_substance_log` | `id`, `prescription_line_id`, `witnessed_by`, `dispensed_by`, `lot_number`, `expiry_date` | Dual-witness register for scheduled/controlled drugs |
 | `drug_interaction_check` | `id`, `prescription_id`, `checked_at`, `findings` (JSON snapshot from inventory-api) | Audit trail of interaction/allergy checks performed at prescribing time |
+
+---
+
+## Billing & Patient Accounts (Sprint 5 — see `docs/architecture.md` "Distributed Billing & Patient Accounts")
+
+The **billing ledger**, not the money itself — `invoice_id`/`payment_intent_id` on `billable_charge`
+reference treasury-api, which stays the sole owner of every financial document.
+
+| Table | Key Columns | Description |
+|---|---|---|
+| `billable_item_catalog` | `id`, `tenant_id`, `department`, `code`, `name`, `price` (nullable), `applies_to`, `requires_prepayment`, `collection_mode` | Tenant-configured price list, seeded per facility tier |
+| `patient_account` | `id`, `patient_id`, `admission_id` (nullable), `visit_id` (nullable), `status`, `total_charged`, `total_paid`, `balance`, `settlement_required_before`, `next_of_kin_id` (nullable) | One running ledger per patient (spans an admission; per-visit for OPD) |
+| `billable_charge` | `id`, `patient_account_id`, `billable_item_id` (nullable), `source_module`, `source_reference_id` (nullable), `amount`, `status`, `treasury_invoice_id` (nullable), `created_by_department`, `paid_at` | One row per charge event, posted by whichever department billed it |
+| `patient_next_of_kin` | `id`, `patient_id`, `name`, `phone`, `relationship`, `id_number`, `is_primary` | Who may settle a bill / authorize discharge-release on the patient's behalf; distinct from `patient.next_of_kin` (a free-text chart field, Sprint 1) |
 
 ---
 

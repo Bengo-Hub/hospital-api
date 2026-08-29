@@ -139,15 +139,67 @@ treasury-api then follows its existing `pos.sale.finalized`-style flow (submit �
 hospital-api never calls the KRA API directly and never stores `ETIMS_*` credentials, mirroring the
 eTIMS-ownership ADR already established in `pos-api/docs/integrations.md`.
 
-### 2.4 Future: Taifa Care HMIS
+### 2.4 Taifa Care HMIS — confirmed technical contract (2026-08-29)
 
-SHA's mandatory transition to Taifa Care HMIS (2026-06-29, 90-day provider integration deadline)
-means treasury-api's insurance connector needs a Taifa Care HMIS adapter in addition to whatever
-NHIF/SHA API it already targets. **This is a treasury-api enhancement, not hospital-api's job** —
+SHA's transition to Taifa Care HMIS (announced 2026-06-29, a roughly 90-day provider integration
+window) means treasury-api's insurance connector needs a Taifa Care adapter in addition to whatever
+NHIF/SHA API it already targets. **This stays a treasury-api enhancement, not hospital-api's job** —
 hospital-api only ever calls treasury-api's stable internal contract (`CheckInsuranceEligibility`,
-claim submit) regardless of which government system treasury-api talks to underneath. Until the
-Taifa Care adapter ships, hospital-api should support a manual/CSV claim-upload fallback so
+claim submit) regardless of which government system treasury-api talks to underneath.
+
+A set of official DHA UAT API specifications (the "Kenya Digital Superhighway" project, saved in
+full at `docs/sha-taifacare-api-specs/`) confirms the actual contract treasury-api's adapter needs to
+implement:
+
+- **Auth is two-layer and short-lived.** Basic Auth (credentials issued via the "AfyaLink" developer
+  dashboard) against `GET /v1/hie-auth?key={consumer_key}` returns a JWT that expires after **20
+  seconds**. treasury-api's adapter must fetch a fresh token immediately before each call, this is
+  too short to cache.
+- **Client Registry lookup returns encrypted PII.** `GET /v3/client-registry/fetch-client` (by
+  identification type/number) returns a patient record with its PII field encrypted, decryptable
+  only with a private key whose matching public key is registered on the AfyaLink dashboard. This is
+  a real key-custody requirement (the private key must live in treasury-api's secrets store, never
+  in hospital-api), not just a bearer-token integration.
+- **Facility and practitioner verification are separate, queryable endpoints**:
+  `GET /v1/facility-search?facility_code=` returns a facility's approval/operational status and
+  license expiry; `GET /v1/practitioner-search?identification_type=&identification_number=` returns
+  a practitioner's registration number and active status. These are worth using at onboarding time
+  (validate a tenant's facility code, or a doctor's practising license before granting Consultation
+  access), not only at claim-submission time.
+- **Claims are submitted as a FHIR-style `Bundle`, not a bespoke JSON shape**: `POST
+  /v1/shr-med/bundle`, `resourceType: "Bundle"`, `type: "message"`, with `entry` items for
+  `Organization` (the facility, an `FID-xx-xxxxxx-x` style ID), `Coverage` (references the `Patient`,
+  carries `schemeCategory: "SOCIAL HEALTH AUTHORITY"`), `Patient` (a Client Registry `CR...` ID), and
+  `Claim` (`type`/`subType` such as `institutional`/`op`, a `diagnosis` code and display, one or more
+  `item`s with a `productOrService` code like `SHA-02-005`, `quantity`, `unitPrice`, and a `total`).
+- **Diagnosis coding is ICD-11**, confirmed by the sample claim's `"code": "1A00", "display":
+  "Cholera"` (ICD-10's code for cholera is `A00`, not `1A00`). `docs/erd.md`'s
+  `diagnosis_catalog_default.code` column, previously described as "ICD-10-ish", should be treated as
+  ICD-11 going forward.
+- **Claim submission is asynchronous.** The submit call returns a `mediator_id`, not a final
+  adjudication, the caller polls `GET /v1/shr-med/claim-status?claim_id=&bundle_id=` for the result.
+- **Not confirmed by these specs**: the production base URL (both environments in the source docs
+  point at the same `uat.dha.go.ke` host), the exact DHA software-certification workflow (see §2.5),
+  rate limits, and whether the `agent` field (examples show `"SAFARICOM-CONSORTIUM-SANDBOX"`) implies
+  integration must route through a sanctioned aggregator rather than direct-to-DHA. Confirm the
+  access model with DHA before building against a direct-access assumption.
+
+Until the Taifa Care adapter ships, hospital-api should support a manual/CSV claim-upload fallback so
 facilities aren't blocked.
+
+### 2.5 DHA Software Certification — a separate, legal gate (not a technical integration)
+
+Distinct from the data-exchange contract in §2.4: under the Digital Health Act 2023 and its 2025
+implementing regulations, a healthcare provider may not legally use a digital health solution that
+has not been certified by the Digital Health Agency (DHA). This applies to hospital-api and
+hospital-ui directly, not only to treasury-api's insurance connector, a tenant cannot go live against
+national health systems on an uncertified build regardless of whether the Taifa Care adapter above is
+technically complete. Certification also carries its own technical requirements beyond the claims API
+(HL7 FHIR R4 conformance, national terminology mapping, a minimum 20-year audit-log retention, a
+48-hour DHA breach-notification clock separate from the ODPC's 72-hour one). Full detail, including
+which parts of this are confirmed law versus still-unverified vendor commentary, lives in
+`docs/compliance-kenya.md` §4. This is a Sprint 12 (`docs/sprints/sprint-12-compliance-hardening.md`)
+concern, not a Sprint 5 one.
 
 ---
 
@@ -166,6 +218,21 @@ provides a downloadable export for facilities that submit manually — many Keny
 this via the KHIS web UI directly). hospital-api does **not** implement the DHIS2 platform itself,
 only the export side. Facility Master Facility List (MFL) code is stored as tenant metadata, not a
 new schema table.
+
+**External validation (2026-08-29):** DHA's own RMNCAH platform tender (see `docs/compliance-kenya.md`
+§8) names DHIS2 as the specific national system a future AI-driven health platform will ingest
+facility RMNCAH data from, and lists ANC coverage, skilled birth attendance, immunisation coverage,
+and maternal/newborn mortality as the indicators it expects. That is the same target this ADX export
+is already aimed at, so the design direction above stands confirmed rather than changed.
+
+**Watch item, not current scope:** the same tender describes a future national platform that writes
+data back into facility EMRs (point-of-care consultation transcription and clinical decision-support
+flags, only after clinician review). If a national exchange DHIS2-adjacent platform ever calls
+hospital-api directly rather than only receiving its exports, that implies an inbound API surface
+(accept structured consultation data / clinical flags) in addition to the outbound export above. No
+such platform exists yet to integrate against (DHA's own tender is procuring the team that will define
+it), so this is a design note for whoever revisits this section once a real conformance suite is
+published, not a Sprint 10 task.
 
 ---
 

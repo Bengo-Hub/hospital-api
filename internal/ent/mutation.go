@@ -4145,6 +4145,7 @@ type TenantMutation struct {
 	use_case       *string
 	sync_status    *string
 	last_sync_at   *time.Time
+	metadata       *map[string]interface{}
 	created_at     *time.Time
 	updated_at     *time.Time
 	clearedFields  map[string]struct{}
@@ -4505,6 +4506,55 @@ func (m *TenantMutation) ResetLastSyncAt() {
 	delete(m.clearedFields, tenant.FieldLastSyncAt)
 }
 
+// SetMetadata sets the "metadata" field.
+func (m *TenantMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *TenantMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Tenant entity.
+// If the Tenant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TenantMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *TenantMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[tenant.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *TenantMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[tenant.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *TenantMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, tenant.FieldMetadata)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *TenantMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -4719,7 +4769,7 @@ func (m *TenantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TenantMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.name != nil {
 		fields = append(fields, tenant.FieldName)
 	}
@@ -4737,6 +4787,9 @@ func (m *TenantMutation) Fields() []string {
 	}
 	if m.last_sync_at != nil {
 		fields = append(fields, tenant.FieldLastSyncAt)
+	}
+	if m.metadata != nil {
+		fields = append(fields, tenant.FieldMetadata)
 	}
 	if m.created_at != nil {
 		fields = append(fields, tenant.FieldCreatedAt)
@@ -4764,6 +4817,8 @@ func (m *TenantMutation) Field(name string) (ent.Value, bool) {
 		return m.SyncStatus()
 	case tenant.FieldLastSyncAt:
 		return m.LastSyncAt()
+	case tenant.FieldMetadata:
+		return m.Metadata()
 	case tenant.FieldCreatedAt:
 		return m.CreatedAt()
 	case tenant.FieldUpdatedAt:
@@ -4789,6 +4844,8 @@ func (m *TenantMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldSyncStatus(ctx)
 	case tenant.FieldLastSyncAt:
 		return m.OldLastSyncAt(ctx)
+	case tenant.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case tenant.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case tenant.FieldUpdatedAt:
@@ -4844,6 +4901,13 @@ func (m *TenantMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastSyncAt(v)
 		return nil
+	case tenant.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
 	case tenant.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -4894,6 +4958,9 @@ func (m *TenantMutation) ClearedFields() []string {
 	if m.FieldCleared(tenant.FieldLastSyncAt) {
 		fields = append(fields, tenant.FieldLastSyncAt)
 	}
+	if m.FieldCleared(tenant.FieldMetadata) {
+		fields = append(fields, tenant.FieldMetadata)
+	}
 	return fields
 }
 
@@ -4913,6 +4980,9 @@ func (m *TenantMutation) ClearField(name string) error {
 		return nil
 	case tenant.FieldLastSyncAt:
 		m.ClearLastSyncAt()
+		return nil
+	case tenant.FieldMetadata:
+		m.ClearMetadata()
 		return nil
 	}
 	return fmt.Errorf("unknown Tenant nullable field %s", name)
@@ -4939,6 +5009,9 @@ func (m *TenantMutation) ResetField(name string) error {
 		return nil
 	case tenant.FieldLastSyncAt:
 		m.ResetLastSyncAt()
+		return nil
+	case tenant.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case tenant.FieldCreatedAt:
 		m.ResetCreatedAt()

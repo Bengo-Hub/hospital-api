@@ -19,7 +19,7 @@ tenant-custom additions do.
 
 ## Endpoints
 
-- `POST /{tenant}/hospital/visits/{id}/examination` — record consultation notes + diagnosis.
+- `POST /{tenant}/hospital/visits/{id}/examination` — record consultation notes + diagnosis. Posts a `BillableCharge` for the visit's consultation fee (Sprint 5) at creation — `collection_mode` defaults to `billing_queue` for Clinic-tier, `direct` for Facility/Hospital tier (see `docs/architecture.md`'s facility-tier defaults table).
 - `GET /{tenant}/hospital/diagnosis-catalog` — merged global + tenant-custom list.
 - `POST /{tenant}/hospital/diagnosis-catalog` — add a tenant-custom entry.
 - `POST /{tenant}/hospital/visits/{id}/refer` — create a `Referral` (schema already added in Sprint 1) to lab or pharmacy or another facility.

@@ -47,6 +47,9 @@ func (Tenant) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Last successful sync from auth-api"),
+		field.JSON("metadata", map[string]any{}).
+			Optional().
+			Comment("Facility configuration cache: facility_type (chemist|clinic|facility|hospital) and enabled_modules, resolved from subscriptions-api's plan/tenant metadata. Additive, no dedicated schema table per the migration plan's own instruction."),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),

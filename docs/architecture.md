@@ -20,7 +20,7 @@ building blocks that already exist elsewhere in the ecosystem (see Data Authorit
 | Facility type | What they use |
 |---|---|
 | Standalone chemist/dispensary (Pharmacy-only module toggle, below Afya Clinic) | Pharmacy dispensing + OTC sale only — no Consultation/Lab/Inpatient. Direct replacement for the retired pos-api "Dawa" use-case (see `migration-pos-pharmacy.md`) |
-| Dispensary / health centre (Afya Clinic tier) | Reception, Consultation, Pharmacy, Billing, referred-out lab |
+| Dispensary / health centre (Afya Clinic tier) | Reception, Triage, Consultation, Pharmacy, Billing, referred-out lab |
 | Sub-county hospital (Afya Facility tier) | + in-house Laboratory, Inpatient, SHA/SHIF+NHIF claims, controlled-substance register |
 | County referral / large private hospital (Afya Hospital tier) | + Theatre/OT, ICU, Blood Bank, Ambulance dispatch, Asset/Biomedical-equipment tracking, Maternity/Morgue, specialized programmes (ANC/PNC/ART/TB/Immunization), KHIS/DHIS2 reporting, multi-branch |
 
@@ -43,6 +43,7 @@ hospital-api **owns**:
 - `DiagnosisCatalog` (tenant-custom entries only — the standard/default catalogue is global reference data, see `erd.md` Conventions)
 - `LabOrder`/`LabOrderLine` (the `LabTest` catalogue itself is global reference data + tenant-custom additions)
 - `Prescription`/`PrescriptionLine`, `ControlledSubstanceLog` — **the only place this logic lives on the platform**; see `migration-pos-pharmacy.md` for why pos-api carries none of it
+- `BillableItemCatalog`, `PatientAccount`, `BillableCharge`, `PatientNextOfKin` — the **billing ledger** (what's owed, by which department, settled or not). This is distinct from the actual money: hospital-api never stores an invoice/payment/GL row (those stay treasury-owned below) — it owns the clinical-workflow question of "has this step been paid for," the same relationship pos-api's `POSOrder` already has to treasury. See "Distributed Billing & Patient Accounts" below.
 - `Ward`/`Bed`/`Admission`, discharge summaries
 - `TheatreBooking` (OT scheduling), `ICUEpisode` (critical-care monitoring flags)
 - `DonorRecord`, `CrossmatchRequest`, `TransfusionRecord` (clinical blood-bank records — physical blood units are inventory-api lots, not owned here)
@@ -68,6 +69,84 @@ hospital-api **references, never duplicates** (per `shared-docs/CROSS-SERVICE-DA
 **Entities that must NOT exist in hospital-api**: item/drug master rows, `InventoryLot`, `DrugInteractionRule`, `Asset`/`AssetMaintenance` (all inventory-api); `Invoice`, `Quotation`, `InsuranceClaim`/`InsurancePlan`/`InsuranceProvider`, `FixedAssetDepreciation` (all treasury-api); fleet/vehicle/driver records, dispatch task lifecycle, pricing-rule engines (all logistics-api — hospital-api's `AmbulanceBooking` is a reference row, not a competing fleet system); full user/tenant profile rows beyond the minimal JIT reference (auth-api). If any of these ever appear as local tables, that is a data-ownership violation — remove and replace with a reference ID + S2S call.
 
 **Entities that must NOT exist in pos-api** (post-migration, see `migration-pos-pharmacy.md`): `Patient`, `PatientVisit`, `TriageRecord`, `ExaminationRecord`, `LabOrder`/`Line`, `Prescription`/`Line`, `ControlledSubstanceLog`, `DrugInteractionCheck` — pos-api's remaining use-cases are exactly `retail`, `hospitality`, `quick_service`, `services`.
+
+## Distributed Billing & Patient Accounts (2026-08-29 research round)
+
+**The problem this section solves**: a naive "checkout at the very end of the visit" design (the
+original Sprint 5 draft) forces a real patient loop — records charges a registration fee, sends the
+patient to a single central cashier to pay, back to triage/consultation, doctor orders labs, back to
+the cashier again to pay for those, back to lab, results return to the doctor, doctor prescribes,
+patient goes to pharmacy which either collects payment itself or sends the patient back to the
+cashier a third time. Every department already knows what it's charging for at the moment it charges
+it — routing 100% of collection through one physical window is what actually causes the walking back
+and forth, not a technical limitation.
+
+**External grounding**: KenyaEMR (OpenMRS-based, 1450+ Kenyan facilities, the platform's own home
+market) models exactly this as **"Billable Service Configurations"** — a per-service price/department
+catalog distinct from the actual cash-collection point. General 2026 hospital-billing research
+confirms the same two patterns independently: (1) inpatient billing runs as a **running account that
+accrues charges by department as they occur** (room/day rate, ward consumables, diagnostics, pharmacy
+issues) rather than a single end-of-stay reconstruction, reviewable mid-stay; (2) decentralizing
+payment collection to the point of care/order, rather than funneling every patient through one
+central cashier window, is an established pattern for cutting queue time — some deployments report
+double-digit-minute waiting-time reductions from moving payment closer to the point of service.
+
+**The model**: a **billing ledger, not a billing counter**. Every department can charge; not every
+department has to collect.
+
+- `BillableItemCatalog` (tenant-configured, seeded with sane defaults per facility tier): one row per
+  chargeable service — `department` (records/triage/consultation/lab/pharmacy/theatre/inpatient/
+  mortuary), `code`, `name`, `price` (fixed, or `variable` for anything inventory-api prices, e.g.
+  drugs/lab consumables), `applies_to` (`first_visit`/`return_visit`/`all` — registration fee
+  variants), `requires_prepayment` (bool — must be settled before the associated clinical step may
+  proceed, e.g. lab tests, mirroring pos-api's existing `ActivateLabOrderIfPaid` gate), and
+  `collection_mode` (`direct` | `billing_queue` | `either`) — whether the originating department may
+  collect payment itself or must hand off to the Billing desk. Configurable per tenant, defaults
+  sensibly per facility type (see below).
+- `PatientAccount`: one running ledger per Patient (spans every visit for an inpatient admission;
+  effectively one per OPD visit for outpatient, since OPD settles per-visit). Tracks
+  `total_charged`/`total_paid`/`balance`, `status` (`open`/`settled`/`written_off`), and
+  `settlement_required_before` (`nothing`/`discharge`/`body_release`) — the hard gate for
+  admission/mortuary workflows.
+- `BillableCharge`: one row per charge event — `patient_account_id`, `billable_item_id`,
+  `source_module`/`source_reference_id` (the `LabOrder`/`Prescription`/`Admission` etc. that
+  generated it), `amount`, `status` (`pending`/`invoiced`/`paid`/`waived`/`written_off`),
+  `treasury_invoice_id`/`treasury_payment_intent_id` (nullable — filled in once ANY authorized
+  department actually collects), `created_by_department`, `paid_at`.
+- `PatientNextOfKin`: `name`, `phone`, `relationship`, `id_number`, `is_primary` — who may settle a
+  bill or authorize release on the patient's behalf when the patient isn't the one paying (discharge
+  of a minor/incapacitated patient, or mortuary release). Recorded against the settling
+  `BillableCharge`/payment for audit, not a login identity.
+
+**Collection is permission-gated, not location-gated.** Any department whose staff hold
+`hospital.billing.collect_own` may collect payment for a charge THEY created, using the same
+underlying "collect payment" primitive (creates a treasury payment intent/invoice via the existing
+S2S client — no new treasury-api work, see `sprint-5-billing-insurance.md`) that the Billing desk
+itself uses. The Billing/cashier role additionally holds `hospital.billing.collect_any` and owns a
+"Pending Charges" queue across every department/patient — the fallback for any department that
+doesn't want to handle collection itself, and the default handler for the first-contact fees
+(registration, consultation) where a dedicated desk naturally sits. **Defaults by facility type**
+(overridable per tenant): Chemist → Billing module is just Walk-in Sale, no `PatientAccount`
+complexity at all (same as today's pos-api pharmacy "direct" checkout). Clinic/health-centre →
+registration+consultation default to `billing_queue` (Billing desk), pharmacy defaults to `direct`
+(small team, one person often does both). Facility/Hospital → every department capable of
+`direct`, Billing desk is the explicit fallback and the inpatient billing owner.
+
+**"Receipt accessible to every department" is the ledger, not a physical slip.** Any authenticated
+department, given a patient/visit ID, calls `GET /patients/{id}/account` and sees the live
+paid/unpaid status of every charge instantly — this is what lets triage/lab/pharmacy check "has this
+been paid?" without the patient needing to physically carry proof between desks. A printed receipt
+remains available as a convenience/backup for facilities with weak connectivity or patients who want
+one, but the digital ledger is authoritative — a lost paper slip cannot desync it.
+
+**Discharge/mortuary settlement gate**: discharge/body-release checks `PatientAccount.balance <= 0`.
+If outstanding, the action surfaces Record Payment / Apply Insurance / Write-Off options right there
+(next-of-kin can be the one who pays — their identity is recorded on the settling charge, not
+required to exist as a system user) rather than blocking silently. An explicit
+`hospital.billing.override_settlement` permission + mandatory reason lets an authorized user release
+a patient/body with an outstanding balance (real facilities do this for emergencies/charity cases) —
+same "guardrail with an audited approval escape hatch" convention the platform already uses
+elsewhere (pos-api's `ApprovalIntentID` pattern), never a silent bypass.
 
 ## Runtime Document Generation (future)
 

@@ -1,8 +1,5 @@
 #!/bin/sh
 # Entrypoint for hospital-api: wait for DB, run migrations + seed, then start the server.
-# Migrate/seed are currently no-ops (Sprint 0 scaffold, no ent schemas yet) — this script
-# already follows the fleet-standard shape (library-api/inventory-api) so Sprint 0 only
-# needs to fill in real migrations, not rewrite the entrypoint.
 
 set -e
 
@@ -12,10 +9,15 @@ echo "=========================================="
 echo "Hospital-API Service Startup"
 echo "=========================================="
 
-echo "Running migrations (no-op until Sprint 0 adds ent schemas)..."
-POSTGRES_URL="$MIGRATE_URL" /usr/local/bin/hospital-migrate || echo "Migrate step reported an issue (non-fatal at this scaffold stage)"
+echo "Running migrations..."
+# Migration failures are FATAL, not swallowed — a silently-skipped migration means the server
+# boots against a DB schema the ent code doesn't match, surfacing later as a confusing
+# "column does not exist" runtime error instead of a clear startup failure. Real error output
+# reaches the pod logs on every attempt (no /dev/null redirect), per the fleet-wide
+# entrypoint.sh fix applied everywhere else in 2026-08-24 (this service was missed then).
+POSTGRES_URL="$MIGRATE_URL" /usr/local/bin/hospital-migrate
 
-echo "Running seed (idempotent, no-op until Sprint 0 adds ent schemas)..."
+echo "Running seed (idempotent)..."
 POSTGRES_URL="$MIGRATE_URL" /usr/local/bin/hospital-seed || echo "Seed completed with warnings (non-fatal)"
 
 echo ""

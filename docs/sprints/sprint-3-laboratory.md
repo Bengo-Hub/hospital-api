@@ -14,7 +14,7 @@ custom tests.
 
 - `lab_test_catalog_default` — global (`code`, `name`, `specimen_type`, `reference_range`), no `tenant_id`.
 - `lab_test_catalog_entry` — tenant-custom additions (nullable `tenant_id`).
-- `lab_order` — `patient_visit_id`, `ordered_by`, `status` (requested/collected/resulted/cancelled).
+- `lab_order` — `patient_visit_id`, `ordered_by`, `status` (requested/awaiting_payment/collected/resulted/cancelled). Ordering posts one `BillableCharge` per test (Sprint 5); if the catalog entry has `requires_prepayment: true` the order sits `awaiting_payment` until `GET .../account` shows it paid — mirrors pos-api's existing `ActivateLabOrderIfPaid` gate, generalized to any department's charge, not just lab.
 - `lab_order_line` — `lab_order_id`, `lab_test_id`, `result_value`, `result_at`, `resulted_by`.
 
 ## Endpoints

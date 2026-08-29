@@ -13,8 +13,8 @@ copy pos-api's data-ownership mistakes forward.
 
 ## Ent Schemas to Add
 
-- `patient` — `tenant_id`, `mrn` (unique per tenant, sequence-allocated), `full_name`, `dob`, `sex`, `phone`, `next_of_kin`, `crm_contact_id` (nullable), timestamps. Retention: no hard-delete ever (Kenya DPA 20-year minimum) — soft status only.
-- `patient_visit` — `tenant_id`, `patient_id`, `outlet_id`, `visit_type` (OPD/IPD), `status`, `checked_in_at`, `discharged_at`.
+- `patient` — `tenant_id`, `mrn` (unique per tenant, sequence-allocated), `full_name`, `dob`, `sex`, `phone`, `next_of_kin` (free-text quick-reference field for the chart — NOT the same as Sprint 5's dedicated `PatientNextOfKin` entity, which is the structured, ID-numbered record used to authorize a bill settlement/discharge; keep both, different purposes), `crm_contact_id` (nullable), timestamps. Retention: no hard-delete ever (Kenya DPA 20-year minimum) — soft status only.
+- `patient_visit` — `tenant_id`, `patient_id`, `outlet_id`, `visit_type` (OPD/IPD), `status`, `checked_in_at`, `discharged_at`. On check-in, post a `BillableCharge` for the visit's registration fee via Sprint 5's billing primitive (`applies_to: first_visit|return_visit` resolved from whether the patient has a prior settled visit) — registration/records defaults to the Billing-desk `billing_queue` collection mode per `docs/architecture.md`'s facility-tier table, so this does not require records staff to hold a collection permission by default.
 - `triage_record` — `patient_visit_id`, `vitals` (BP/temp/pulse/weight/SpO2 as JSON or discrete columns — decide based on reporting needs), `priority` (ESI-style acuity level), `recorded_by`.
 - `referral` — `patient_visit_id`, `referred_to`, `reason`, `status`.
 - Global reference tables from `erd.md` if not already seeded: none required yet (role/permission catalogue is Sprint 1's RBAC work, see below).

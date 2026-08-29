@@ -94,6 +94,12 @@ func (_c *TenantCreate) SetNillableLastSyncAt(v *time.Time) *TenantCreate {
 	return _c
 }
 
+// SetMetadata sets the "metadata" field.
+func (_c *TenantCreate) SetMetadata(v map[string]interface{}) *TenantCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *TenantCreate) SetCreatedAt(v time.Time) *TenantCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -313,6 +319,10 @@ func (_c *TenantCreate) createSpec() (*Tenant, *sqlgraph.CreateSpec) {
 		_spec.SetField(tenant.FieldLastSyncAt, field.TypeTime, value)
 		_node.LastSyncAt = &value
 	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(tenant.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(tenant.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -489,6 +499,24 @@ func (u *TenantUpsert) ClearLastSyncAt() *TenantUpsert {
 	return u
 }
 
+// SetMetadata sets the "metadata" field.
+func (u *TenantUpsert) SetMetadata(v map[string]interface{}) *TenantUpsert {
+	u.Set(tenant.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *TenantUpsert) UpdateMetadata() *TenantUpsert {
+	u.SetExcluded(tenant.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *TenantUpsert) ClearMetadata() *TenantUpsert {
+	u.SetNull(tenant.FieldMetadata)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *TenantUpsert) SetUpdatedAt(v time.Time) *TenantUpsert {
 	u.Set(tenant.FieldUpdatedAt, v)
@@ -647,6 +675,27 @@ func (u *TenantUpsertOne) UpdateLastSyncAt() *TenantUpsertOne {
 func (u *TenantUpsertOne) ClearLastSyncAt() *TenantUpsertOne {
 	return u.Update(func(s *TenantUpsert) {
 		s.ClearLastSyncAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *TenantUpsertOne) SetMetadata(v map[string]interface{}) *TenantUpsertOne {
+	return u.Update(func(s *TenantUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *TenantUpsertOne) UpdateMetadata() *TenantUpsertOne {
+	return u.Update(func(s *TenantUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *TenantUpsertOne) ClearMetadata() *TenantUpsertOne {
+	return u.Update(func(s *TenantUpsert) {
+		s.ClearMetadata()
 	})
 }
 
@@ -977,6 +1026,27 @@ func (u *TenantUpsertBulk) UpdateLastSyncAt() *TenantUpsertBulk {
 func (u *TenantUpsertBulk) ClearLastSyncAt() *TenantUpsertBulk {
 	return u.Update(func(s *TenantUpsert) {
 		s.ClearLastSyncAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *TenantUpsertBulk) SetMetadata(v map[string]interface{}) *TenantUpsertBulk {
+	return u.Update(func(s *TenantUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *TenantUpsertBulk) UpdateMetadata() *TenantUpsertBulk {
+	return u.Update(func(s *TenantUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *TenantUpsertBulk) ClearMetadata() *TenantUpsertBulk {
+	return u.Update(func(s *TenantUpsert) {
+		s.ClearMetadata()
 	})
 }
 

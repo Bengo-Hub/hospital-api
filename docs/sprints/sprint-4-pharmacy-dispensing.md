@@ -25,13 +25,13 @@ hand-rolled `net/http` client and is explicitly not the pattern to copy (see `do
 
 - `POST /{tenant}/hospital/prescriptions` — create from an examination.
 - `POST /{tenant}/hospital/prescriptions/{id}/approve` / `/lock` / `/reject` / `/cancel` — lifecycle, matching pos-api's existing state machine.
-- `POST /{tenant}/hospital/prescriptions/{id}/dispense` — dispense (calls inventory-api consumption, calls treasury-api for the billing line, triggers the controlled-substance dual-witness flow when applicable).
+- `POST /{tenant}/hospital/prescriptions/{id}/dispense` — dispense (calls inventory-api consumption via the fixed FEFO-aware `ConsumeReservation`, posts a `BillableCharge` per line — Sprint 5, priced from inventory-api's `ItemPricing` — triggers the controlled-substance dual-witness flow when applicable). Pharmacy defaults to `direct` collection mode at every facility tier including a standalone chemist (Phase B below) — the prescriber/pharmacist collects payment on the spot, same as today's pos-api "direct" workflow mode; `billing_queue` remains available as a tenant override for larger facilities that want a dedicated cashier.
 - `GET /{tenant}/hospital/prescriptions/{id}/label.pdf` — dispensing label (adopt the `treasury-api/internal/modules/docs` fpdf engine per `docs/architecture.md`'s Runtime Document Generation note — do **not** copy pos-api's `report_pdf_pharmacy.go`/`printing/dispensing_label.go` verbatim, rebuild on the shared engine).
 
 ## Integration Points
 
 - `inventory-api`: drug lookup, interaction check, lot consumption/reservation — see `docs/integrations.md` § 1.1-1.4, via `shared/service-client`.
-- `treasury-api`: per-dispense billing line — see `docs/integrations.md` § 2.1.
+- `treasury-api`: per-dispense billing line, collected via Sprint 5's `BillableCharge`/`collect` primitive (never a direct treasury call from this module) — see `docs/integrations.md` § 2.1 and `sprint-5-billing-insurance.md`. On a standalone-chemist tenant this IS the entire Billing module — no `PatientAccount`/ledger UI surfaced, just a walk-in-sale checkout, matching pos-api's pharmacy "direct" mode today.
 
 ## Phase B — Standalone-chemist configuration (same sprint)
 
