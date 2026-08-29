@@ -78,14 +78,45 @@ an SHA claims API.
 - **A separately-sourced 1 September 2026 date appears in vendor-blog commentary** (not an official
   DHA or SHA notice we could load directly): private facilities without a DHA-certified HMIS
   integrated into the national Health Information Exchange lose the ability to process SHA claims or
-  win new SHA contracts from that date. This is close to, but not confirmed identical to, the
-  "90 days from 29 June 2026" date above. Treat both as pointing at the same underlying pressure
-  (Q3 2026), not as two independently verified hard deadlines. Confirm the live date against an
-  official DHA/SHA notice before quoting a specific day to a client.
+  win new SHA contracts from that date. A second research pass (2026-08-29) found direct news coverage
+  of SHA's own CEO framing her ultimatum as "within the next three months" from around 30 June 2026,
+  which lands closer to late September 2026 than to 1 September. Read together, these look like two
+  separate clocks from two separate agencies, an SHA contractual decontracting deadline around
+  late September, and a DHA regulatory certification deadline around 1 September, not one deadline
+  described two ways. Neither is confirmed against a primary DHA/SHA notice naming a specific date.
+  Confirm the live date against an official DHA/SHA notice before quoting a specific day to a client.
 - No public registry of currently DHA-certified HMIS vendors was found or independently verified
-  during this research, despite references to one existing. Do not tell a client "we are on the
+  during this research, despite references to one existing. The Digital Health (Data Exchange)
+  Regulations (see §9) require DHA to keep an internal inventory of onboarded solutions, but nothing
+  found indicates that inventory is public-facing. Do not tell a client "we are on the
   list" or "we checked the list", state plainly that no such registry was accessible to verify
   against.
+- **The March 2026 court ruling has a confirmed date and judge, still no confirmed case citation.**
+  Two independent outlets (The Star, Standard Media) date the ruling to 19 March 2026, presided over
+  by Justice Bahati Mwamuye, and describe its holding precisely: SHIF's underlying funds (Primary
+  Health Care Fund, SHIF itself, the Emergency/Chronic/Critical Illness Fund) are constitutional in
+  principle, but the October 2024 rollout itself was unconstitutional because it launched before
+  administrative and technical infrastructure was ready. The court declined to suspend the
+  already-operational system and instead issued a structural interdict, a 90-day court-supervised
+  window to fix the gaps. The formal petition/case number could not be located on Kenya Law's own
+  search.
+- **"Taifa Care HMIS" is very likely a specific commercial product, not an unbranded government
+  build.** Public app-store listings (package name `com.medtroniclabs.spice.tiberbu`), the domains
+  `tiberbu.com`/`hmis.tiberbu.app`, and Medtronic LABS' own published Kenya programme description
+  together identify it as **"Tiberbu," built on Medtronic LABS' "SPICE" digital-health platform**.
+  Medtronic LABS has partnered with Kenya's MOH since 2018, originally for community-level NCD
+  screening, later extended into this general-purpose claims HMIS. This is well-triangulated across
+  independent sources but not confirmed by an official DHA/SHA statement naming the product, treat it
+  as strong internal knowledge, not yet a citable fact for a client document. Full detail:
+  `docs/kenyaemr-technical-reference.md` §10.
+- **The national digital-health backend behind SHA/DHA is reportedly a named, ten-year, KES 104.8
+  billion contract** ("Integrated Healthcare Information Technology System", IHTS), split between
+  Apeiro Kenya Technologies (59.55%), Safaricom PLC (22.56%), and Konvergenz Network Solutions
+  (17.89%), publicly reported as running only 5 of a planned 17 architectural components at full
+  capacity as of go-live. This is useful internal context for expecting continued instability in the
+  national systems Codevertex Afya integrates against. Per §7's existing rule, this is not something
+  to name or editorialize about in front of a client, the same treatment already given to the SHA
+  outage and RUPHA payment-survey findings below.
 
 ---
 
@@ -147,6 +178,21 @@ HMIS 4" self-attestation process described in §4 above remains sourced only fro
 specs document the runtime API a certified system would call, not the process for getting certified
 to call it.
 
+**Update, 2026-08-29 (second pass): there are at least three separate 2024/2025 Digital Health
+regulations, not two, and their section numbers do not interchange.** A direct read of the draft
+"Digital Health (Data Exchange) Regulations, 2024" (dated 19 November 2024, `health.go.ke`) uses its
+own independent Reg 5 to Reg 22 numbering for the Enterprise Service Bus and shared national
+resources (§9 below), numbers that do not match what this section already cites as "Reg 5(1)(f)" or
+"Reg 15(2)" for the 20-year retention rule. That earlier citation traces to the in-force **"Digital
+Health (Health Information Management Procedures) Regulations, 2025"**, a different instrument. The
+"Form HMIS 4" self-attestation form, Reg 37(1) (certification is mandatory), and Reg 38(3)
+(certification fees) most likely belong to a still-unlocated third instrument, referenced in the Data
+Exchange regulations themselves as the "Digital Health (Use of e-Health Applications and
+Technologies) Regulations, 2024," home of the "Certification Framework." Its text could not be
+obtained in this round. Practically: when citing a specific regulation number to a client or in
+engineering documentation, name the instrument alongside the number, since the same number means
+different things across these three regulations.
+
 ---
 
 ## 5. ODPC / Data Protection Act: the parallel, older obligation
@@ -203,6 +249,12 @@ Read directly from the ODPC's own "Guidance Note on the Processing of Health Dat
   the facility's MFL code, KMPDC registration number, and facility level as tenant metadata (not new
   schema tables) is the natural place for this, consistent with how the ODPC Certificate of Data
   Handler/Processor number is already planned as tenant metadata in Sprint 12.
+- **Patient identification, confirmed 2026-08-29:** the national Client Registry (§9 below) accepts
+  a Kenyan patient's National ID, passport, birth certificate (for under-18s), **or the newer digital
+  "Maisha Number"** national ID, plus asylum/movement/refugee documents for non-citizens. `patient`'s
+  identification-type field (`docs/erd.md`) should support `maisha_number` as a distinct ID type
+  alongside `national_id`/`passport`/`birth_certificate`, not fold it into a generic "other" bucket,
+  since it is the direction Kenya's own registry is moving.
 
 ---
 
@@ -219,12 +271,19 @@ Read directly from the ODPC's own "Guidance Note on the Processing of Health Dat
 - KMPDC's Certificate of Data Handler/Processor mandate and its January/March 2025 deadlines.
 
 **Not independently confirmed, verify before repeating as fact:**
-- The exact wording "Form HMIS 4" and any specific step count for DHA certification.
+- The exact wording "Form HMIS 4" and any specific step count for DHA certification, and the full
+  text of the regulation instrument it actually belongs to (see the §4 update above).
 - Whether "1 September 2026" and "90 days from 29 June 2026" are the same deadline or two related
-  but distinct ones.
+  but distinct ones (current working view, per the §3 update: two distinct clocks from two distinct
+  agencies).
 - The existence or contents of a public, browsable list of DHA-certified HMIS vendors.
 - The full level-by-level rollout schedule beyond "Level 4 public hospitals first".
-- The exact citation for the March 2026 court ruling referenced in §2.
+- The formal petition/case number for the 19 March 2026 SHIF structural-interdict ruling (date and
+  presiding judge are now confirmed, see §3).
+- That "Taifa Care HMIS" is specifically the "Tiberbu" product by Medtronic LABS (well-triangulated,
+  not confirmed by an official government statement naming it).
+- Whether the ESB/shared-resource figures in the new §9 carry over unchanged from the November 2024
+  draft into whatever final, in-force numbering superseded it.
 
 See §8 for a 2026-08 update from a primary DHA source (an open tender) that confirms the
 conformance-suite gap above is a known unknown, not just an unverified vendor claim, and gives a
@@ -294,16 +353,98 @@ RMNCAH in Kenya", notice dated 26 August 2026, submission deadline 4 September 2
 
 ---
 
-## 9. References
+## 9. The Enterprise Service Bus and national shared-resource architecture (2026-08-29 update)
+
+A direct read of the **draft** "Digital Health (Data Exchange) Regulations, 2024" (19 November 2024,
+`health.go.ke`) gives the actual legal architecture behind the "national HIE" this document has so
+far described only from the API-consumer side. **This is a draft text, not yet reconciled against
+the final in-force numbering already cited elsewhere in this document** (see the §4 update above) —
+treat the structure and figures below as a strong, primary-source-grounded picture of the design,
+not as citable final regulation numbers.
+
+**The Enterprise Service Bus (ESB) is the legally-defined integration backbone**, routing messages
+only between DHA-certified digital health solutions, and is itself composed of three named
+sub-components: the National Health Information Exchange, a Telemedicine platform, and a National
+Logistics and Supply Chain Management Service. In this legal structure, "the HIE" is a component of
+the ESB, not a parallel peer system, worth keeping straight when describing the architecture to an
+engineer or a client.
+
+**Shared national resources, each with its own registry and onboarding form:** a national health
+data dictionary (the likely legal basis for the "Kenya National Terminology Services" already
+mentioned in §4); the Client Registry (accepts National ID, passport, birth certificate, or Maisha
+Number, see §6); the Facility Registry (assigns the MFL code); a Telemedicine health-provider
+registry and a Health Worker Registry; the "Kenya Health Enterprise Architecture" (a master reference
+architecture, reviewed every three years); a Product Catalogue (drug/product identifiers from the
+Pharmacy and Poisons Board); a National Logistics Management Information Services Platform (tracks
+batch, quantity, manufacture, expiry, location, and condition of health products, suppliers report
+either directly or through an interoperable system, this is the closest confirmed match to what
+vendor material sometimes calls a "Commodity Tracking System"); the Shared Health Record itself; and
+a Health Management Information Services Platform (a DHA-run public aggregate reporting/surveillance
+portal, dashboards, disease burden, IDSR).
+
+**The Shared Health Record carries a concrete engineering SLA worth designing against now**: a
+certified solution must update the SHR within **24 hours of a client encounter**, with a **7-day
+grace period reserved for exceptional circumstances such as the solution being offline**. Certified
+solutions must query/update the SHR per encounter, alert clients when their record is accessed, and
+maintain an auditable access log. This is a real, specific requirement for `sprint-12-compliance-
+hardening.md` to track once DHA's certification workflow is confirmed, distinct from the 20-year
+retention rule already in §4.
+
+**Onboarding mechanics**: application via a Form 1, a 14-day DHA review commitment, a renewable
+1-year "enterprise user licence," and defined suspension triggers (unresolved breach, misuse,
+facilitating unauthorized third-party access, an invalid solution, licence lapse, non-payment, or a
+regulatory infringement), with a 3-day suspension notice and a mandatory data-migration obligation if
+a solution is permanently blocked.
+
+**A confirmed fee schedule, distinct from the certification fee already in §4**: ESB onboarding runs
+KES 2,000 to 100,000 by facility level (Level 2/3 through Level 6), with a matching annual licence
+fee band of KES 1,000 to 25,000. A separate per-transaction fee applies to every claim or bill routed
+through the ESB: KES 10 for bills under 10,000, rising to KES 2,000 for bills of 100,000 or more.
+**Do not confuse this ESB usage fee with the KES 10,000 to 500,000 one-off certification fee already
+documented in §4**, they are two different charges under (probably) two different regulations.
+
+## 10. The national Kenya FHIR Implementation Guide programme
+
+Beyond the DHA claims API already documented in `docs/sha-taifacare-api-specs/`, Kenya has a broader,
+more mature national FHIR programme than earlier research found, developed by IntelliSOFT Consulting
+with MOH/DHA, and part of it is now DHA-hosted infrastructure rather than only a private consultancy
+draft:
+
+- **Kenya Core FHIR IG** — the foundational base profiles, terminologies, and extensions every other
+  Kenya-specific IG inherits from.
+- **Kenya Patient Summary (KPS) FHIR IG** — officially published on a DHA-owned FHIR server
+  (`fhir.dha.go.ke`). Profiles cover Patient, Condition, MedicationStatement, Encounter, Observation,
+  Immunization, Claim, ClaimResponse, Coverage, ExplanationOfBenefit, and MedicationDispense.
+  Confirmed terminology stack: **SNOMED CT, CIEL (the concept dictionary OpenMRS/KenyaEMR itself uses)
+  for diagnoses, and LOINC for labs**, a more specific picture than §4's general "SNOMED CT/ICD-10/
+  ICD-11/LOINC" summary.
+- **Kenya eClaims FHIR IG** — the claims/billing/reimbursement workflow guide.
+- **Kenya Diagnostics FHIR IG** — published under Kenya's National Public Health Laboratory,
+  covering diagnostic report, organization, service-request, and patient profiles, referencing the
+  real EID/viral-load (NASCOP) and TB lab-request forms.
+- **Referral, Lab Order, ePrescription, and a Cancer (NCCP) IG** are confirmed to exist or be planned,
+  though live content could not be fetched for all of them in this round.
+
+**Practical implication**: hospital-api's own `Referral` entity (`docs/erd.md`) and lab-order
+workflow should be designed with an eye toward eventually mapping onto FHIR `ServiceRequest`/`Task`
+resources, since that is the direction Kenya's own national referral and lab-order IGs are heading,
+even though those specific guides are not yet stable enough to build against today.
+
+## 11. References
 
 - [Plan](plan.md)
 - [Integrations](integrations.md) §2.2 to §2.5
+- [KenyaEMR Technical Architecture Reference](kenyaemr-technical-reference.md)
 - [Sprint 5: Billing & Insurance](sprints/sprint-5-billing-insurance.md)
 - [Sprint 12: Compliance Hardening](sprints/sprint-12-compliance-hardening.md)
 - [Market & Competitive Landscape](market-and-competitive-landscape.md)
 - Kenya Law: Digital Health (Health Information Management Procedures) Regulations, 2025
 - Kenya Law: Digital Health (Data Exchange Component) Regulations, 2025
+- Draft: Digital Health (Data Exchange) Regulations, 2024 (`health.go.ke`, 19 November 2024)
 - ODPC: Guidance Note on the Processing of Health Data (December 2023)
 - DHA Tender No. DHA/ONT/01/2026-2027, "Procurement of a Foundational AI Driven Digital Health
   Platform for RMNCAH in Kenya" (notice 26 August 2026); full extraction at
   `shared/tenders-and-cvs/dha-tender-analysis.md`
+- Kenya Patient Summary FHIR IG (`fhir.dha.go.ke/ig/kps`), Kenya Diagnostics FHIR IG
+  (`gok-nphl.github.io/Kenya-Diagnostics-FHIR-IG`), Kenya Core and eClaims FHIR IGs
+  (IntelliSOFT Consulting)

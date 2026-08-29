@@ -1,6 +1,8 @@
 # Hospital API — Integration Guide
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-29 (§1.7, §2C, §2D, §2E added after a KenyaEMR technical audit and a Kenya
+national-HIE research pass, see `docs/kenyaemr-technical-reference.md` and `docs/compliance-kenya.md`
+§9-10)
 
 > **Status note:** none of the S2S clients described below are implemented yet — this document
 > specifies the target integration contracts (mirroring proven patterns already live in `pos-api`)
@@ -68,6 +70,20 @@ Physical blood bags are modeled as a short-shelf-life, lot-tracked item category
 Blood Bank module (`DonorRecord`, `CrossmatchRequest`, `TransfusionRecord`) references `lot_id` for
 the physical unit and calls the same consumption/reservation endpoints pharmacy dispensing uses —
 no second inventory system for blood.
+
+### 1.7 Commodity/stock national reporting (future, explicitly out of scope now)
+
+**Finding (2026-08-29):** Kenya's national medical-supplies parastatal (KEMSA) runs its own
+integrated Logistics Management Information System ("i-LMIS", covering roughly 8,500 of Kenya's
+~9,500 facilities), and a separate, legally-defined National Logistics Management Information
+Services Platform is described in the draft Digital Health (Data Exchange) Regulations
+(`docs/compliance-kenya.md` §9) that suppliers must report into, directly or via an interoperable
+system. Neither is integrated with inventory-api today, and a technical audit of KenyaEMR's own
+commodity module (a fork of the generic OpenMRS stock-management module) found no confirmed
+integration between it and KEMSA's system either, these remain two separate, unlinked systems in the
+market this platform is entering. This is a future integration point for inventory-api, deferred, not
+silently dropped, since inventory-api already owns drug/lot data for the whole Codevertex platform
+and would be the natural single point of integration if this is ever built.
 
 ---
 
@@ -233,6 +249,59 @@ hospital-api directly rather than only receiving its exports, that implies an in
 such platform exists yet to integrate against (DHA's own tender is procuring the team that will define
 it), so this is a design note for whoever revisits this section once a real conformance suite is
 published, not a Sprint 10 task.
+
+---
+
+## 2C. National Digital Health Infrastructure — Enterprise Service Bus & Shared Health Record (2026-08-29)
+
+A direct read of the draft Digital Health (Data Exchange) Regulations, 2024 (full detail:
+`docs/compliance-kenya.md` §9) describes the actual national architecture treasury-api's Taifa Care
+adapter and hospital-api's own eventual DHA certification sit inside, beyond the raw claims API
+already documented in §2.4. **This is drawn from a draft text not yet reconciled against the final
+in-force regulation numbering** — treat the shape as directionally reliable, not as citable final
+law.
+
+**The Shared Health Record (SHR) carries a concrete engineering obligation worth designing toward
+now**: a certified solution must push an update to the national SHR within **24 hours of a client
+encounter**, with only a **7-day grace period for exceptional circumstances (the solution being
+offline)**. The confirmed profile set this maps to is the **Kenya Patient Summary FHIR
+Implementation Guide** (`docs/compliance-kenya.md` §10): Patient, Condition, MedicationStatement,
+Encounter, Observation, Immunization, Claim, ClaimResponse, Coverage, ExplanationOfBenefit, and
+MedicationDispense. This is Sprint 12 scope (compliance hardening), not Sprint 5, but the sprint's
+task list should track it as a named requirement, not a vague "FHIR someday" note.
+
+**A confirmed fee schedule exists for routing through the ESB**, separate from the DHA certification
+fee already in `docs/compliance-kenya.md` §4: onboarding runs KES 2,000 to 100,000 by facility level,
+an annual licence fee of KES 1,000 to 25,000, and a per-transaction fee (KES 10 to 2,000, scaled by
+bill size) on every claim/bill routed through the bus. Worth factoring into treasury-api's own
+insurance-connector cost model once the Taifa Care adapter is built, this is treasury-api's concern,
+not hospital-api's, per the existing ownership split in §2.4.
+
+## 2D. Community Health & e-Referral (design-forward note, 2026-08-29)
+
+Kenya's community health layer, **eCHIS** (built on Medic's Community Health Toolkit, deployed to
+roughly 100,000 Community Health Promoters nationally), is FHIR-compliant and explicitly intended to
+**integrate directly with facility EMRs for referral coordination and defaulter tracing**, per the
+Ministry's own published description. This makes hospital-api's `Referral` entity a genuine future
+integration surface, not only an internal inter-department/inter-facility record. Separately, a
+national e-Referral policy is still in stakeholder review, but its technical standard is already
+being drafted as a Kenya Referral FHIR Implementation Guide, reusing the same `ServiceRequest`/`Task`
+resource shapes as the other Kenya FHIR IGs. **Design implication**: no integration work is scheduled
+now, but `Referral`'s field shape (`referred_to`, `reason`, `status`) should be kept easy to map onto
+FHIR `ServiceRequest`/`Task` later, rather than designed in a way that would need a rewrite once a
+concrete community-health or national referral integration becomes real work.
+
+## 2E. Laboratory — national batch-referral workflow (design note, 2026-08-29)
+
+A technical audit of KenyaEMR's real lab-manifest module found Kenya's dominant clinical EMR models
+referred-out national testing (viral load, early-infant-diagnosis, TB) as a **batch courier-manifest
+workflow**, not live analyzer/device integration: specimens are grouped into a manifest with
+collection/dispatch dates and courier handoff details, then couriered to a centralized reference lab,
+with results returned asynchronously against the manifest. This is a materially different, and likely
+more realistic, integration target for Kenya than assuming every facility has an in-house analyzer
+speaking HL7/ASTM. `sprint-3-laboratory.md`'s in-house result-entry design should sit alongside, not
+replace, this manifest/batch-referral pattern once referred-out national testing is in scope, full
+detail: `docs/kenyaemr-technical-reference.md` §8.
 
 ---
 

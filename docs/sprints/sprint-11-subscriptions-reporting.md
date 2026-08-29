@@ -26,6 +26,11 @@
       SoT for revenue/expense/tax aggregation, delegate never re-implement sums" rule).
 - [ ] Clinical-throughput dashboard: patients seen/day, average wait time, lab turnaround time — all
       computed from hospital-api's own owned data.
+- [ ] Programme dashboard tiles (ART/TB/Immunization/VMMC/HEI/cancer-screening counts) — a real,
+      published field test found Kenya's own automated indicator-reporting mechanism produced
+      100% complete/accurate MOH-731 data versus 89%/71% for manual entry (`sprint-10`), a genuine
+      evidence-backed value proposition worth surfacing directly in this dashboard's copy, not just
+      building the numbers.
 
 ## Definition of Done
 

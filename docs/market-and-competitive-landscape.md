@@ -30,6 +30,22 @@ DolphineHMS, EasyClinic, iDeveloper, Techsphere's E-Afya, and others. Most now a
 SHA/SHIF as built-in. AphiaOne explicitly markets itself for "the complexity of Level 4, 5, and 6"
 facilities, by its own positioning it is not competing for the Level 2/3 dispensary segment at all.
 
+**Two more real, previously untracked vendors, both above the small-clinic tier.** FunSoft
+("FunSoft I-HMIS," built by System Partners Limited) has run institution-wide at Kisii Teaching and
+Referral Hospital and at Jaramogi Oginga Odinga Teaching & Referral Hospital since 2010, covering
+registration, OPD/IPD, billing, pharmacy, nursing, finance, and supply chain, notable enough that a
+DHA-published national FHIR Implementation Guide names it, alongside KenyaEMR and the community-health
+system eCHIS, as a system it expects to interoperate with. C-PAD was separately identified, alongside
+OpenMRS/KenyaEMR, IQCare, and FunSoft, as one of four EMRs meeting a national 60%-functionality
+assessment threshold, no further technical detail was confirmed for it. IQCare's own technical build
+(useful where the earlier "being phased out" framing had no detail) is a Palladium-built, browser-based
+data-entry application backed by Microsoft SQL Server, with a 2017 national assessment finding it
+performed similarly to KenyaEMR (97% reporting completeness, 83% timeliness). KNH, Kenya's largest
+national referral hospital, unveiled its own "Afya Apex Taifa Care System" in March 2026, a paperless
+HMIS spanning radiology, lab, triage, A&E, pharmacy, and registration, the "Taifa Care" branding
+suggests a link to the national platform described in §5, though that link is not independently
+confirmed. Full technical detail on all of the above: `docs/kenyaemr-technical-reference.md` §9.
+
 **Where Codevertex Afya sits:** priced and scoped for Level 2 to 4 facilities (the Afya Clinic and
 Facility tiers), with the Afya Hospital tier available for Level 5/6 when a client grows into it,
 without re-entering data. That is a genuine, defensible position: several of the more visible
@@ -73,6 +89,13 @@ can still win on this point is depth, not presence: one connected record where a
 insurance payment against the same invoice reconciles automatically, rather than a payment
 collected in one tool and manually reconciled against records in another.
 
+**A direct technical audit of KenyaEMR's real billing code (2026-08-29) confirms this depth argument
+is genuine, not just positioning.** KenyaEMR's production billing backend is cash-point/cashier-
+centric, one bill is tied to one physical collection point and one cashier at posting time, the
+opposite of Codevertex Afya's distributed ledger, where any department can charge and the Billing
+desk is the fallback. This is a real architectural gap in the market's most-deployed open-source
+system, not a manufactured claim. Full detail: `docs/kenyaemr-technical-reference.md` §3.
+
 ---
 
 ## 4. KRA eTIMS: a genuine, currently under-exploited differentiator
@@ -102,6 +125,11 @@ Level 4 public hospitals were moved onto from 29 June 2026 (see `docs/compliance
 Separately, KenyaEMR (the OpenMRS-based clinical system) rebranded in 2025 as "TaifaCare, powered by
 KenyaEMR." A client who has heard the phrase "Taifa Care" in the news may mean any of these three
 things. Worth clarifying directly in a sales conversation rather than assuming which one they mean.
+A fourth usage, DHA's own tender names a "Taifa Care" WhatsApp beneficiary-engagement channel
+distinct from all three (`docs/compliance-kenya.md` §8). The SHA claims HMIS itself is very likely a
+specific commercial product ("Tiberbu," by Medtronic LABS, see `docs/compliance-kenya.md` §3 and
+`docs/kenyaemr-technical-reference.md` §10), not an unbranded government build, worth knowing
+internally even though it is not yet confirmed solidly enough to state to a client as fact.
 
 ---
 
@@ -121,6 +149,13 @@ exactly why Codevertex phases a facility's go-live deliberately) rather than nam
 incidents or organizations involved. It is not Codevertex's place to editorialize about SHA's
 finances or a public hospital's outage in a sales document, however accurately sourced.
 
+The same treatment applies to a further finding (2026-08-29): the national digital-health backend
+behind SHA/DHA is reportedly a named, ten-year, KES 104.8 billion contract split across three named
+companies, publicly reported as running only a fraction of its planned architecture at full capacity
+as of go-live. Useful internal context for expecting continued rough edges in the systems Codevertex
+Afya integrates against, not something to name in front of a client. Full detail:
+`docs/compliance-kenya.md` §3.
+
 On the positive side, African healthtech funding is real and growing: $215 million in equity
 funding across the continent in 2025, up 232% year over year, with Kenya alone drawing roughly $87
 million across 38 deals. That is useful context for "this is a real, growing market", not a claim
@@ -133,6 +168,10 @@ about Codevertex Afya's own funding or scale.
 - Do not name Zeltas, Access:mds, Ayasdi, MEDDIC/MEDNET, Elsewedy Electric, or InterSystems TrakCare
   as Kenyan HMIS competitors. No credible evidence of a Kenya health-sector deployment was found for
   any of them during this research.
+- Do not name "iCare," "Lwazi," or "Ushauri" as Kenyan clinical/HIV systems either (checked again
+  2026-08-29, targeted searches found no trace of any of the three under those names in Kenya's
+  health-IT landscape, a CDC/PEPFAR "SmartCare" system by a similar description exists in Zambia,
+  not Kenya).
 - Do not repeat vendor-published statistics (AphiaOne's "60% wait-time reduction" case study,
   specific "X hospitals served" counts from Hanmak or others) as independently verified. They are
   fine to reference internally as "vendor X claims Y", not as confirmed fact in a client document.
@@ -159,6 +198,7 @@ to Codevertex Afya's own capabilities or scale, and should not be cited to a cli
 
 - [Plan](plan.md)
 - [Compliance & Certification Reference](compliance-kenya.md)
+- [KenyaEMR Technical Architecture Reference](kenyaemr-technical-reference.md)
 - `d:\Projects\Codevertex\CODEVERTEX AFRICA HOSPITAL MANAGEMENT SYSTEMS PRICING MODEL.md`
 - DHA Tender No. DHA/ONT/01/2026-2027, "Procurement of a Foundational AI Driven Digital Health
   Platform for RMNCAH in Kenya" (notice 26 August 2026); full extraction at

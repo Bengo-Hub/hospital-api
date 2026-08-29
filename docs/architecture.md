@@ -22,7 +22,7 @@ building blocks that already exist elsewhere in the ecosystem (see Data Authorit
 | Standalone chemist/dispensary (Pharmacy-only module toggle, below Afya Clinic) | Pharmacy dispensing + OTC sale only — no Consultation/Lab/Inpatient. Direct replacement for the retired pos-api "Dawa" use-case (see `migration-pos-pharmacy.md`) |
 | Dispensary / health centre (Afya Clinic tier) | Reception, Triage, Consultation, Pharmacy, Billing, referred-out lab |
 | Sub-county hospital (Afya Facility tier) | + in-house Laboratory, Inpatient, SHA/SHIF+NHIF claims, controlled-substance register |
-| County referral / large private hospital (Afya Hospital tier) | + Theatre/OT, ICU, Blood Bank, Ambulance dispatch, Asset/Biomedical-equipment tracking, Maternity/Morgue, specialized programmes (ANC/PNC/ART/TB/Immunization), KHIS/DHIS2 reporting, multi-branch |
+| County referral / large private hospital (Afya Hospital tier) | + Theatre/OT, ICU, Blood Bank, Ambulance dispatch, Asset/Biomedical-equipment tracking, Maternity/Morgue, specialized programmes (ANC/PNC/ART-OTZ/TB/Immunization/VMMC/PMTCT-EID/cancer screening), KHIS/DHIS2 reporting, multi-branch |
 
 ## Layer Overview
 
@@ -49,7 +49,10 @@ hospital-api **owns**:
 - `DonorRecord`, `CrossmatchRequest`, `TransfusionRecord` (clinical blood-bank records — physical blood units are inventory-api lots, not owned here)
 - `AmbulanceBooking` (thin reference row only — see below, not a dispatch/fleet engine)
 - `Appointment`/OPD queue, `Referral`
-- Specialized-care programme records: ANC, PNC, ART, TB, Immunization, Morgue
+- Specialized-care programme records: ANC, PNC, ART (with an Operation Triple Zero adolescent-cohort
+  flag), TB, Immunization, VMMC, HIV-Exposed Infant/PMTCT follow-up, cervical and prostate cancer
+  screening, Morgue (expanded 2026-08-29 per `docs/kenyaemr-technical-reference.md` §4, which found
+  these are the real programmes Kenya's dominant clinical EMR tracks as distinct modules)
 - KHIS/DHIS2 aggregate-reporting export configuration/history (the indicators themselves are computed from owned clinical data, not duplicated elsewhere)
 
 hospital-api **references, never duplicates** (per `shared-docs/CROSS-SERVICE-DATA-OWNERSHIP.md`):
@@ -139,6 +142,20 @@ been paid?" without the patient needing to physically carry proof between desks.
 remains available as a convenience/backup for facilities with weak connectivity or patients who want
 one, but the digital ledger is authoritative — a lost paper slip cannot desync it.
 
+**Validated against KenyaEMR's real architecture (2026-08-29):** a direct technical audit of
+KenyaEMR's production billing code confirms this distributed model is a genuine advance over the
+market's most-deployed open-source system, not just a design preference. KenyaEMR's actual billing
+backend (the legacy OpenHMIS "Cashier" module) ties one bill to one physical `CashPoint` and one
+cashier `Provider` at posting time, a cash-point-centric model, the opposite of the any-department-
+can-charge design above. Its separate, actively-maintained insurance-claims module does validate part
+of our own design, though: a claim there is built by selecting already-posted bill line-items and
+attaching `claimCode`/`guaranteeId`/`claimExplanation`/`claimJustification`, diagnoses, provider(s),
+and a treatment date range, the same "claim references already-posted charges, never re-derives them"
+shape `docs/integrations.md` §2.2 and `sprint-5-billing-insurance.md` already assume. It also names a
+useful status this platform's own `BillableCharge.status` enum lacks: `EXEMPTED`, distinct from
+`waived`, for a charge insurance covered in full. Worth adding as a status value when Sprint 5 is
+implemented. Full detail: `docs/kenyaemr-technical-reference.md` §3.
+
 **Discharge/mortuary settlement gate**: discharge/body-release checks `PatientAccount.balance <= 0`.
 If outstanding, the action surfaces Record Payment / Apply Insurance / Write-Off options right there
 (next-of-kin can be the one who pays — their identity is recorded on the settling charge, not
@@ -173,3 +190,8 @@ Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses t
 - **2026-08-01** — Trinity wiring plan executed: RBAC/JIT identity/tenant+outlet sync/subscription
   gating all shipped (see `docs/integrations.md` §3/§4 for the up-to-date status). Still no
   clinical domain schemas — that's `docs/migration-pos-pharmacy.md` Phase A / Sprint 4.
+- **2026-08-29** — KenyaEMR technical audit (`docs/kenyaemr-technical-reference.md`) validated the
+  Distributed Billing design against KenyaEMR's real cash-point-centric billing code, and surfaced a
+  useful `EXEMPTED` charge-status value to add at Sprint 5. Specialized-care programme list expanded
+  to include VMMC, an OTZ adolescent-ART cohort flag, PMTCT/EID follow-up, and cervical/prostate
+  cancer screening, the real programmes Kenya's dominant clinical EMR tracks as distinct modules.

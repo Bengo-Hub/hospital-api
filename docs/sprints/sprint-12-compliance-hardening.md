@@ -30,6 +30,14 @@ clock that runs alongside, not instead of, the ODPC's 72-hour one. Certification
   `created_at` — mirror `library-api`'s existing `auditlog` ent schema shape rather than inventing a
   new one.
 
+A third research pass (2026-08-29, `docs/compliance-kenya.md` §9-10) found the certification
+requirement above sits inside a broader legally-defined architecture: an Enterprise Service Bus with
+its own onboarding process, fee schedule, and a concrete Shared Health Record update obligation. It
+also found the regulation numbers already cited in this document and in `docs/compliance-kenya.md`
+§4 likely belong to a different instrument than the newly-read draft regulation text, do not assume
+Reg numbers are interchangeable across the Digital Health Act's several 2024/2025 regulations without
+naming which instrument a citation belongs to.
+
 ## Tasks
 
 - [ ] Audit-log middleware wraps every mutating endpoint across every module (not opt-in per
@@ -51,6 +59,22 @@ clock that runs alongside, not instead of, the ODPC's 72-hour one. Certification
       hours to the ODPC (DPA), since a single incident can trigger both obligations at once.
 - [ ] Diagnosis catalogue (`diagnosis_catalog_default`, see `docs/erd.md`) is seeded with ICD-11
       codes, matching the coding scheme the confirmed DHA claims API actually expects.
+- [ ] Shared Health Record update obligation tracked as a named requirement, not a vague "FHIR
+      someday" note: once DHA certification is pursued, every client encounter must push an update
+      to the national SHR within 24 hours (7-day grace only if the solution is offline), mapping onto
+      the Kenya Patient Summary FHIR profiles (Patient, Condition, MedicationStatement, Encounter,
+      Observation, Immunization, Claim, ClaimResponse, Coverage, ExplanationOfBenefit,
+      MedicationDispense) — see `docs/integrations.md` §2C.
+- [ ] ESB onboarding mechanics documented as a tenant-onboarding checklist item (Form 1 application,
+      DHA's 14-day review commitment, the renewable 1-year enterprise-user licence, and the
+      per-facility-level fee schedule) once the certification instrument's final numbering is
+      confirmed — see `docs/compliance-kenya.md` §9.
+- [ ] Patient registration/consent supports `maisha_number` as a distinct identification type
+      alongside `national_id`/`passport`/`birth_certificate`/`alien_id` (Sprint 1 schema, `docs/erd.md`),
+      matching the ID types Kenya's own Client Registry accepts.
+- [ ] hospital-api's/hospital-ui's own eventual DHA certification readiness references the Kenya Core
+      and Kenya Patient Summary FHIR Implementation Guides (`docs/compliance-kenya.md` §10) as the
+      concrete conformance target, not a generic "HL7 FHIR" aspiration.
 
 ## Definition of Done
 

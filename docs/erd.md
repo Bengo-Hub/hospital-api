@@ -1,8 +1,13 @@
 # Hospital API — Entity Relationship Diagram
 
-**Last updated:** 2026-07-31 — Initial ERD draft written alongside the Sprint-0 scaffold. No ent
-schemas exist yet (`internal/ent/schema/` is empty) — the tables below are the planned model for
-Sprint 1 onward, not yet implemented.
+**Last updated:** 2026-08-29 — Initial ERD draft (2026-07-31) written alongside the Sprint-0
+scaffold, still not yet implemented (`internal/ent/schema/` is empty) — the tables below remain the
+planned model for Sprint 1 onward. 2026-08-29 update, based on a KenyaEMR technical audit
+(`docs/kenyaemr-technical-reference.md`): expanded the specialized-programmes table (VMMC, an OTZ
+flag on `art_record`, HIV-exposed-infant/PMTCT follow-up, cervical/prostate cancer screening), added
+`patient.identification_type`/`identification_number` (Maisha Number support), and added a
+`loinc_code` field to the lab-test catalogue — all additive metadata, no change to the tables already
+planned.
 
 ---
 
@@ -25,7 +30,7 @@ Sprint 1 onward, not yet implemented.
 | `hospital_role` | `role_code` (unique), `is_system_role` | Global roles (`hospital_admin`, `doctor`, `lab_technician`, `pharmacist`, `cashier`, `receptionist`) — same permissions for every tenant |
 | `role_permission` | `role_id`, `permission_id` | Role → permission junction |
 | `diagnosis_catalog_default` | `code` (ICD-11), `name`, `category` | Default diagnosis catalogue seeded once, tenants may add custom entries (those carry `tenant_id`). Confirmed ICD-11 (not ICD-10) by the official DHA claim-submission spec's sample payload, see `docs/sha-taifacare-api-specs/` |
-| `lab_test_catalog_default` | `code`, `name`, `specimen_type`, `reference_range` | Default lab-test catalogue seeded once, tenants may add custom entries |
+| `lab_test_catalog_default` | `code`, `name`, `specimen_type`, `reference_range`, `loinc_code` (nullable) | Default lab-test catalogue seeded once, tenants may add custom entries. `loinc_code` added 2026-08-29 as an additive metadata field, not a schema overhaul, since Kenya's own national Diagnostics/Patient-Summary FHIR Implementation Guides use LOINC for lab terminology (`docs/kenyaemr-technical-reference.md` §10) |
 
 ---
 
@@ -43,7 +48,7 @@ Sprint 1 onward, not yet implemented.
 
 | Table | Key Columns | Description |
 |---|---|---|
-| `patient` | `id`, `tenant_id`, `mrn` (unique per tenant), `full_name`, `dob`, `sex`, `phone`, `next_of_kin`, `crm_contact_id` (nullable), `client_registry_id` (nullable) | Patient master record (medical record number) — retained per Kenya DPA's 20-year minimum. `client_registry_id` is the national Client Registry `CR...` identifier returned by DHA's registry lookup (see `docs/sha-taifacare-api-specs/`), stored as a reference so treasury-api's claims never need a second lookup, never treated as a locally-generated ID |
+| `patient` | `id`, `tenant_id`, `mrn` (unique per tenant), `full_name`, `dob`, `sex`, `phone`, `next_of_kin`, `crm_contact_id` (nullable), `client_registry_id` (nullable), `identification_type`, `identification_number` | Patient master record (medical record number) — retained per Kenya DPA's 20-year minimum. `client_registry_id` is the national Client Registry `CR...` identifier returned by DHA's registry lookup (see `docs/sha-taifacare-api-specs/`), stored as a reference so treasury-api's claims never need a second lookup, never treated as a locally-generated ID. `identification_type` is an enum (`national_id`/`passport`/`birth_certificate`/`maisha_number`/`alien_id`) matching the ID types Kenya's own Client Registry accepts (added 2026-08-29, see `docs/compliance-kenya.md` §6) |
 | `patient_visit` | `id`, `tenant_id`, `patient_id`, `outlet_id`, `visit_type` (OPD/IPD), `status`, `checked_in_at`, `discharged_at` | One row per encounter, the spine every clinical module hangs off |
 | `referral` | `id`, `tenant_id`, `patient_visit_id`, `referred_to`, `reason`, `status` | Inter-facility or inter-department referral |
 
@@ -131,9 +136,12 @@ reference treasury-api, which stays the sole owner of every financial document.
 |---|---|---|
 | `anc_record` | `id`, `patient_id`, `visit_number`, `risk_flags` | Antenatal care visit schedule + risk tracking |
 | `pnc_record` | `id`, `patient_id`, `delivery_date`, `follow_up_at` | Postnatal mother/newborn follow-up |
-| `art_record` | `id`, `patient_id`, `regimen`, `adherence_status` | Antiretroviral therapy tracking (MOH-reporting aligned) |
-| `tb_program_record` | `id`, `patient_id`, `screening_result`, `treatment_status` | TB screening/treatment/follow-up |
+| `art_record` | `id`, `patient_id`, `regimen`, `adherence_status`, `is_otz_enrolled` | Antiretroviral therapy tracking (MOH-reporting aligned). `is_otz_enrolled` added 2026-08-29 as an additive flag (not a new table) for Operation Triple Zero, Kenya's real adolescent-HIV adherence/peer-support cohort programme — see `docs/kenyaemr-technical-reference.md` §4 |
+| `tb_program_record` | `id`, `patient_id`, `screening_result`, `treatment_status` | TB screening/treatment/follow-up. National case-based reporting for TB runs through a separate system (TIBU), distinct from the general KHIS/ADX export below — see `sprint-10-specialized-programmes-khis.md` |
 | `immunization_record` | `id`, `patient_id`, `vaccine_code`, `dose_number`, `administered_at` | Vaccine schedule + coverage reporting |
+| `vmmc_record` | `id`, `patient_id`, `procedure_date`, `complications`, `follow_up_at` | Voluntary Medical Male Circumcision — procedure and follow-up record (new 2026-08-29, mirrors the minimal-table shape every other programme already uses) |
+| `hei_record` | `id`, `patient_id`, `mother_patient_id` (nullable), `pcr_test_schedule` (JSON — 6-8 week / 6 month / final test dates, the standard EID cascade), `final_status` | HIV-Exposed Infant follow-up (the infant side of PMTCT), linked to the mother's `anc_record`/`art_record` where known (new 2026-08-29) |
+| `cancer_screening_record` | `id`, `patient_id`, `screening_type` (cervical/prostate), `result`, `follow_up_at` | Cancer screening event + follow-up (new 2026-08-29 — KenyaEMR's own module covers both cervical and prostate, not cervical-only) |
 | `morgue_record` | `id`, `tenant_id`, `body_reference`, `intake_at`, `release_at`, `release_documentation` | Body registration, storage, and release |
 
 ---

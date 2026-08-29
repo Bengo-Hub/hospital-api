@@ -21,4 +21,7 @@ department-catalog research; see `.claude/plans/hospital-service-codevertex-afya
 | 13 | Launch + decisive pos-api pharmacy decommission | [sprint-13-launch-and-pos-decommission.md](sprint-13-launch-and-pos-decommission.md) |
 
 See `../plan.md` for the high-level phased-roadmap table and `../migration-pos-pharmacy.md` for the
-full pos-api pharmacy migration plan referenced by Sprints 4 and 13.
+full pos-api pharmacy migration plan referenced by Sprints 4 and 13. See
+`../kenyaemr-technical-reference.md` for the KenyaEMR technical audit behind several 2026-08-29
+updates across Sprints 3, 5, 10, 12, and 13 (billing/claims validation, the specialized-programmes
+expansion, and the compliance-architecture detail).

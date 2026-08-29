@@ -6,6 +6,10 @@
 
 ## Part 1 — Production Readiness
 
+- [ ] DHA software-certification readiness check against the Kenya Core/Patient Summary FHIR
+      Implementation Guides and the Shared Health Record update obligation (`docs/compliance-kenya.md`
+      §9-10, `sprint-12-compliance-hardening.md`) — a real legal gate on going live against national
+      health systems, not optional polish.
 - [ ] Runbooks: incident response, backup/restore (tenant-scoped, per `feedback_tenant_scoped_backups.md` — never a platform-wide dump), disaster recovery RTO/RPO targets.
 - [ ] Load/performance testing against realistic clinic-day volumes (per tier: ~30/day Afya Clinic up to multi-hundred/day Afya Hospital).
 - [ ] Full Swagger/OpenAPI coverage (`swag init`, served at `/v1/docs/`, matching every sibling service).

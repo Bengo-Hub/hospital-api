@@ -33,8 +33,11 @@ of first-contact fees + inpatient accounts.
 - `BillableCharge` — `patient_account_id`, `billable_item_id` (nullable — free-form charges
   allowed), `source_module`, `source_reference_id` (nullable UUID — the `LabOrder`/`Prescription`/
   `Admission`/etc that generated this line), `description`, `amount`, `status`
-  (pending|invoiced|paid|waived|written_off), `treasury_invoice_id` (nullable), `created_by_user_id`,
-  `created_by_department`, `paid_at` (nullable).
+  (pending|invoiced|paid|exempted|waived|written_off), `treasury_invoice_id` (nullable), `created_by_user_id`,
+  `created_by_department`, `paid_at` (nullable). `exempted` added 2026-08-29 (distinct from `waived`)
+  after a KenyaEMR technical audit found its own billing module uses this exact distinction — a
+  charge insurance covered in full is a different audit outcome from one the facility chose not to
+  charge, see `docs/kenyaemr-technical-reference.md` §3.
 - `PatientNextOfKin` — `patient_id`, `name`, `phone`, `relationship`, `id_number`, `is_primary`.
 
 ## Endpoints
@@ -74,6 +77,13 @@ of first-contact fees + inpatient accounts.
   submit-then-poll) lives in `docs/integrations.md` §2.4 and `docs/sha-taifacare-api-specs/`.
 - DHA software certification (`docs/integrations.md` §2.5, `docs/compliance-kenya.md` §4) is a
   separate legal gate from this sprint's billing plumbing — tracked in Sprint 12, not here.
+- **Validated against real prior art (2026-08-29)**: KenyaEMR's own actively-maintained insurance-
+  claims module builds a claim by selecting already-posted bill line-items and attaching a claim
+  code, guarantee/pre-authorization ID, a free-text clinical justification, the visit's coded
+  diagnoses, provider(s), and a treatment date range — the claim never re-derives billing data, it
+  only references what `BillableCharge` already recorded. This confirms the direction this sprint's
+  `insurance/submit-claim` endpoint should take: build the claim payload from already-posted charges,
+  never a parallel re-entry. Full detail: `docs/kenyaemr-technical-reference.md` §3.
 
 ## Facility-tier defaults (seeded, tenant-overridable)
 

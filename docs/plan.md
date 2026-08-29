@@ -4,7 +4,7 @@
 **Product:** Codevertex Afya
 **Language:** Go 1.26
 **Production domain (planned):** `afyaapi.codevertexafrica.com`
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-29
 **Status:** Sprint-0 scaffold shipped (config/logging/db-pool/redis/nats/health/JWKS-auth wired, `go build`/`go vet` clean, health/readiness/protected-route smoke-tested). No domain ent schemas or business logic yet.
 
 ---
@@ -18,6 +18,8 @@ hospital-api is the Hospital Management Information System (HMIS) backbone for t
 **Why this exists now**: research into the Kenyan HMS market (see `d:\Projects\Codevertex\.claude\plans\hospital-service-codevertex-afya-2026-07-31.md` for the full writeup) found that most of the hard clinical/pharmacy logic already exists in `pos-service/pos-api` (built for pharmacy dispensing at a retail till) and needs to move into a dedicated hospital service that can also own OPD/triage/lab/inpatient workflows `pos-api` was never meant to carry. SHA's mandatory 2026 transition to Taifa Care HMIS (announced 2026-06-29, a roughly 90-day provider integration window with decontracting risk for facilities that miss it) makes a clean, dedicated hospital billing/claims integration a market necessity, not a nice-to-have.
 
 A second research pass (2026-08-29, see `docs/compliance-kenya.md` and `docs/market-and-competitive-landscape.md`) sharpened this further: the Digital Health Act 2023 and its 2025 implementing regulations created a separate, legally binding requirement that the *software itself* be certified by the Digital Health Agency before a facility may use it against national health systems, on top of the SHA claims-integration deadline above. Competitively, the small-to-mid facility segment this client sits in (Level 2 to 4, ~20 patients/day) is underserved by the market's more visible players, several of which explicitly target Level 4 and above only. Both findings sharpen, rather than change, the existing roadmap below.
+
+A third research pass, the same day, went deeper: a direct technical audit of KenyaEMR's real codebase (`docs/kenyaemr-technical-reference.md`) and a follow-up sweep of Kenya's national health-information-exchange architecture (`docs/compliance-kenya.md` §9-10). This confirmed the Distributed Billing design is a genuine advance over the market's dominant open-source system's real, cash-point-centric billing code, corrected the specialized-programmes list to match what Kenya's own clinical EMR actually tracks (VMMC, an OTZ adolescent-HIV cohort, PMTCT/EID follow-up, cervical and prostate cancer screening), surfaced a concrete 24-hour Shared Health Record update obligation and a national FHIR Implementation Guide programme worth designing toward, and added two previously-untracked competitor vendors (FunSoft, C-PAD) to the market picture. None of this changes the roadmap's shape, it sharpens the same modules with real, sourced detail.
 
 ---
 
@@ -88,7 +90,7 @@ See `docs/sprints/` for the detailed breakdown of every sprint (one file per spr
 10. **Ambulance & Emergency Dispatch** — thin reference into logistics-api's existing Task (`task_type: ambulance_dispatch`, an additive string value, no schema change)/FleetMember (tagged `ambulance`)/PricingRule (`distance` rule type, matching Kenya's base-fee-plus-per-km ambulance pricing model) — hospital-api does not build a second dispatch/fleet engine. Optional recurring "ambulance membership" product (mirrors St John Kenya's individual/family annual plan) billed via treasury-api.
 11. **Asset / Equipment integration** — surfaces inventory-api's existing `Asset`/`AssetMaintenance` register (already covers biomedical equipment, beds, ambulances-as-capital-assets, warranty, maintenance schedules) as "Biomedical Equipment" in the hospital-api UI; hospital-api references `asset_id`, never owns a parallel asset register. Depreciation accounting is already wired via treasury-api's `FixedAssetDepreciation`.
 12. **Billing & Insurance** — per-encounter charges aggregated into a treasury invoice; SHA/SHIF/NHIF eligibility verification and claims submission via treasury-api's existing insurance connector; KRA eTIMS transmission (treasury-owned) is an **opt-in per tenant/service**, not applied to every encounter by default — many clinical services are not required to carry a fiscal invoice.
-13. **Specialized care programmes** — ANC, PNC, ART, TB, Immunization tracking (MOH-reporting aligned), Morgue management.
+13. **Specialized care programmes** — ANC, PNC, ART (with an Operation Triple Zero adolescent-adherence cohort flag), TB, Immunization, VMMC (Voluntary Medical Male Circumcision), HIV-Exposed Infant/PMTCT follow-up, cervical and prostate cancer screening (MOH-reporting aligned), Morgue management. Expanded 2026-08-29 after a KenyaEMR technical audit found these are the real programmes Kenya's dominant clinical EMR tracks as distinct modules, not an internally-invented list — see `docs/kenyaemr-technical-reference.md` §4.
 14. **KHIS/DHIS2 aggregate reporting** — indicator export via the ADX standard for public/donor-funded programmes (ART, TB, immunization) that must report into Kenya's national KHIS, distinct from SHA/Taifa Care insurance-claims reporting.
 15. **CSSD (sterilization) & Dietary** — lightweight tracking modules for sub-departments that support inpatient care.
 16. **Patient communications** — SMS/WhatsApp appointment reminders, lab-result-ready, prescription-ready alerts via notifications-api.
@@ -106,6 +108,7 @@ See `docs/sprints/` for the detailed breakdown of every sprint (one file per spr
 - [Entity Relationship Diagram](erd.md)
 - [Compliance & Certification Reference (Kenya)](compliance-kenya.md)
 - [Market & Competitive Landscape (Kenya)](market-and-competitive-landscape.md)
+- [KenyaEMR Technical Architecture Reference](kenyaemr-technical-reference.md)
 - [SHA/Taifa Care official API specifications](sha-taifacare-api-specs/)
 - [pos-api Pharmacy Migration Plan](migration-pos-pharmacy.md)
 - [Sprint Plans](sprints/)

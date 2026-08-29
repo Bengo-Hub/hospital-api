@@ -10,6 +10,16 @@ Same global-vs-tenant split as Sprint 2's diagnosis catalogue: the standard lab-
 (common panels — FBC, malaria smear, urinalysis, etc.) is global reference data; tenants may add
 custom tests.
 
+**Design note (2026-08-29):** this sprint's in-house result-entry workflow (order → collect →
+result) covers on-site testing. Kenya's dominant clinical EMR models referred-out national testing
+(viral load, early-infant-diagnosis, TB) as a separate batch courier-manifest workflow instead —
+specimens grouped into a manifest with collection/dispatch dates and courier handoff details, sent
+to a centralized reference lab, results returned asynchronously against the manifest, not as a live
+device/HL7 integration. That pattern is out of scope for this sprint but worth keeping the
+`lab_order`/`lab_order_line` shape compatible with, since it is a more realistic near-term
+integration target than in-house analyzer connectivity for a Level 2-4 facility. Full detail:
+`docs/integrations.md` §2E, `docs/kenyaemr-technical-reference.md` §8.
+
 ## Ent Schemas to Add
 
 - `lab_test_catalog_default` — global (`code`, `name`, `specimen_type`, `reference_range`), no `tenant_id`.
