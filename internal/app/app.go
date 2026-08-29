@@ -24,6 +24,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/migrate"
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
+	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
@@ -161,6 +162,27 @@ func New(ctx context.Context) (*App, error) {
 
 	authMeHandler := handlers.NewAuthMeHandler(rbacService)
 
+	// ── auth-service JWT validator (JWKS) + optional S2S API key ──────────────
+	// Constructed here (moved ahead of the Sprint 1-4 service wiring below) so the SAME
+	// validator instance RequireAuth uses is also available to pharmacy.Service.VerifyWitness,
+	// which must independently validate the access_token a re-authenticating controlled-
+	// substance witness receives from auth-api's login — see internal/modules/pharmacy/witness.go.
+	authConfig := authclient.DefaultConfig(cfg.Auth.JWKSUrl, cfg.Auth.Issuer, cfg.Auth.Audience)
+	authConfig.CacheTTL = cfg.Auth.JWKSCacheTTL
+	authConfig.RefreshInterval = cfg.Auth.JWKSRefreshInterval
+	validator, err := authclient.NewValidator(authConfig)
+	if err != nil {
+		return nil, fmt.Errorf("auth validator init: %w", err)
+	}
+
+	var authMiddleware *authclient.AuthMiddleware
+	if cfg.Auth.EnableAPIKeyAuth {
+		apiKeyValidator := authclient.NewAPIKeyValidator(cfg.Auth.ServiceURL, nil)
+		authMiddleware = authclient.NewAuthMiddlewareWithAPIKey(validator, apiKeyValidator)
+	} else {
+		authMiddleware = authclient.NewAuthMiddleware(validator)
+	}
+
 	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
 	patientsSvc := patients.NewService(ormClient, log)
 	patientsHandler := handlers.NewPatientsHandler(patientsSvc)
@@ -180,28 +202,23 @@ func New(ctx context.Context) (*App, error) {
 
 	// ── Sprint 4: pharmacy / dispensing ────────────────────────────────────
 	inventorySvc := inventoryclient.NewClient(cfg.Services.InventoryURL, cfg.Auth.APIKey, log)
-	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log)
+	// authapi.Client re-verifies a controlled-substance dispense witness's OWN email+password
+	// against auth-api's public /auth/login (2026-08-29 fix — see witness.go). Not an S2S
+	// client: no API key, uses the same public route any client may already call.
+	authAPIClient := authapi.NewClient(cfg.Auth.ServiceURL, log)
+	// Witness step-up token signing secret — PHARMACY_WITNESS_JWT_SECRET must be set in
+	// production. Falls back to INTERNAL_SERVICE_KEY only to prevent a hard startup failure in
+	// dev/local environments, mirroring pos-api's own TERMINAL_JWT_SECRET fallback pattern.
+	witnessTokenSecret := []byte(cfg.Auth.WitnessTokenSecret)
+	if len(witnessTokenSecret) == 0 {
+		log.Warn("PHARMACY_WITNESS_JWT_SECRET is not set; falling back to INTERNAL_SERVICE_KEY for witness token signing — set PHARMACY_WITNESS_JWT_SECRET in production")
+		witnessTokenSecret = []byte(cfg.Auth.APIKey)
+	}
+	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log, authAPIClient, validator, rbacService, witnessTokenSecret)
 	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc)
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
-
-	// ── auth-service JWT validator (JWKS) + optional S2S API key ──────────────
-	authConfig := authclient.DefaultConfig(cfg.Auth.JWKSUrl, cfg.Auth.Issuer, cfg.Auth.Audience)
-	authConfig.CacheTTL = cfg.Auth.JWKSCacheTTL
-	authConfig.RefreshInterval = cfg.Auth.JWKSRefreshInterval
-	validator, err := authclient.NewValidator(authConfig)
-	if err != nil {
-		return nil, fmt.Errorf("auth validator init: %w", err)
-	}
-
-	var authMiddleware *authclient.AuthMiddleware
-	if cfg.Auth.EnableAPIKeyAuth {
-		apiKeyValidator := authclient.NewAPIKeyValidator(cfg.Auth.ServiceURL, nil)
-		authMiddleware = authclient.NewAuthMiddlewareWithAPIKey(validator, apiKeyValidator)
-	} else {
-		authMiddleware = authclient.NewAuthMiddleware(validator)
-	}
 
 	deps := router.Deps{
 		Log:            log,

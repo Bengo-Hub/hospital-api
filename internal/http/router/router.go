@@ -300,6 +300,15 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyDispense)).
 					Post("/prescriptions/{prescriptionID}/dispense", d.Pharmacy.Dispense)
+				// Controlled-substance dual-witness step-up (2026-08-29 fix): re-authenticates a
+				// witness with THEIR OWN credentials before Dispense will accept them — gated the
+				// same as Dispense itself (only someone who could initiate a dispense should be
+				// calling this at all; the actual witness identity/tenant/distinct-person/
+				// permission checks happen inside pharmacy.Service.VerifyWitness, keyed off the
+				// witness's OWN re-authenticated claims, not this route's permission gate).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyDispense)).
+					Post("/pharmacy/verify-witness", d.Pharmacy.VerifyWitness)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Get("/pharmacy/controlled-substances", d.Pharmacy.ListControlledSubstanceLogs)

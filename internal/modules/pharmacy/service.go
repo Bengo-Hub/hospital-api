@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
@@ -19,8 +20,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/inventory"
+	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
 )
 
@@ -30,11 +33,28 @@ type Service struct {
 	inventory *inventory.Client
 	billing   *billing.Service
 	log       *zap.Logger
+
+	// Controlled-substance dual-witness re-authentication (see witness.go / VerifyWitness).
+	// authAPI verifies the witness's own email+password against auth-api's public login;
+	// authValidator (hospital-api's own JWKS validator, the same instance RequireAuth uses)
+	// validates the token that login returns; rbac checks the resolved witness holds
+	// pharmacy-dispensing permission; witnessSecret signs/verifies the short-lived internal
+	// witness token Dispense consumes. All four are nil-safe: VerifyWitness rejects (never
+	// silently no-ops) if any is missing.
+	authAPI       *authapi.Client
+	authValidator *authclient.Validator
+	rbac          *rbac.Service
+	witnessSecret []byte
 }
 
 // NewService creates a new pharmacy service.
-func NewService(client *ent.Client, inventoryClient *inventory.Client, billingSvc *billing.Service, log *zap.Logger) *Service {
-	return &Service{client: client, inventory: inventoryClient, billing: billingSvc, log: log.Named("pharmacy.service")}
+func NewService(client *ent.Client, inventoryClient *inventory.Client, billingSvc *billing.Service, log *zap.Logger,
+	authAPIClient *authapi.Client, authValidator *authclient.Validator, rbacService *rbac.Service, witnessSecret []byte,
+) *Service {
+	return &Service{
+		client: client, inventory: inventoryClient, billing: billingSvc, log: log.Named("pharmacy.service"),
+		authAPI: authAPIClient, authValidator: authValidator, rbac: rbacService, witnessSecret: witnessSecret,
+	}
 }
 
 // PrescriptionLineInput is one requested drug line.
@@ -143,8 +163,16 @@ func (s *Service) CreatePrescription(ctx context.Context, tenantID uuid.UUID, re
 }
 
 // runInteractionCheck calls inventory-api's interaction engine and, on any finding, flags the
-// prescription for pharmacist review. Best-effort: a transport failure is logged, not fatal —
-// dispensing safety checks should degrade to "needs manual review," never silently vanish.
+// prescription for review. Best-effort: a transport failure is logged, not fatal — dispensing
+// safety checks should degrade to "needs manual review," never silently vanish.
+//
+// Severity tiering: inventory-api's DrugInteractionRule.Severity (minor/moderate/major/
+// contraindicated — see InteractionFinding.Severity) is the only severity signal this check
+// actually receives; AllergyMatch carries none. A major/contraindicated drug-drug interaction
+// routes to the stricter StatusPharmacistReview tier rather than the plain StatusFlagged tier
+// used for minor/moderate findings and allergy-only matches — so a genuinely contraindicated
+// combination surfaces as more serious than a routine flag, per hospital-ui's own (previously
+// unreachable) pharmacist_review messaging in pharmacy/[id]/page.tsx.
 func (s *Service) runInteractionCheck(ctx context.Context, tenantID, rxID uuid.UUID, skus, allergyFlags []string) {
 	result, err := s.inventory.CheckInteractions(ctx, tenantID, skus, allergyFlags)
 	if err != nil {
@@ -156,6 +184,13 @@ func (s *Service) runInteractionCheck(ctx context.Context, tenantID, rxID uuid.U
 		outcome = "interactions_found"
 		if len(result.Interactions) == 0 {
 			outcome = "allergy_match"
+		}
+	}
+	highSeverity := false
+	for _, f := range result.Interactions {
+		if f.Severity == "major" || f.Severity == "contraindicated" {
+			highSeverity = true
+			break
 		}
 	}
 	check, cerr := s.client.DrugInteractionCheck.Create().
@@ -180,8 +215,12 @@ func (s *Service) runInteractionCheck(ctx context.Context, tenantID, rxID uuid.U
 				meta = map[string]any{}
 			}
 			meta["interaction_check_id"] = check.ID.String()
+			status := prescription.StatusFlagged
+			if highSeverity {
+				status = prescription.StatusPharmacistReview
+			}
 			_, _ = s.client.Prescription.UpdateOneID(rxID).
-				SetStatus(prescription.StatusFlagged).
+				SetStatus(status).
 				SetMetadata(meta).
 				Save(ctx)
 		}
@@ -206,14 +245,17 @@ func (s *Service) ListPrescriptions(ctx context.Context, tenantID uuid.UUID, sta
 }
 
 // ApprovePrescription reserves stock for every SKU-bearing line via inventory-api, then marks
-// the prescription approved. An explicit override reason is required to approve a
-// flagged (interaction/allergy finding) prescription — never a silent bypass.
+// the prescription approved. An explicit override reason is required to approve a prescription
+// flagged for review (StatusFlagged: a minor/moderate interaction or allergy finding, or
+// StatusPharmacistReview: a major/contraindicated interaction — see runInteractionCheck) —
+// never a silent bypass, and this applies to BOTH tiers: pharmacist_review is the more serious
+// of the two, so it must never require less to approve than flagged does.
 func (s *Service) ApprovePrescription(ctx context.Context, tenantID, rxID, approvedBy uuid.UUID, overrideReason string) (*ent.Prescription, error) {
 	rx, err := s.GetPrescription(ctx, tenantID, rxID)
 	if err != nil {
 		return nil, fmt.Errorf("pharmacy: prescription not found: %w", err)
 	}
-	if rx.Status == prescription.StatusFlagged && overrideReason == "" {
+	if (rx.Status == prescription.StatusFlagged || rx.Status == prescription.StatusPharmacistReview) && overrideReason == "" {
 		return nil, fmt.Errorf("pharmacy: prescription flagged for review — an override reason is required to approve")
 	}
 	if rx.Status != prescription.StatusPending && rx.Status != prescription.StatusFlagged && rx.Status != prescription.StatusPharmacistReview {
@@ -320,11 +362,15 @@ func (s *Service) CancelPrescription(ctx context.Context, tenantID, rxID uuid.UU
 type DispenseLineInput struct {
 	LineID             uuid.UUID
 	QuantityToDispense float64
-	// RequiresWitness/WitnessStaffID drive the controlled-substance dual-witness register — the
-	// dispensing UI determines this from inventory-api's Item.controlled_substance_schedule
-	// (fetched separately) and must supply an independent witness before this line dispenses.
+	// RequiresWitness/WitnessToken drive the controlled-substance dual-witness register — the
+	// dispensing UI determines RequiresWitness from inventory-api's
+	// Item.controlled_substance_schedule (fetched separately). WitnessToken is the short-lived
+	// token minted by VerifyWitness (witness.go) after the witness re-authenticated their OWN
+	// credentials — it is NEVER a client-supplied staff UUID. A raw witness UUID from the
+	// request body was the original vulnerability here (any dispensing user could name ANY
+	// staff member with zero verification); that path is fully closed, not left as a fallback.
 	RequiresWitness bool
-	WitnessStaffID  *uuid.UUID
+	WitnessToken    *string
 }
 
 // DispenseRequest is the input to Dispense.
@@ -349,10 +395,22 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 	if rx.Status != prescription.StatusApproved && rx.Status != prescription.StatusLocked {
 		return nil, fmt.Errorf("pharmacy: prescription must be approved or locked before dispensing (status=%s)", rx.Status)
 	}
-	for _, dl := range req.Lines {
-		if dl.RequiresWitness && dl.WitnessStaffID == nil {
-			return nil, fmt.Errorf("pharmacy: a witness is required to dispense this controlled substance")
+	// Every witness-requiring line must carry a valid, ALREADY-VERIFIED witness token (minted
+	// by VerifyWitness, see witness.go) — never a client-supplied staff UUID. Verified up front,
+	// before any reservation consumption or DB write, exactly like the original nil-check did.
+	witnessUserIDs := make([]uuid.UUID, len(req.Lines))
+	for i, dl := range req.Lines {
+		if !dl.RequiresWitness {
+			continue
 		}
+		if dl.WitnessToken == nil || *dl.WitnessToken == "" {
+			return nil, fmt.Errorf("pharmacy: a verified witness is required to dispense this controlled substance")
+		}
+		wid, ok := verifyWitnessToken(*dl.WitnessToken, tenantID, s.witnessSecret)
+		if !ok {
+			return nil, fmt.Errorf("pharmacy: witness verification token is invalid or expired")
+		}
+		witnessUserIDs[i] = wid
 	}
 
 	var lotsBySKU map[string][]inventory.ConsumedLot
@@ -382,7 +440,7 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 	}()
 
 	allDispensed := true
-	for _, dl := range req.Lines {
+	for i, dl := range req.Lines {
 		line, lerr := tx.PrescriptionLine.Get(ctx, dl.LineID)
 		if lerr != nil {
 			err = lerr
@@ -421,10 +479,12 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 				SetDispensedBy(req.DispensedBy).
 				SetPatientName(req.PatientName).
 				SetPatientIDNumber(req.PatientIDNumber).
-				SetLotNumber(line.LotNumber)
-			if dl.WitnessStaffID != nil {
-				logCreate = logCreate.SetWitnessStaffID(*dl.WitnessStaffID)
-			}
+				SetLotNumber(line.LotNumber).
+				// witness_staff_id is intentionally NOT read from any client-supplied field —
+				// it comes ONLY from the VERIFIED witness token checked above (witnessUserIDs[i]).
+				// Trusting the request body would let a client claim any witness without
+				// actually authorizing them.
+				SetWitnessStaffID(witnessUserIDs[i])
 			if line.ExpiryDate != nil {
 				logCreate = logCreate.SetLotExpiryDate(*line.ExpiryDate)
 			}

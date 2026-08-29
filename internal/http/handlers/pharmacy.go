@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
@@ -227,7 +228,13 @@ type dispenseLineRequest struct {
 	LineID             string  `json:"line_id"`
 	QuantityToDispense float64 `json:"quantity_to_dispense"`
 	RequiresWitness    bool    `json:"requires_witness,omitempty"`
-	WitnessStaffID     string  `json:"witness_staff_id,omitempty"`
+	// WitnessToken is the short-lived token minted by POST .../pharmacy/verify-witness after
+	// the witness re-authenticated their OWN credentials — see pharmacy.VerifyWitness. There is
+	// deliberately no witness_staff_id field here any more: that field let any dispensing user
+	// name ANY staff UUID as the "witness" with zero verification (the vulnerability this
+	// endpoint used to have), so the client-suppliable identity path is fully closed rather than
+	// left as a fallback.
+	WitnessToken string `json:"witness_token,omitempty"`
 }
 
 type dispenseRequest struct {
@@ -261,10 +268,15 @@ func (h *PharmacyHandler) Dispense(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "invalid line_id")
 			return
 		}
-		lines = append(lines, pharmacy.DispenseLineInput{
+		line := pharmacy.DispenseLineInput{
 			LineID: lineID, QuantityToDispense: l.QuantityToDispense,
-			RequiresWitness: l.RequiresWitness, WitnessStaffID: parseOptionalUUID(l.WitnessStaffID),
-		})
+			RequiresWitness: l.RequiresWitness,
+		}
+		if l.WitnessToken != "" {
+			token := l.WitnessToken
+			line.WitnessToken = &token
+		}
+		lines = append(lines, line)
 	}
 	outletID := currentOutletID(r)
 	if in.OutletID != "" {
@@ -281,6 +293,63 @@ func (h *PharmacyHandler) Dispense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, rx)
+}
+
+type verifyWitnessRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	TOTPCode string `json:"totp_code,omitempty"`
+}
+
+// VerifyWitness handles POST /{tenant}/hospital/pharmacy/verify-witness — Step 1 of the
+// controlled-substance dual-witness fix: re-authenticates the witness with THEIR OWN
+// email+password (never the calling/dispensing user's), verified server-side against auth-api's
+// public /auth/login. On success this mints a short-lived witness_token that Dispense (Step 2)
+// consumes for any line with requires_witness=true — see pharmacy.Service.VerifyWitness for the
+// full identity/tenant/distinct-person/permission verification chain.
+//
+// All rejections use 403 (never an ambiguous fallback) — mirrors pos-api's step-up handler,
+// which deliberately avoids 401 here so a wrong witness credential can never be mistaken by the
+// frontend's global auth interceptor for the CALLING user's own session being invalid.
+func (h *PharmacyHandler) VerifyWitness(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	claims, ok := authclient.ClaimsFromContext(r.Context())
+	if !ok || claims == nil {
+		respondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+	var in verifyWitnessRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	result, err := h.svc.VerifyWitness(r.Context(), tenantID, claims.GetTenantSlug(), currentUserID(r), pharmacy.VerifyWitnessRequest{
+		Email:    in.Email,
+		Password: in.Password,
+		TOTPCode: in.TOTPCode,
+	})
+	if err != nil {
+		respondError(w, http.StatusForbidden, err.Error())
+		return
+	}
+	if result.MFARequired {
+		respondJSON(w, http.StatusOK, map[string]any{
+			"mfa_required": true,
+			"mfa_method":   result.MFAMethod,
+			"user_id":      result.MFAUserID,
+		})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{
+		"witness_token": result.WitnessToken,
+		"witness_name":  result.WitnessName,
+		"expires_in":    result.ExpiresIn,
+	})
 }
 
 type pharmacyInsuranceClaimRequest struct {

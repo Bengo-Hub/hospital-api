@@ -82,6 +82,14 @@ type AuthConfig struct {
 	JWKSRefreshInterval time.Duration `envconfig:"AUTH_JWKS_REFRESH_INTERVAL" default:"300s"`
 	EnableAPIKeyAuth    bool          `envconfig:"AUTH_ENABLE_API_KEY_AUTH" default:"true"`
 	APIKey              string        `envconfig:"INTERNAL_SERVICE_KEY" default:""`
+	// WitnessTokenSecret signs the short-lived (~2 minute) internal HS256 token minted by
+	// POST .../pharmacy/verify-witness after a controlled-substance dispense witness
+	// re-authenticates their own email+password against auth-api — see
+	// internal/modules/pharmacy/witness.go. No JWT/HMAC signing secret previously existed in
+	// this service (unlike pos-api's TERMINAL_JWT_SECRET); falls back to APIKey
+	// (INTERNAL_SERVICE_KEY) only to avoid a hard startup failure in dev/local environments —
+	// set this explicitly in production, mirroring pos-api's own fallback pattern.
+	WitnessTokenSecret string `envconfig:"PHARMACY_WITNESS_JWT_SECRET" default:""`
 }
 
 // ServicesConfig holds the S2S base URLs for the services hospital-api calls
