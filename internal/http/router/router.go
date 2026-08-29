@@ -41,6 +41,8 @@ type Deps struct {
 	Patients *handlers.PatientsHandler
 	// Sprint 2: consultation/examination, diagnosis catalog, referrals.
 	Consultation *handlers.ConsultationHandler
+	// Sprint 5 core: billing ledger (PatientAccount/BillableCharge collect/queue/settle).
+	Billing *handlers.BillingHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -160,6 +162,24 @@ func New(d Deps) http.Handler {
 					Get("/diagnosis-catalog", d.Consultation.ListDiagnosisCatalog)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
 					Post("/diagnosis-catalog", d.Consultation.CreateDiagnosisEntry)
+			}
+
+			// Sprint 5 core — Billing ledger. Permission checks for collect/override are partly
+			// in-handler (collect_own depends on the specific charge's source_module, resolved
+			// after the request body/URL param are known) — see BillingHandler.CollectCharge.
+			if d.Billing != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+					Get("/visits/{visitID}/account", d.Billing.GetAccountByVisit)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingCollectAny)).
+					Get("/billing/queue", d.Billing.ListPendingCharges)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc,
+					rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/billing/charges/{chargeID}/collect", d.Billing.CollectCharge)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc,
+					rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/billing/accounts/{accountID}/settle", d.Billing.SettleAccount)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingOverrideSettlement)).
+					Post("/billing/accounts/{accountID}/override-settlement", d.Billing.OverrideSettlement)
 			}
 		})
 	})

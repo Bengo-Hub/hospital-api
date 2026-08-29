@@ -32,6 +32,13 @@ const (
 	PermBillingAdd    = "hospital.billing.add"
 	PermBillingChange = "hospital.billing.change"
 	PermBillingManage = "hospital.billing.manage"
+	// collect_own = a department may collect payment for a charge IT created (see
+	// docs/architecture.md "Distributed Billing & Patient Accounts"); collect_any = the Billing
+	// desk's universal fallback across every department/patient; override_settlement = release a
+	// patient/body with an outstanding balance (audited escape hatch, requires a reason).
+	PermBillingCollectOwn         = "hospital.billing.collect_own"
+	PermBillingCollectAny         = "hospital.billing.collect_any"
+	PermBillingOverrideSettlement = "hospital.billing.override_settlement"
 
 	// inpatient (admissions, wards, discharge)
 	PermInpatientView   = "hospital.inpatient.view"
@@ -74,6 +81,10 @@ const (
 	RolePharmacist   = "pharmacist"
 	RoleRecordsClerk = "records_clerk"
 	RoleManager      = "manager"
+	// RoleCashier is the Billing desk — the universal fallback collection point for any
+	// department that doesn't (or can't) collect its own charges directly. See
+	// docs/architecture.md "Distributed Billing & Patient Accounts".
+	RoleCashier = "cashier"
 )
 
 // WildcardPermission grants every permission when held by a role. Expanded into every

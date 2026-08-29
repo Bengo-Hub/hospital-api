@@ -9,6 +9,30 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 )
 
+// The BillableChargeFunc type is an adapter to allow the use of ordinary
+// function as BillableCharge mutator.
+type BillableChargeFunc func(context.Context, *ent.BillableChargeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillableChargeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BillableChargeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BillableChargeMutation", m)
+}
+
+// The BillableItemCatalogFunc type is an adapter to allow the use of ordinary
+// function as BillableItemCatalog mutator.
+type BillableItemCatalogFunc func(context.Context, *ent.BillableItemCatalogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillableItemCatalogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BillableItemCatalogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BillableItemCatalogMutation", m)
+}
+
 // The DiagnosisCatalogDefaultFunc type is an adapter to allow the use of ordinary
 // function as DiagnosisCatalogDefault mutator.
 type DiagnosisCatalogDefaultFunc func(context.Context, *ent.DiagnosisCatalogDefaultMutation) (ent.Value, error)
@@ -127,6 +151,30 @@ func (f PatientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PatientMutation", m)
+}
+
+// The PatientAccountFunc type is an adapter to allow the use of ordinary
+// function as PatientAccount mutator.
+type PatientAccountFunc func(context.Context, *ent.PatientAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PatientAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PatientAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PatientAccountMutation", m)
+}
+
+// The PatientNextOfKinFunc type is an adapter to allow the use of ordinary
+// function as PatientNextOfKin mutator.
+type PatientNextOfKinFunc func(context.Context, *ent.PatientNextOfKinMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PatientNextOfKinFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PatientNextOfKinMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PatientNextOfKinMutation", m)
 }
 
 // The PatientVisitFunc type is an adapter to allow the use of ordinary

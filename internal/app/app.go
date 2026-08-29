@@ -24,12 +24,14 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/migrate"
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
+	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/refdata"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
+	treasuryclient "github.com/bengobox/hospital-service/internal/modules/treasury"
 	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
 	"github.com/bengobox/hospital-service/internal/platform/events"
@@ -150,6 +152,11 @@ func New(ctx context.Context) (*App, error) {
 	consultationSvc := consultation.NewService(ormClient, log)
 	consultationHandler := handlers.NewConsultationHandler(consultationSvc)
 
+	// ── Sprint 5 core: billing ledger ──────────────────────────────────────
+	treasurySvc := treasuryclient.NewClient(cfg.Services.TreasuryURL, cfg.Auth.APIKey, log)
+	billingSvc := billing.NewService(ormClient, treasurySvc, log)
+	billingHandler := handlers.NewBillingHandler(billingSvc, rbacService)
+
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
@@ -181,6 +188,7 @@ func New(ctx context.Context) (*App, error) {
 		AuthMe:         authMeHandler,
 		Patients:       patientsHandler,
 		Consultation:   consultationHandler,
+		Billing:        billingHandler,
 	}
 	chiRouter := router.New(deps)
 

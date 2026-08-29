@@ -5,6 +5,8 @@ package ent
 import (
 	"time"
 
+	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
+	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
@@ -15,6 +17,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
+	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
+	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/schema"
@@ -28,6 +32,66 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	billablechargeFields := schema.BillableCharge{}.Fields()
+	_ = billablechargeFields
+	// billablechargeDescSourceModule is the schema descriptor for source_module field.
+	billablechargeDescSourceModule := billablechargeFields[4].Descriptor()
+	// billablecharge.SourceModuleValidator is a validator for the "source_module" field. It is called by the builders before save.
+	billablecharge.SourceModuleValidator = billablechargeDescSourceModule.Validators[0].(func(string) error)
+	// billablechargeDescDescription is the schema descriptor for description field.
+	billablechargeDescDescription := billablechargeFields[6].Descriptor()
+	// billablecharge.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	billablecharge.DescriptionValidator = billablechargeDescDescription.Validators[0].(func(string) error)
+	// billablechargeDescAmount is the schema descriptor for amount field.
+	billablechargeDescAmount := billablechargeFields[7].Descriptor()
+	// billablecharge.AmountValidator is a validator for the "amount" field. It is called by the builders before save.
+	billablecharge.AmountValidator = billablechargeDescAmount.Validators[0].(func(float64) error)
+	// billablechargeDescCreatedAt is the schema descriptor for created_at field.
+	billablechargeDescCreatedAt := billablechargeFields[13].Descriptor()
+	// billablecharge.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billablecharge.DefaultCreatedAt = billablechargeDescCreatedAt.Default.(func() time.Time)
+	// billablechargeDescUpdatedAt is the schema descriptor for updated_at field.
+	billablechargeDescUpdatedAt := billablechargeFields[14].Descriptor()
+	// billablecharge.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billablecharge.DefaultUpdatedAt = billablechargeDescUpdatedAt.Default.(func() time.Time)
+	// billablecharge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billablecharge.UpdateDefaultUpdatedAt = billablechargeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billablechargeDescID is the schema descriptor for id field.
+	billablechargeDescID := billablechargeFields[0].Descriptor()
+	// billablecharge.DefaultID holds the default value on creation for the id field.
+	billablecharge.DefaultID = billablechargeDescID.Default.(func() uuid.UUID)
+	billableitemcatalogFields := schema.BillableItemCatalog{}.Fields()
+	_ = billableitemcatalogFields
+	// billableitemcatalogDescCode is the schema descriptor for code field.
+	billableitemcatalogDescCode := billableitemcatalogFields[3].Descriptor()
+	// billableitemcatalog.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	billableitemcatalog.CodeValidator = billableitemcatalogDescCode.Validators[0].(func(string) error)
+	// billableitemcatalogDescName is the schema descriptor for name field.
+	billableitemcatalogDescName := billableitemcatalogFields[4].Descriptor()
+	// billableitemcatalog.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	billableitemcatalog.NameValidator = billableitemcatalogDescName.Validators[0].(func(string) error)
+	// billableitemcatalogDescRequiresPrepayment is the schema descriptor for requires_prepayment field.
+	billableitemcatalogDescRequiresPrepayment := billableitemcatalogFields[7].Descriptor()
+	// billableitemcatalog.DefaultRequiresPrepayment holds the default value on creation for the requires_prepayment field.
+	billableitemcatalog.DefaultRequiresPrepayment = billableitemcatalogDescRequiresPrepayment.Default.(bool)
+	// billableitemcatalogDescIsActive is the schema descriptor for is_active field.
+	billableitemcatalogDescIsActive := billableitemcatalogFields[9].Descriptor()
+	// billableitemcatalog.DefaultIsActive holds the default value on creation for the is_active field.
+	billableitemcatalog.DefaultIsActive = billableitemcatalogDescIsActive.Default.(bool)
+	// billableitemcatalogDescCreatedAt is the schema descriptor for created_at field.
+	billableitemcatalogDescCreatedAt := billableitemcatalogFields[10].Descriptor()
+	// billableitemcatalog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billableitemcatalog.DefaultCreatedAt = billableitemcatalogDescCreatedAt.Default.(func() time.Time)
+	// billableitemcatalogDescUpdatedAt is the schema descriptor for updated_at field.
+	billableitemcatalogDescUpdatedAt := billableitemcatalogFields[11].Descriptor()
+	// billableitemcatalog.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billableitemcatalog.DefaultUpdatedAt = billableitemcatalogDescUpdatedAt.Default.(func() time.Time)
+	// billableitemcatalog.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billableitemcatalog.UpdateDefaultUpdatedAt = billableitemcatalogDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billableitemcatalogDescID is the schema descriptor for id field.
+	billableitemcatalogDescID := billableitemcatalogFields[0].Descriptor()
+	// billableitemcatalog.DefaultID holds the default value on creation for the id field.
+	billableitemcatalog.DefaultID = billableitemcatalogDescID.Default.(func() uuid.UUID)
 	diagnosiscatalogdefaultFields := schema.DiagnosisCatalogDefault{}.Fields()
 	_ = diagnosiscatalogdefaultFields
 	// diagnosiscatalogdefaultDescCode is the schema descriptor for code field.
@@ -306,6 +370,58 @@ func init() {
 	patientDescID := patientFields[0].Descriptor()
 	// patient.DefaultID holds the default value on creation for the id field.
 	patient.DefaultID = patientDescID.Default.(func() uuid.UUID)
+	patientaccountFields := schema.PatientAccount{}.Fields()
+	_ = patientaccountFields
+	// patientaccountDescTotalCharged is the schema descriptor for total_charged field.
+	patientaccountDescTotalCharged := patientaccountFields[6].Descriptor()
+	// patientaccount.DefaultTotalCharged holds the default value on creation for the total_charged field.
+	patientaccount.DefaultTotalCharged = patientaccountDescTotalCharged.Default.(float64)
+	// patientaccountDescTotalPaid is the schema descriptor for total_paid field.
+	patientaccountDescTotalPaid := patientaccountFields[7].Descriptor()
+	// patientaccount.DefaultTotalPaid holds the default value on creation for the total_paid field.
+	patientaccount.DefaultTotalPaid = patientaccountDescTotalPaid.Default.(float64)
+	// patientaccountDescBalance is the schema descriptor for balance field.
+	patientaccountDescBalance := patientaccountFields[8].Descriptor()
+	// patientaccount.DefaultBalance holds the default value on creation for the balance field.
+	patientaccount.DefaultBalance = patientaccountDescBalance.Default.(float64)
+	// patientaccountDescCreatedAt is the schema descriptor for created_at field.
+	patientaccountDescCreatedAt := patientaccountFields[11].Descriptor()
+	// patientaccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	patientaccount.DefaultCreatedAt = patientaccountDescCreatedAt.Default.(func() time.Time)
+	// patientaccountDescUpdatedAt is the schema descriptor for updated_at field.
+	patientaccountDescUpdatedAt := patientaccountFields[12].Descriptor()
+	// patientaccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	patientaccount.DefaultUpdatedAt = patientaccountDescUpdatedAt.Default.(func() time.Time)
+	// patientaccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	patientaccount.UpdateDefaultUpdatedAt = patientaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// patientaccountDescID is the schema descriptor for id field.
+	patientaccountDescID := patientaccountFields[0].Descriptor()
+	// patientaccount.DefaultID holds the default value on creation for the id field.
+	patientaccount.DefaultID = patientaccountDescID.Default.(func() uuid.UUID)
+	patientnextofkinFields := schema.PatientNextOfKin{}.Fields()
+	_ = patientnextofkinFields
+	// patientnextofkinDescName is the schema descriptor for name field.
+	patientnextofkinDescName := patientnextofkinFields[3].Descriptor()
+	// patientnextofkin.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	patientnextofkin.NameValidator = patientnextofkinDescName.Validators[0].(func(string) error)
+	// patientnextofkinDescIsPrimary is the schema descriptor for is_primary field.
+	patientnextofkinDescIsPrimary := patientnextofkinFields[7].Descriptor()
+	// patientnextofkin.DefaultIsPrimary holds the default value on creation for the is_primary field.
+	patientnextofkin.DefaultIsPrimary = patientnextofkinDescIsPrimary.Default.(bool)
+	// patientnextofkinDescCreatedAt is the schema descriptor for created_at field.
+	patientnextofkinDescCreatedAt := patientnextofkinFields[8].Descriptor()
+	// patientnextofkin.DefaultCreatedAt holds the default value on creation for the created_at field.
+	patientnextofkin.DefaultCreatedAt = patientnextofkinDescCreatedAt.Default.(func() time.Time)
+	// patientnextofkinDescUpdatedAt is the schema descriptor for updated_at field.
+	patientnextofkinDescUpdatedAt := patientnextofkinFields[9].Descriptor()
+	// patientnextofkin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	patientnextofkin.DefaultUpdatedAt = patientnextofkinDescUpdatedAt.Default.(func() time.Time)
+	// patientnextofkin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	patientnextofkin.UpdateDefaultUpdatedAt = patientnextofkinDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// patientnextofkinDescID is the schema descriptor for id field.
+	patientnextofkinDescID := patientnextofkinFields[0].Descriptor()
+	// patientnextofkin.DefaultID holds the default value on creation for the id field.
+	patientnextofkin.DefaultID = patientnextofkinDescID.Default.(func() uuid.UUID)
 	patientvisitFields := schema.PatientVisit{}.Fields()
 	_ = patientvisitFields
 	// patientvisitDescVisitNumber is the schema descriptor for visit_number field.

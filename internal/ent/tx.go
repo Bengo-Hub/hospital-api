@@ -12,6 +12,10 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// BillableCharge is the client for interacting with the BillableCharge builders.
+	BillableCharge *BillableChargeClient
+	// BillableItemCatalog is the client for interacting with the BillableItemCatalog builders.
+	BillableItemCatalog *BillableItemCatalogClient
 	// DiagnosisCatalogDefault is the client for interacting with the DiagnosisCatalogDefault builders.
 	DiagnosisCatalogDefault *DiagnosisCatalogDefaultClient
 	// DiagnosisCatalogEntry is the client for interacting with the DiagnosisCatalogEntry builders.
@@ -32,6 +36,10 @@ type Tx struct {
 	Outlet *OutletClient
 	// Patient is the client for interacting with the Patient builders.
 	Patient *PatientClient
+	// PatientAccount is the client for interacting with the PatientAccount builders.
+	PatientAccount *PatientAccountClient
+	// PatientNextOfKin is the client for interacting with the PatientNextOfKin builders.
+	PatientNextOfKin *PatientNextOfKinClient
 	// PatientVisit is the client for interacting with the PatientVisit builders.
 	PatientVisit *PatientVisitClient
 	// Referral is the client for interacting with the Referral builders.
@@ -175,6 +183,8 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.BillableCharge = NewBillableChargeClient(tx.config)
+	tx.BillableItemCatalog = NewBillableItemCatalogClient(tx.config)
 	tx.DiagnosisCatalogDefault = NewDiagnosisCatalogDefaultClient(tx.config)
 	tx.DiagnosisCatalogEntry = NewDiagnosisCatalogEntryClient(tx.config)
 	tx.DocumentSequence = NewDocumentSequenceClient(tx.config)
@@ -185,6 +195,8 @@ func (tx *Tx) init() {
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.Outlet = NewOutletClient(tx.config)
 	tx.Patient = NewPatientClient(tx.config)
+	tx.PatientAccount = NewPatientAccountClient(tx.config)
+	tx.PatientNextOfKin = NewPatientNextOfKinClient(tx.config)
 	tx.PatientVisit = NewPatientVisitClient(tx.config)
 	tx.Referral = NewReferralClient(tx.config)
 	tx.RolePermission = NewRolePermissionClient(tx.config)
@@ -200,7 +212,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: DiagnosisCatalogDefault.QueryXXX(), the query will be executed
+// applies a query, for example: BillableCharge.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

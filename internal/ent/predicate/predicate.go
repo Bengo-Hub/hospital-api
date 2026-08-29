@@ -6,6 +6,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// BillableCharge is the predicate function for billablecharge builders.
+type BillableCharge func(*sql.Selector)
+
+// BillableItemCatalog is the predicate function for billableitemcatalog builders.
+type BillableItemCatalog func(*sql.Selector)
+
 // DiagnosisCatalogDefault is the predicate function for diagnosiscatalogdefault builders.
 type DiagnosisCatalogDefault func(*sql.Selector)
 
@@ -35,6 +41,12 @@ type Outlet func(*sql.Selector)
 
 // Patient is the predicate function for patient builders.
 type Patient func(*sql.Selector)
+
+// PatientAccount is the predicate function for patientaccount builders.
+type PatientAccount func(*sql.Selector)
+
+// PatientNextOfKin is the predicate function for patientnextofkin builders.
+type PatientNextOfKin func(*sql.Selector)
 
 // PatientVisit is the predicate function for patientvisit builders.
 type PatientVisit func(*sql.Selector)

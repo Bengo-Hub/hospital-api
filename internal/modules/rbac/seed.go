@@ -35,6 +35,9 @@ var defaultPermissions = []HospitalPermission{
 	{PermissionCode: PermBillingAdd, Name: "Add Billing Records", Module: "billing", Action: "add"},
 	{PermissionCode: PermBillingChange, Name: "Edit Billing Records", Module: "billing", Action: "change"},
 	{PermissionCode: PermBillingManage, Name: "Manage Billing", Module: "billing", Action: "manage"},
+	{PermissionCode: PermBillingCollectOwn, Name: "Collect Own Charges", Module: "billing", Action: "collect_own"},
+	{PermissionCode: PermBillingCollectAny, Name: "Collect Any Charge (Cashier)", Module: "billing", Action: "collect_any"},
+	{PermissionCode: PermBillingOverrideSettlement, Name: "Override Settlement Requirement", Module: "billing", Action: "override_settlement"},
 
 	{PermissionCode: PermInpatientView, Name: "View Inpatient/Wards", Module: "inpatient", Action: "view"},
 	{PermissionCode: PermInpatientAdd, Name: "Admit Patients", Module: "inpatient", Action: "add"},
@@ -90,6 +93,7 @@ var defaultRoles = []roleDefinition{
 			PermPharmacyView, PermPharmacyPrescribe,
 			PermRecordsView,
 			PermInpatientView, PermInpatientChange,
+			PermBillingCollectOwn,
 		},
 	},
 	{
@@ -101,6 +105,7 @@ var defaultRoles = []roleDefinition{
 			PermInpatientView, PermInpatientChange,
 			PermConsultationView,
 			PermRecordsView,
+			PermBillingCollectOwn,
 		},
 	},
 	{
@@ -110,6 +115,7 @@ var defaultRoles = []roleDefinition{
 		Permissions: []string{
 			"hospital.pharmacy.*",
 			PermBillingView,
+			PermBillingCollectOwn,
 		},
 	},
 	{
@@ -120,6 +126,18 @@ var defaultRoles = []roleDefinition{
 			"hospital.records.*",
 			"hospital.reception.*",
 			PermBillingView, PermBillingAdd,
+			PermBillingCollectOwn,
+		},
+	},
+	{
+		Code:        RoleCashier,
+		Name:        "Cashier",
+		Description: "Billing desk — the universal fallback payment-collection point across every department/patient",
+		Permissions: []string{
+			PermBillingView, PermBillingAdd, PermBillingChange,
+			PermBillingCollectAny,
+			PermBillingOverrideSettlement,
+			PermRecordsView,
 		},
 	},
 	{
@@ -177,10 +195,12 @@ func resolvePermissions(patterns []string, permByCode map[string]uuid.UUID) []uu
 // exist. Fully idempotent — safe to call on every JIT provisioning / service startup.
 // Roles are GLOBAL (no tenant scoping), so this seeds the catalog exactly once platform-wide.
 func (s *Service) SeedRoles(ctx context.Context) error {
-	// Fast path: if the admin role already exists, the catalog was seeded before.
-	if _, err := s.repo.GetRoleByCode(ctx, RoleAdmin); err == nil {
-		return nil
-	}
+	// No fast-path early return here on purpose: a prior "if admin role exists, return nil"
+	// check meant any permission code added to defaultPermissions AFTER the catalog's first
+	// seed (e.g. the 2026-08-29 billing collect_own/collect_any/override_settlement codes)
+	// would silently never get created in an already-provisioned environment, including prod.
+	// Steps 1/2 below are each individually idempotent (existence-checked per item), so running
+	// them every time is safe and correctly incremental.
 
 	// Step 1: ensure every permission exists.
 	permByCode := make(map[string]uuid.UUID, len(defaultPermissions))

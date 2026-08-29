@@ -8,6 +8,88 @@ import (
 )
 
 var (
+	// BillableChargesColumns holds the columns for the "billable_charges" table.
+	BillableChargesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "billable_item_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "source_module", Type: field.TypeString},
+		{Name: "source_reference_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "description", Type: field.TypeString},
+		{Name: "amount", Type: field.TypeFloat64},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "invoiced", "paid", "waived", "written_off"}, Default: "pending"},
+		{Name: "treasury_invoice_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "treasury_payment_intent_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "created_by_user_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "patient_account_id", Type: field.TypeUUID},
+	}
+	// BillableChargesTable holds the schema information for the "billable_charges" table.
+	BillableChargesTable = &schema.Table{
+		Name:       "billable_charges",
+		Columns:    BillableChargesColumns,
+		PrimaryKey: []*schema.Column{BillableChargesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billable_charges_patient_accounts_charges",
+				Columns:    []*schema.Column{BillableChargesColumns[14]},
+				RefColumns: []*schema.Column{PatientAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billablecharge_tenant_id_patient_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillableChargesColumns[1], BillableChargesColumns[14]},
+			},
+			{
+				Name:    "billablecharge_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{BillableChargesColumns[1], BillableChargesColumns[7]},
+			},
+			{
+				Name:    "billablecharge_tenant_id_source_module",
+				Unique:  false,
+				Columns: []*schema.Column{BillableChargesColumns[1], BillableChargesColumns[3]},
+			},
+		},
+	}
+	// BillableItemCatalogsColumns holds the columns for the "billable_item_catalogs" table.
+	BillableItemCatalogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "department", Type: field.TypeEnum, Enums: []string{"records", "triage", "consultation", "lab", "pharmacy", "theatre", "inpatient", "mortuary"}},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "price", Type: field.TypeFloat64, Nullable: true},
+		{Name: "applies_to", Type: field.TypeEnum, Enums: []string{"first_visit", "return_visit", "all"}, Default: "all"},
+		{Name: "requires_prepayment", Type: field.TypeBool, Default: false},
+		{Name: "collection_mode", Type: field.TypeEnum, Enums: []string{"direct", "billing_queue", "either"}, Default: "billing_queue"},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// BillableItemCatalogsTable holds the schema information for the "billable_item_catalogs" table.
+	BillableItemCatalogsTable = &schema.Table{
+		Name:       "billable_item_catalogs",
+		Columns:    BillableItemCatalogsColumns,
+		PrimaryKey: []*schema.Column{BillableItemCatalogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billableitemcatalog_tenant_id_code",
+				Unique:  true,
+				Columns: []*schema.Column{BillableItemCatalogsColumns[1], BillableItemCatalogsColumns[3]},
+			},
+			{
+				Name:    "billableitemcatalog_tenant_id_department",
+				Unique:  false,
+				Columns: []*schema.Column{BillableItemCatalogsColumns[1], BillableItemCatalogsColumns[2]},
+			},
+		},
+	}
 	// DiagnosisCatalogDefaultsColumns holds the columns for the "diagnosis_catalog_defaults" table.
 	DiagnosisCatalogDefaultsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -375,6 +457,71 @@ var (
 			},
 		},
 	}
+	// PatientAccountsColumns holds the columns for the "patient_accounts" table.
+	PatientAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "patient_id", Type: field.TypeUUID},
+		{Name: "visit_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "admission_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"open", "settled", "written_off"}, Default: "open"},
+		{Name: "total_charged", Type: field.TypeFloat64, Default: 0},
+		{Name: "total_paid", Type: field.TypeFloat64, Default: 0},
+		{Name: "balance", Type: field.TypeFloat64, Default: 0},
+		{Name: "settlement_required_before", Type: field.TypeEnum, Enums: []string{"nothing", "discharge", "body_release"}, Default: "nothing"},
+		{Name: "next_of_kin_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PatientAccountsTable holds the schema information for the "patient_accounts" table.
+	PatientAccountsTable = &schema.Table{
+		Name:       "patient_accounts",
+		Columns:    PatientAccountsColumns,
+		PrimaryKey: []*schema.Column{PatientAccountsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "patientaccount_tenant_id_patient_id",
+				Unique:  false,
+				Columns: []*schema.Column{PatientAccountsColumns[1], PatientAccountsColumns[2]},
+			},
+			{
+				Name:    "patientaccount_tenant_id_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{PatientAccountsColumns[1], PatientAccountsColumns[3]},
+			},
+			{
+				Name:    "patientaccount_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{PatientAccountsColumns[1], PatientAccountsColumns[5]},
+			},
+		},
+	}
+	// PatientNextOfKinsColumns holds the columns for the "patient_next_of_kins" table.
+	PatientNextOfKinsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "patient_id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString},
+		{Name: "phone", Type: field.TypeString, Nullable: true},
+		{Name: "relationship", Type: field.TypeString, Nullable: true},
+		{Name: "id_number", Type: field.TypeString, Nullable: true},
+		{Name: "is_primary", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PatientNextOfKinsTable holds the schema information for the "patient_next_of_kins" table.
+	PatientNextOfKinsTable = &schema.Table{
+		Name:       "patient_next_of_kins",
+		Columns:    PatientNextOfKinsColumns,
+		PrimaryKey: []*schema.Column{PatientNextOfKinsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "patientnextofkin_tenant_id_patient_id",
+				Unique:  false,
+				Columns: []*schema.Column{PatientNextOfKinsColumns[1], PatientNextOfKinsColumns[2]},
+			},
+		},
+	}
 	// PatientVisitsColumns holds the columns for the "patient_visits" table.
 	PatientVisitsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -636,6 +783,8 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		BillableChargesTable,
+		BillableItemCatalogsTable,
 		DiagnosisCatalogDefaultsTable,
 		DiagnosisCatalogEntriesTable,
 		DocumentSequencesTable,
@@ -646,6 +795,8 @@ var (
 		OutboxEventsTable,
 		OutletsTable,
 		PatientsTable,
+		PatientAccountsTable,
+		PatientNextOfKinsTable,
 		PatientVisitsTable,
 		ReferralsTable,
 		RolePermissionsTable,
@@ -656,6 +807,7 @@ var (
 )
 
 func init() {
+	BillableChargesTable.ForeignKeys[0].RefTable = PatientAccountsTable
 	ExaminationRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	HospitalUsersTable.ForeignKeys[0].RefTable = TenantsTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
