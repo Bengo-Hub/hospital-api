@@ -41,5 +41,8 @@ func main() {
 	if err := refdata.SeedGlobalDiagnosisCatalog(ctx, client, logger); err != nil {
 		log.Fatalf("seed global diagnosis catalog: %v", err)
 	}
+	if err := refdata.SeedGlobalLabTestCatalog(ctx, client, logger); err != nil {
+		log.Fatalf("seed global lab test catalog: %v", err)
+	}
 	log.Println("hospital-api seed: complete")
 }

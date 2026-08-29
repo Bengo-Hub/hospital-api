@@ -14,6 +14,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/laborder"
+	"github.com/bengobox/hospital-service/internal/ent/laborderline"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -272,6 +276,102 @@ func init() {
 	hospitaluserDescID := hospitaluserFields[0].Descriptor()
 	// hospitaluser.DefaultID holds the default value on creation for the id field.
 	hospitaluser.DefaultID = hospitaluserDescID.Default.(func() uuid.UUID)
+	laborderFields := schema.LabOrder{}.Fields()
+	_ = laborderFields
+	// laborderDescOrderedAt is the schema descriptor for ordered_at field.
+	laborderDescOrderedAt := laborderFields[7].Descriptor()
+	// laborder.DefaultOrderedAt holds the default value on creation for the ordered_at field.
+	laborder.DefaultOrderedAt = laborderDescOrderedAt.Default.(func() time.Time)
+	// laborderDescID is the schema descriptor for id field.
+	laborderDescID := laborderFields[0].Descriptor()
+	// laborder.DefaultID holds the default value on creation for the id field.
+	laborder.DefaultID = laborderDescID.Default.(func() uuid.UUID)
+	laborderlineFields := schema.LabOrderLine{}.Fields()
+	_ = laborderlineFields
+	// laborderlineDescTestCode is the schema descriptor for test_code field.
+	laborderlineDescTestCode := laborderlineFields[3].Descriptor()
+	// laborderline.TestCodeValidator is a validator for the "test_code" field. It is called by the builders before save.
+	laborderline.TestCodeValidator = laborderlineDescTestCode.Validators[0].(func(string) error)
+	// laborderlineDescTestName is the schema descriptor for test_name field.
+	laborderlineDescTestName := laborderlineFields[4].Descriptor()
+	// laborderline.TestNameValidator is a validator for the "test_name" field. It is called by the builders before save.
+	laborderline.TestNameValidator = laborderlineDescTestName.Validators[0].(func(string) error)
+	// laborderlineDescPrice is the schema descriptor for price field.
+	laborderlineDescPrice := laborderlineFields[5].Descriptor()
+	// laborderline.DefaultPrice holds the default value on creation for the price field.
+	laborderline.DefaultPrice = laborderlineDescPrice.Default.(float64)
+	// laborderlineDescCreatedAt is the schema descriptor for created_at field.
+	laborderlineDescCreatedAt := laborderlineFields[14].Descriptor()
+	// laborderline.DefaultCreatedAt holds the default value on creation for the created_at field.
+	laborderline.DefaultCreatedAt = laborderlineDescCreatedAt.Default.(func() time.Time)
+	// laborderlineDescID is the schema descriptor for id field.
+	laborderlineDescID := laborderlineFields[0].Descriptor()
+	// laborderline.DefaultID holds the default value on creation for the id field.
+	laborderline.DefaultID = laborderlineDescID.Default.(func() uuid.UUID)
+	labtestcatalogdefaultFields := schema.LabTestCatalogDefault{}.Fields()
+	_ = labtestcatalogdefaultFields
+	// labtestcatalogdefaultDescCode is the schema descriptor for code field.
+	labtestcatalogdefaultDescCode := labtestcatalogdefaultFields[1].Descriptor()
+	// labtestcatalogdefault.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	labtestcatalogdefault.CodeValidator = labtestcatalogdefaultDescCode.Validators[0].(func(string) error)
+	// labtestcatalogdefaultDescName is the schema descriptor for name field.
+	labtestcatalogdefaultDescName := labtestcatalogdefaultFields[2].Descriptor()
+	// labtestcatalogdefault.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	labtestcatalogdefault.NameValidator = labtestcatalogdefaultDescName.Validators[0].(func(string) error)
+	// labtestcatalogdefaultDescPrice is the schema descriptor for price field.
+	labtestcatalogdefaultDescPrice := labtestcatalogdefaultFields[7].Descriptor()
+	// labtestcatalogdefault.DefaultPrice holds the default value on creation for the price field.
+	labtestcatalogdefault.DefaultPrice = labtestcatalogdefaultDescPrice.Default.(float64)
+	// labtestcatalogdefaultDescIsActive is the schema descriptor for is_active field.
+	labtestcatalogdefaultDescIsActive := labtestcatalogdefaultFields[8].Descriptor()
+	// labtestcatalogdefault.DefaultIsActive holds the default value on creation for the is_active field.
+	labtestcatalogdefault.DefaultIsActive = labtestcatalogdefaultDescIsActive.Default.(bool)
+	// labtestcatalogdefaultDescCreatedAt is the schema descriptor for created_at field.
+	labtestcatalogdefaultDescCreatedAt := labtestcatalogdefaultFields[9].Descriptor()
+	// labtestcatalogdefault.DefaultCreatedAt holds the default value on creation for the created_at field.
+	labtestcatalogdefault.DefaultCreatedAt = labtestcatalogdefaultDescCreatedAt.Default.(func() time.Time)
+	// labtestcatalogdefaultDescUpdatedAt is the schema descriptor for updated_at field.
+	labtestcatalogdefaultDescUpdatedAt := labtestcatalogdefaultFields[10].Descriptor()
+	// labtestcatalogdefault.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	labtestcatalogdefault.DefaultUpdatedAt = labtestcatalogdefaultDescUpdatedAt.Default.(func() time.Time)
+	// labtestcatalogdefault.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	labtestcatalogdefault.UpdateDefaultUpdatedAt = labtestcatalogdefaultDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// labtestcatalogdefaultDescID is the schema descriptor for id field.
+	labtestcatalogdefaultDescID := labtestcatalogdefaultFields[0].Descriptor()
+	// labtestcatalogdefault.DefaultID holds the default value on creation for the id field.
+	labtestcatalogdefault.DefaultID = labtestcatalogdefaultDescID.Default.(func() uuid.UUID)
+	labtestcatalogentryFields := schema.LabTestCatalogEntry{}.Fields()
+	_ = labtestcatalogentryFields
+	// labtestcatalogentryDescCode is the schema descriptor for code field.
+	labtestcatalogentryDescCode := labtestcatalogentryFields[2].Descriptor()
+	// labtestcatalogentry.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	labtestcatalogentry.CodeValidator = labtestcatalogentryDescCode.Validators[0].(func(string) error)
+	// labtestcatalogentryDescName is the schema descriptor for name field.
+	labtestcatalogentryDescName := labtestcatalogentryFields[3].Descriptor()
+	// labtestcatalogentry.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	labtestcatalogentry.NameValidator = labtestcatalogentryDescName.Validators[0].(func(string) error)
+	// labtestcatalogentryDescPrice is the schema descriptor for price field.
+	labtestcatalogentryDescPrice := labtestcatalogentryFields[8].Descriptor()
+	// labtestcatalogentry.DefaultPrice holds the default value on creation for the price field.
+	labtestcatalogentry.DefaultPrice = labtestcatalogentryDescPrice.Default.(float64)
+	// labtestcatalogentryDescIsActive is the schema descriptor for is_active field.
+	labtestcatalogentryDescIsActive := labtestcatalogentryFields[9].Descriptor()
+	// labtestcatalogentry.DefaultIsActive holds the default value on creation for the is_active field.
+	labtestcatalogentry.DefaultIsActive = labtestcatalogentryDescIsActive.Default.(bool)
+	// labtestcatalogentryDescCreatedAt is the schema descriptor for created_at field.
+	labtestcatalogentryDescCreatedAt := labtestcatalogentryFields[10].Descriptor()
+	// labtestcatalogentry.DefaultCreatedAt holds the default value on creation for the created_at field.
+	labtestcatalogentry.DefaultCreatedAt = labtestcatalogentryDescCreatedAt.Default.(func() time.Time)
+	// labtestcatalogentryDescUpdatedAt is the schema descriptor for updated_at field.
+	labtestcatalogentryDescUpdatedAt := labtestcatalogentryFields[11].Descriptor()
+	// labtestcatalogentry.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	labtestcatalogentry.DefaultUpdatedAt = labtestcatalogentryDescUpdatedAt.Default.(func() time.Time)
+	// labtestcatalogentry.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	labtestcatalogentry.UpdateDefaultUpdatedAt = labtestcatalogentryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// labtestcatalogentryDescID is the schema descriptor for id field.
+	labtestcatalogentryDescID := labtestcatalogentryFields[0].Descriptor()
+	// labtestcatalogentry.DefaultID holds the default value on creation for the id field.
+	labtestcatalogentry.DefaultID = labtestcatalogentryDescID.Default.(func() uuid.UUID)
 	outboxeventFields := schema.OutboxEvent{}.Fields()
 	_ = outboxeventFields
 	// outboxeventDescAggregateType is the schema descriptor for aggregate_type field.

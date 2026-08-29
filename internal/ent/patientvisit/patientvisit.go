@@ -48,6 +48,8 @@ const (
 	EdgeReferrals = "referrals"
 	// EdgeExaminationRecords holds the string denoting the examination_records edge name in mutations.
 	EdgeExaminationRecords = "examination_records"
+	// EdgeLabOrders holds the string denoting the lab_orders edge name in mutations.
+	EdgeLabOrders = "lab_orders"
 	// Table holds the table name of the patientvisit in the database.
 	Table = "patient_visits"
 	// PatientTable is the table that holds the patient relation/edge.
@@ -78,6 +80,13 @@ const (
 	ExaminationRecordsInverseTable = "examination_records"
 	// ExaminationRecordsColumn is the table column denoting the examination_records relation/edge.
 	ExaminationRecordsColumn = "visit_id"
+	// LabOrdersTable is the table that holds the lab_orders relation/edge.
+	LabOrdersTable = "lab_orders"
+	// LabOrdersInverseTable is the table name for the LabOrder entity.
+	// It exists in this package in order to avoid circular dependency with the "laborder" package.
+	LabOrdersInverseTable = "lab_orders"
+	// LabOrdersColumn is the table column denoting the lab_orders relation/edge.
+	LabOrdersColumn = "visit_id"
 )
 
 // Columns holds all SQL columns for patientvisit fields.
@@ -298,6 +307,20 @@ func ByExaminationRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOptio
 		sqlgraph.OrderByNeighborTerms(s, newExaminationRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByLabOrdersCount orders the results by lab_orders count.
+func ByLabOrdersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newLabOrdersStep(), opts...)
+	}
+}
+
+// ByLabOrders orders the results by lab_orders terms.
+func ByLabOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLabOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPatientStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -324,5 +347,12 @@ func newExaminationRecordsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ExaminationRecordsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ExaminationRecordsTable, ExaminationRecordsColumn),
+	)
+}
+func newLabOrdersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LabOrdersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, LabOrdersTable, LabOrdersColumn),
 	)
 }

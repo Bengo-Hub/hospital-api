@@ -331,6 +331,143 @@ var (
 			},
 		},
 	}
+	// LabOrdersColumns holds the columns for the "lab_orders" table.
+	LabOrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "examination_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "ordered_by", Type: field.TypeUUID},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"requested", "awaiting_payment", "collected", "resulted", "cancelled"}, Default: "requested"},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "ordered_at", Type: field.TypeTime},
+		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "visit_id", Type: field.TypeUUID},
+	}
+	// LabOrdersTable holds the schema information for the "lab_orders" table.
+	LabOrdersTable = &schema.Table{
+		Name:       "lab_orders",
+		Columns:    LabOrdersColumns,
+		PrimaryKey: []*schema.Column{LabOrdersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "lab_orders_patient_visits_lab_orders",
+				Columns:    []*schema.Column{LabOrdersColumns[8]},
+				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "laborder_tenant_id_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{LabOrdersColumns[1], LabOrdersColumns[8]},
+			},
+			{
+				Name:    "laborder_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{LabOrdersColumns[1], LabOrdersColumns[4]},
+			},
+		},
+	}
+	// LabOrderLinesColumns holds the columns for the "lab_order_lines" table.
+	LabOrderLinesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "test_code", Type: field.TypeString},
+		{Name: "test_name", Type: field.TypeString},
+		{Name: "price", Type: field.TypeFloat64, Default: 0},
+		{Name: "specimen_type", Type: field.TypeString, Nullable: true},
+		{Name: "result_value", Type: field.TypeString, Nullable: true},
+		{Name: "unit", Type: field.TypeString, Nullable: true},
+		{Name: "reference_range", Type: field.TypeString, Nullable: true},
+		{Name: "flag", Type: field.TypeEnum, Enums: []string{"pending", "normal", "abnormal", "critical"}, Default: "pending"},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "resulted_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "resulted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "lab_order_id", Type: field.TypeUUID},
+	}
+	// LabOrderLinesTable holds the schema information for the "lab_order_lines" table.
+	LabOrderLinesTable = &schema.Table{
+		Name:       "lab_order_lines",
+		Columns:    LabOrderLinesColumns,
+		PrimaryKey: []*schema.Column{LabOrderLinesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "lab_order_lines_lab_orders_lines",
+				Columns:    []*schema.Column{LabOrderLinesColumns[14]},
+				RefColumns: []*schema.Column{LabOrdersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "laborderline_tenant_id_lab_order_id",
+				Unique:  false,
+				Columns: []*schema.Column{LabOrderLinesColumns[1], LabOrderLinesColumns[14]},
+			},
+			{
+				Name:    "laborderline_tenant_id_flag",
+				Unique:  false,
+				Columns: []*schema.Column{LabOrderLinesColumns[1], LabOrderLinesColumns[9]},
+			},
+		},
+	}
+	// LabTestCatalogDefaultsColumns holds the columns for the "lab_test_catalog_defaults" table.
+	LabTestCatalogDefaultsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "specimen_type", Type: field.TypeString, Nullable: true},
+		{Name: "reference_range", Type: field.TypeString, Nullable: true},
+		{Name: "unit", Type: field.TypeString, Nullable: true},
+		{Name: "turnaround_hours", Type: field.TypeInt, Nullable: true},
+		{Name: "price", Type: field.TypeFloat64, Default: 0},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// LabTestCatalogDefaultsTable holds the schema information for the "lab_test_catalog_defaults" table.
+	LabTestCatalogDefaultsTable = &schema.Table{
+		Name:       "lab_test_catalog_defaults",
+		Columns:    LabTestCatalogDefaultsColumns,
+		PrimaryKey: []*schema.Column{LabTestCatalogDefaultsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "labtestcatalogdefault_code",
+				Unique:  true,
+				Columns: []*schema.Column{LabTestCatalogDefaultsColumns[1]},
+			},
+		},
+	}
+	// LabTestCatalogEntriesColumns holds the columns for the "lab_test_catalog_entries" table.
+	LabTestCatalogEntriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "specimen_type", Type: field.TypeString, Nullable: true},
+		{Name: "reference_range", Type: field.TypeString, Nullable: true},
+		{Name: "unit", Type: field.TypeString, Nullable: true},
+		{Name: "turnaround_hours", Type: field.TypeInt, Nullable: true},
+		{Name: "price", Type: field.TypeFloat64, Default: 0},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// LabTestCatalogEntriesTable holds the schema information for the "lab_test_catalog_entries" table.
+	LabTestCatalogEntriesTable = &schema.Table{
+		Name:       "lab_test_catalog_entries",
+		Columns:    LabTestCatalogEntriesColumns,
+		PrimaryKey: []*schema.Column{LabTestCatalogEntriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "labtestcatalogentry_tenant_id_code",
+				Unique:  true,
+				Columns: []*schema.Column{LabTestCatalogEntriesColumns[1], LabTestCatalogEntriesColumns[2]},
+			},
+		},
+	}
 	// OutboxEventsColumns holds the columns for the "outbox_events" table.
 	OutboxEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -792,6 +929,10 @@ var (
 		HospitalPermissionsTable,
 		HospitalRolesTable,
 		HospitalUsersTable,
+		LabOrdersTable,
+		LabOrderLinesTable,
+		LabTestCatalogDefaultsTable,
+		LabTestCatalogEntriesTable,
 		OutboxEventsTable,
 		OutletsTable,
 		PatientsTable,
@@ -810,6 +951,8 @@ func init() {
 	BillableChargesTable.ForeignKeys[0].RefTable = PatientAccountsTable
 	ExaminationRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	HospitalUsersTable.ForeignKeys[0].RefTable = TenantsTable
+	LabOrdersTable.ForeignKeys[0].RefTable = PatientVisitsTable
+	LabOrderLinesTable.ForeignKeys[0].RefTable = LabOrdersTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
 	PatientVisitsTable.ForeignKeys[0].RefTable = PatientsTable
 	ReferralsTable.ForeignKeys[0].RefTable = PatientVisitsTable

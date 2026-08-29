@@ -117,6 +117,54 @@ func (f HospitalUserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HospitalUserMutation", m)
 }
 
+// The LabOrderFunc type is an adapter to allow the use of ordinary
+// function as LabOrder mutator.
+type LabOrderFunc func(context.Context, *ent.LabOrderMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LabOrderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LabOrderMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LabOrderMutation", m)
+}
+
+// The LabOrderLineFunc type is an adapter to allow the use of ordinary
+// function as LabOrderLine mutator.
+type LabOrderLineFunc func(context.Context, *ent.LabOrderLineMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LabOrderLineFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LabOrderLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LabOrderLineMutation", m)
+}
+
+// The LabTestCatalogDefaultFunc type is an adapter to allow the use of ordinary
+// function as LabTestCatalogDefault mutator.
+type LabTestCatalogDefaultFunc func(context.Context, *ent.LabTestCatalogDefaultMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LabTestCatalogDefaultFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LabTestCatalogDefaultMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LabTestCatalogDefaultMutation", m)
+}
+
+// The LabTestCatalogEntryFunc type is an adapter to allow the use of ordinary
+// function as LabTestCatalogEntry mutator.
+type LabTestCatalogEntryFunc func(context.Context, *ent.LabTestCatalogEntryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LabTestCatalogEntryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LabTestCatalogEntryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LabTestCatalogEntryMutation", m)
+}
+
 // The OutboxEventFunc type is an adapter to allow the use of ordinary
 // function as OutboxEvent mutator.
 type OutboxEventFunc func(context.Context, *ent.OutboxEventMutation) (ent.Value, error)

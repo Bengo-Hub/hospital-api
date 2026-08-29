@@ -33,6 +33,18 @@ type HospitalRole func(*sql.Selector)
 // HospitalUser is the predicate function for hospitaluser builders.
 type HospitalUser func(*sql.Selector)
 
+// LabOrder is the predicate function for laborder builders.
+type LabOrder func(*sql.Selector)
+
+// LabOrderLine is the predicate function for laborderline builders.
+type LabOrderLine func(*sql.Selector)
+
+// LabTestCatalogDefault is the predicate function for labtestcatalogdefault builders.
+type LabTestCatalogDefault func(*sql.Selector)
+
+// LabTestCatalogEntry is the predicate function for labtestcatalogentry builders.
+type LabTestCatalogEntry func(*sql.Selector)
+
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 

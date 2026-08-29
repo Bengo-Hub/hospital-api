@@ -21,6 +21,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/laborder"
+	"github.com/bengobox/hospital-service/internal/ent/laborderline"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -101,6 +105,10 @@ func checkColumn(t, c string) error {
 			hospitalpermission.Table:      hospitalpermission.ValidColumn,
 			hospitalrole.Table:            hospitalrole.ValidColumn,
 			hospitaluser.Table:            hospitaluser.ValidColumn,
+			laborder.Table:                laborder.ValidColumn,
+			laborderline.Table:            laborderline.ValidColumn,
+			labtestcatalogdefault.Table:   labtestcatalogdefault.ValidColumn,
+			labtestcatalogentry.Table:     labtestcatalogentry.ValidColumn,
 			outboxevent.Table:             outboxevent.ValidColumn,
 			outlet.Table:                  outlet.ValidColumn,
 			patient.Table:                 patient.ValidColumn,

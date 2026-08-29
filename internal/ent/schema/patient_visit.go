@@ -50,6 +50,7 @@ func (PatientVisit) Edges() []ent.Edge {
 		edge.To("triage_records", TriageRecord.Type),
 		edge.To("referrals", Referral.Type),
 		edge.To("examination_records", ExaminationRecord.Type),
+		edge.To("lab_orders", LabOrder.Type),
 	}
 }
 

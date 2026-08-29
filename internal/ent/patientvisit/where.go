@@ -698,6 +698,29 @@ func HasExaminationRecordsWith(preds ...predicate.ExaminationRecord) predicate.P
 	})
 }
 
+// HasLabOrders applies the HasEdge predicate on the "lab_orders" edge.
+func HasLabOrders() predicate.PatientVisit {
+	return predicate.PatientVisit(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, LabOrdersTable, LabOrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLabOrdersWith applies the HasEdge predicate on the "lab_orders" edge with a given conditions (other predicates).
+func HasLabOrdersWith(preds ...predicate.LabOrder) predicate.PatientVisit {
+	return predicate.PatientVisit(func(s *sql.Selector) {
+		step := newLabOrdersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.PatientVisit) predicate.PatientVisit {
 	return predicate.PatientVisit(sql.AndPredicates(predicates...))

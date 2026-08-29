@@ -25,6 +25,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/laborder"
+	"github.com/bengobox/hospital-service/internal/ent/laborderline"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -61,6 +65,14 @@ type Client struct {
 	HospitalRole *HospitalRoleClient
 	// HospitalUser is the client for interacting with the HospitalUser builders.
 	HospitalUser *HospitalUserClient
+	// LabOrder is the client for interacting with the LabOrder builders.
+	LabOrder *LabOrderClient
+	// LabOrderLine is the client for interacting with the LabOrderLine builders.
+	LabOrderLine *LabOrderLineClient
+	// LabTestCatalogDefault is the client for interacting with the LabTestCatalogDefault builders.
+	LabTestCatalogDefault *LabTestCatalogDefaultClient
+	// LabTestCatalogEntry is the client for interacting with the LabTestCatalogEntry builders.
+	LabTestCatalogEntry *LabTestCatalogEntryClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// Outlet is the client for interacting with the Outlet builders.
@@ -103,6 +115,10 @@ func (c *Client) init() {
 	c.HospitalPermission = NewHospitalPermissionClient(c.config)
 	c.HospitalRole = NewHospitalRoleClient(c.config)
 	c.HospitalUser = NewHospitalUserClient(c.config)
+	c.LabOrder = NewLabOrderClient(c.config)
+	c.LabOrderLine = NewLabOrderLineClient(c.config)
+	c.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(c.config)
+	c.LabTestCatalogEntry = NewLabTestCatalogEntryClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.Outlet = NewOutletClient(c.config)
 	c.Patient = NewPatientClient(c.config)
@@ -215,6 +231,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		HospitalPermission:      NewHospitalPermissionClient(cfg),
 		HospitalRole:            NewHospitalRoleClient(cfg),
 		HospitalUser:            NewHospitalUserClient(cfg),
+		LabOrder:                NewLabOrderClient(cfg),
+		LabOrderLine:            NewLabOrderLineClient(cfg),
+		LabTestCatalogDefault:   NewLabTestCatalogDefaultClient(cfg),
+		LabTestCatalogEntry:     NewLabTestCatalogEntryClient(cfg),
 		OutboxEvent:             NewOutboxEventClient(cfg),
 		Outlet:                  NewOutletClient(cfg),
 		Patient:                 NewPatientClient(cfg),
@@ -254,6 +274,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		HospitalPermission:      NewHospitalPermissionClient(cfg),
 		HospitalRole:            NewHospitalRoleClient(cfg),
 		HospitalUser:            NewHospitalUserClient(cfg),
+		LabOrder:                NewLabOrderClient(cfg),
+		LabOrderLine:            NewLabOrderLineClient(cfg),
+		LabTestCatalogDefault:   NewLabTestCatalogDefaultClient(cfg),
+		LabTestCatalogEntry:     NewLabTestCatalogEntryClient(cfg),
 		OutboxEvent:             NewOutboxEventClient(cfg),
 		Outlet:                  NewOutletClient(cfg),
 		Patient:                 NewPatientClient(cfg),
@@ -296,9 +320,10 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.BillableCharge, c.BillableItemCatalog, c.DiagnosisCatalogDefault,
 		c.DiagnosisCatalogEntry, c.DocumentSequence, c.ExaminationRecord,
-		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.OutboxEvent, c.Outlet,
-		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit, c.Referral,
-		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
+		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.LabOrder,
+		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
+		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
+		c.Referral, c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
 		n.Use(hooks...)
 	}
@@ -310,9 +335,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.BillableCharge, c.BillableItemCatalog, c.DiagnosisCatalogDefault,
 		c.DiagnosisCatalogEntry, c.DocumentSequence, c.ExaminationRecord,
-		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.OutboxEvent, c.Outlet,
-		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit, c.Referral,
-		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
+		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.LabOrder,
+		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
+		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
+		c.Referral, c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -339,6 +365,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.HospitalRole.mutate(ctx, m)
 	case *HospitalUserMutation:
 		return c.HospitalUser.mutate(ctx, m)
+	case *LabOrderMutation:
+		return c.LabOrder.mutate(ctx, m)
+	case *LabOrderLineMutation:
+		return c.LabOrderLine.mutate(ctx, m)
+	case *LabTestCatalogDefaultMutation:
+		return c.LabTestCatalogDefault.mutate(ctx, m)
+	case *LabTestCatalogEntryMutation:
+		return c.LabTestCatalogEntry.mutate(ctx, m)
 	case *OutboxEventMutation:
 		return c.OutboxEvent.mutate(ctx, m)
 	case *OutletMutation:
@@ -1707,6 +1741,586 @@ func (c *HospitalUserClient) mutate(ctx context.Context, m *HospitalUserMutation
 	}
 }
 
+// LabOrderClient is a client for the LabOrder schema.
+type LabOrderClient struct {
+	config
+}
+
+// NewLabOrderClient returns a client for the LabOrder from the given config.
+func NewLabOrderClient(c config) *LabOrderClient {
+	return &LabOrderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `laborder.Hooks(f(g(h())))`.
+func (c *LabOrderClient) Use(hooks ...Hook) {
+	c.hooks.LabOrder = append(c.hooks.LabOrder, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `laborder.Intercept(f(g(h())))`.
+func (c *LabOrderClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LabOrder = append(c.inters.LabOrder, interceptors...)
+}
+
+// Create returns a builder for creating a LabOrder entity.
+func (c *LabOrderClient) Create() *LabOrderCreate {
+	mutation := newLabOrderMutation(c.config, OpCreate)
+	return &LabOrderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LabOrder entities.
+func (c *LabOrderClient) CreateBulk(builders ...*LabOrderCreate) *LabOrderCreateBulk {
+	return &LabOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LabOrderClient) MapCreateBulk(slice any, setFunc func(*LabOrderCreate, int)) *LabOrderCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LabOrderCreateBulk{err: fmt.Errorf("calling to LabOrderClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LabOrderCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LabOrderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LabOrder.
+func (c *LabOrderClient) Update() *LabOrderUpdate {
+	mutation := newLabOrderMutation(c.config, OpUpdate)
+	return &LabOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LabOrderClient) UpdateOne(_m *LabOrder) *LabOrderUpdateOne {
+	mutation := newLabOrderMutation(c.config, OpUpdateOne, withLabOrder(_m))
+	return &LabOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LabOrderClient) UpdateOneID(id uuid.UUID) *LabOrderUpdateOne {
+	mutation := newLabOrderMutation(c.config, OpUpdateOne, withLabOrderID(id))
+	return &LabOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LabOrder.
+func (c *LabOrderClient) Delete() *LabOrderDelete {
+	mutation := newLabOrderMutation(c.config, OpDelete)
+	return &LabOrderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LabOrderClient) DeleteOne(_m *LabOrder) *LabOrderDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LabOrderClient) DeleteOneID(id uuid.UUID) *LabOrderDeleteOne {
+	builder := c.Delete().Where(laborder.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LabOrderDeleteOne{builder}
+}
+
+// Query returns a query builder for LabOrder.
+func (c *LabOrderClient) Query() *LabOrderQuery {
+	return &LabOrderQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLabOrder},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LabOrder entity by its id.
+func (c *LabOrderClient) Get(ctx context.Context, id uuid.UUID) (*LabOrder, error) {
+	return c.Query().Where(laborder.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LabOrderClient) GetX(ctx context.Context, id uuid.UUID) *LabOrder {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryVisit queries the visit edge of a LabOrder.
+func (c *LabOrderClient) QueryVisit(_m *LabOrder) *PatientVisitQuery {
+	query := (&PatientVisitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(laborder.Table, laborder.FieldID, id),
+			sqlgraph.To(patientvisit.Table, patientvisit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, laborder.VisitTable, laborder.VisitColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLines queries the lines edge of a LabOrder.
+func (c *LabOrderClient) QueryLines(_m *LabOrder) *LabOrderLineQuery {
+	query := (&LabOrderLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(laborder.Table, laborder.FieldID, id),
+			sqlgraph.To(laborderline.Table, laborderline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, laborder.LinesTable, laborder.LinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LabOrderClient) Hooks() []Hook {
+	return c.hooks.LabOrder
+}
+
+// Interceptors returns the client interceptors.
+func (c *LabOrderClient) Interceptors() []Interceptor {
+	return c.inters.LabOrder
+}
+
+func (c *LabOrderClient) mutate(ctx context.Context, m *LabOrderMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LabOrderCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LabOrderUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LabOrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LabOrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LabOrder mutation op: %q", m.Op())
+	}
+}
+
+// LabOrderLineClient is a client for the LabOrderLine schema.
+type LabOrderLineClient struct {
+	config
+}
+
+// NewLabOrderLineClient returns a client for the LabOrderLine from the given config.
+func NewLabOrderLineClient(c config) *LabOrderLineClient {
+	return &LabOrderLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `laborderline.Hooks(f(g(h())))`.
+func (c *LabOrderLineClient) Use(hooks ...Hook) {
+	c.hooks.LabOrderLine = append(c.hooks.LabOrderLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `laborderline.Intercept(f(g(h())))`.
+func (c *LabOrderLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LabOrderLine = append(c.inters.LabOrderLine, interceptors...)
+}
+
+// Create returns a builder for creating a LabOrderLine entity.
+func (c *LabOrderLineClient) Create() *LabOrderLineCreate {
+	mutation := newLabOrderLineMutation(c.config, OpCreate)
+	return &LabOrderLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LabOrderLine entities.
+func (c *LabOrderLineClient) CreateBulk(builders ...*LabOrderLineCreate) *LabOrderLineCreateBulk {
+	return &LabOrderLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LabOrderLineClient) MapCreateBulk(slice any, setFunc func(*LabOrderLineCreate, int)) *LabOrderLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LabOrderLineCreateBulk{err: fmt.Errorf("calling to LabOrderLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LabOrderLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LabOrderLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LabOrderLine.
+func (c *LabOrderLineClient) Update() *LabOrderLineUpdate {
+	mutation := newLabOrderLineMutation(c.config, OpUpdate)
+	return &LabOrderLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LabOrderLineClient) UpdateOne(_m *LabOrderLine) *LabOrderLineUpdateOne {
+	mutation := newLabOrderLineMutation(c.config, OpUpdateOne, withLabOrderLine(_m))
+	return &LabOrderLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LabOrderLineClient) UpdateOneID(id uuid.UUID) *LabOrderLineUpdateOne {
+	mutation := newLabOrderLineMutation(c.config, OpUpdateOne, withLabOrderLineID(id))
+	return &LabOrderLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LabOrderLine.
+func (c *LabOrderLineClient) Delete() *LabOrderLineDelete {
+	mutation := newLabOrderLineMutation(c.config, OpDelete)
+	return &LabOrderLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LabOrderLineClient) DeleteOne(_m *LabOrderLine) *LabOrderLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LabOrderLineClient) DeleteOneID(id uuid.UUID) *LabOrderLineDeleteOne {
+	builder := c.Delete().Where(laborderline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LabOrderLineDeleteOne{builder}
+}
+
+// Query returns a query builder for LabOrderLine.
+func (c *LabOrderLineClient) Query() *LabOrderLineQuery {
+	return &LabOrderLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLabOrderLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LabOrderLine entity by its id.
+func (c *LabOrderLineClient) Get(ctx context.Context, id uuid.UUID) (*LabOrderLine, error) {
+	return c.Query().Where(laborderline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LabOrderLineClient) GetX(ctx context.Context, id uuid.UUID) *LabOrderLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLabOrder queries the lab_order edge of a LabOrderLine.
+func (c *LabOrderLineClient) QueryLabOrder(_m *LabOrderLine) *LabOrderQuery {
+	query := (&LabOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(laborderline.Table, laborderline.FieldID, id),
+			sqlgraph.To(laborder.Table, laborder.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, laborderline.LabOrderTable, laborderline.LabOrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LabOrderLineClient) Hooks() []Hook {
+	return c.hooks.LabOrderLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *LabOrderLineClient) Interceptors() []Interceptor {
+	return c.inters.LabOrderLine
+}
+
+func (c *LabOrderLineClient) mutate(ctx context.Context, m *LabOrderLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LabOrderLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LabOrderLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LabOrderLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LabOrderLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LabOrderLine mutation op: %q", m.Op())
+	}
+}
+
+// LabTestCatalogDefaultClient is a client for the LabTestCatalogDefault schema.
+type LabTestCatalogDefaultClient struct {
+	config
+}
+
+// NewLabTestCatalogDefaultClient returns a client for the LabTestCatalogDefault from the given config.
+func NewLabTestCatalogDefaultClient(c config) *LabTestCatalogDefaultClient {
+	return &LabTestCatalogDefaultClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `labtestcatalogdefault.Hooks(f(g(h())))`.
+func (c *LabTestCatalogDefaultClient) Use(hooks ...Hook) {
+	c.hooks.LabTestCatalogDefault = append(c.hooks.LabTestCatalogDefault, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `labtestcatalogdefault.Intercept(f(g(h())))`.
+func (c *LabTestCatalogDefaultClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LabTestCatalogDefault = append(c.inters.LabTestCatalogDefault, interceptors...)
+}
+
+// Create returns a builder for creating a LabTestCatalogDefault entity.
+func (c *LabTestCatalogDefaultClient) Create() *LabTestCatalogDefaultCreate {
+	mutation := newLabTestCatalogDefaultMutation(c.config, OpCreate)
+	return &LabTestCatalogDefaultCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LabTestCatalogDefault entities.
+func (c *LabTestCatalogDefaultClient) CreateBulk(builders ...*LabTestCatalogDefaultCreate) *LabTestCatalogDefaultCreateBulk {
+	return &LabTestCatalogDefaultCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LabTestCatalogDefaultClient) MapCreateBulk(slice any, setFunc func(*LabTestCatalogDefaultCreate, int)) *LabTestCatalogDefaultCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LabTestCatalogDefaultCreateBulk{err: fmt.Errorf("calling to LabTestCatalogDefaultClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LabTestCatalogDefaultCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LabTestCatalogDefaultCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LabTestCatalogDefault.
+func (c *LabTestCatalogDefaultClient) Update() *LabTestCatalogDefaultUpdate {
+	mutation := newLabTestCatalogDefaultMutation(c.config, OpUpdate)
+	return &LabTestCatalogDefaultUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LabTestCatalogDefaultClient) UpdateOne(_m *LabTestCatalogDefault) *LabTestCatalogDefaultUpdateOne {
+	mutation := newLabTestCatalogDefaultMutation(c.config, OpUpdateOne, withLabTestCatalogDefault(_m))
+	return &LabTestCatalogDefaultUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LabTestCatalogDefaultClient) UpdateOneID(id uuid.UUID) *LabTestCatalogDefaultUpdateOne {
+	mutation := newLabTestCatalogDefaultMutation(c.config, OpUpdateOne, withLabTestCatalogDefaultID(id))
+	return &LabTestCatalogDefaultUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LabTestCatalogDefault.
+func (c *LabTestCatalogDefaultClient) Delete() *LabTestCatalogDefaultDelete {
+	mutation := newLabTestCatalogDefaultMutation(c.config, OpDelete)
+	return &LabTestCatalogDefaultDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LabTestCatalogDefaultClient) DeleteOne(_m *LabTestCatalogDefault) *LabTestCatalogDefaultDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LabTestCatalogDefaultClient) DeleteOneID(id uuid.UUID) *LabTestCatalogDefaultDeleteOne {
+	builder := c.Delete().Where(labtestcatalogdefault.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LabTestCatalogDefaultDeleteOne{builder}
+}
+
+// Query returns a query builder for LabTestCatalogDefault.
+func (c *LabTestCatalogDefaultClient) Query() *LabTestCatalogDefaultQuery {
+	return &LabTestCatalogDefaultQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLabTestCatalogDefault},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LabTestCatalogDefault entity by its id.
+func (c *LabTestCatalogDefaultClient) Get(ctx context.Context, id uuid.UUID) (*LabTestCatalogDefault, error) {
+	return c.Query().Where(labtestcatalogdefault.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LabTestCatalogDefaultClient) GetX(ctx context.Context, id uuid.UUID) *LabTestCatalogDefault {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *LabTestCatalogDefaultClient) Hooks() []Hook {
+	return c.hooks.LabTestCatalogDefault
+}
+
+// Interceptors returns the client interceptors.
+func (c *LabTestCatalogDefaultClient) Interceptors() []Interceptor {
+	return c.inters.LabTestCatalogDefault
+}
+
+func (c *LabTestCatalogDefaultClient) mutate(ctx context.Context, m *LabTestCatalogDefaultMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LabTestCatalogDefaultCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LabTestCatalogDefaultUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LabTestCatalogDefaultUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LabTestCatalogDefaultDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LabTestCatalogDefault mutation op: %q", m.Op())
+	}
+}
+
+// LabTestCatalogEntryClient is a client for the LabTestCatalogEntry schema.
+type LabTestCatalogEntryClient struct {
+	config
+}
+
+// NewLabTestCatalogEntryClient returns a client for the LabTestCatalogEntry from the given config.
+func NewLabTestCatalogEntryClient(c config) *LabTestCatalogEntryClient {
+	return &LabTestCatalogEntryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `labtestcatalogentry.Hooks(f(g(h())))`.
+func (c *LabTestCatalogEntryClient) Use(hooks ...Hook) {
+	c.hooks.LabTestCatalogEntry = append(c.hooks.LabTestCatalogEntry, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `labtestcatalogentry.Intercept(f(g(h())))`.
+func (c *LabTestCatalogEntryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LabTestCatalogEntry = append(c.inters.LabTestCatalogEntry, interceptors...)
+}
+
+// Create returns a builder for creating a LabTestCatalogEntry entity.
+func (c *LabTestCatalogEntryClient) Create() *LabTestCatalogEntryCreate {
+	mutation := newLabTestCatalogEntryMutation(c.config, OpCreate)
+	return &LabTestCatalogEntryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LabTestCatalogEntry entities.
+func (c *LabTestCatalogEntryClient) CreateBulk(builders ...*LabTestCatalogEntryCreate) *LabTestCatalogEntryCreateBulk {
+	return &LabTestCatalogEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LabTestCatalogEntryClient) MapCreateBulk(slice any, setFunc func(*LabTestCatalogEntryCreate, int)) *LabTestCatalogEntryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LabTestCatalogEntryCreateBulk{err: fmt.Errorf("calling to LabTestCatalogEntryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LabTestCatalogEntryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LabTestCatalogEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LabTestCatalogEntry.
+func (c *LabTestCatalogEntryClient) Update() *LabTestCatalogEntryUpdate {
+	mutation := newLabTestCatalogEntryMutation(c.config, OpUpdate)
+	return &LabTestCatalogEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LabTestCatalogEntryClient) UpdateOne(_m *LabTestCatalogEntry) *LabTestCatalogEntryUpdateOne {
+	mutation := newLabTestCatalogEntryMutation(c.config, OpUpdateOne, withLabTestCatalogEntry(_m))
+	return &LabTestCatalogEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LabTestCatalogEntryClient) UpdateOneID(id uuid.UUID) *LabTestCatalogEntryUpdateOne {
+	mutation := newLabTestCatalogEntryMutation(c.config, OpUpdateOne, withLabTestCatalogEntryID(id))
+	return &LabTestCatalogEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LabTestCatalogEntry.
+func (c *LabTestCatalogEntryClient) Delete() *LabTestCatalogEntryDelete {
+	mutation := newLabTestCatalogEntryMutation(c.config, OpDelete)
+	return &LabTestCatalogEntryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LabTestCatalogEntryClient) DeleteOne(_m *LabTestCatalogEntry) *LabTestCatalogEntryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LabTestCatalogEntryClient) DeleteOneID(id uuid.UUID) *LabTestCatalogEntryDeleteOne {
+	builder := c.Delete().Where(labtestcatalogentry.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LabTestCatalogEntryDeleteOne{builder}
+}
+
+// Query returns a query builder for LabTestCatalogEntry.
+func (c *LabTestCatalogEntryClient) Query() *LabTestCatalogEntryQuery {
+	return &LabTestCatalogEntryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLabTestCatalogEntry},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LabTestCatalogEntry entity by its id.
+func (c *LabTestCatalogEntryClient) Get(ctx context.Context, id uuid.UUID) (*LabTestCatalogEntry, error) {
+	return c.Query().Where(labtestcatalogentry.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LabTestCatalogEntryClient) GetX(ctx context.Context, id uuid.UUID) *LabTestCatalogEntry {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *LabTestCatalogEntryClient) Hooks() []Hook {
+	return c.hooks.LabTestCatalogEntry
+}
+
+// Interceptors returns the client interceptors.
+func (c *LabTestCatalogEntryClient) Interceptors() []Interceptor {
+	return c.inters.LabTestCatalogEntry
+}
+
+func (c *LabTestCatalogEntryClient) mutate(ctx context.Context, m *LabTestCatalogEntryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LabTestCatalogEntryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LabTestCatalogEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LabTestCatalogEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LabTestCatalogEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LabTestCatalogEntry mutation op: %q", m.Op())
+	}
+}
+
 // OutboxEventClient is a client for the OutboxEvent schema.
 type OutboxEventClient struct {
 	config
@@ -2592,6 +3206,22 @@ func (c *PatientVisitClient) QueryExaminationRecords(_m *PatientVisit) *Examinat
 	return query
 }
 
+// QueryLabOrders queries the lab_orders edge of a PatientVisit.
+func (c *PatientVisitClient) QueryLabOrders(_m *PatientVisit) *LabOrderQuery {
+	query := (&LabOrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(patientvisit.Table, patientvisit.FieldID, id),
+			sqlgraph.To(laborder.Table, laborder.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, patientvisit.LabOrdersTable, patientvisit.LabOrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PatientVisitClient) Hooks() []Hook {
 	return c.hooks.PatientVisit
@@ -3415,14 +4045,16 @@ type (
 	hooks struct {
 		BillableCharge, BillableItemCatalog, DiagnosisCatalogDefault,
 		DiagnosisCatalogEntry, DocumentSequence, ExaminationRecord, HospitalPermission,
-		HospitalRole, HospitalUser, OutboxEvent, Outlet, Patient, PatientAccount,
+		HospitalRole, HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
+		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
 		PatientNextOfKin, PatientVisit, Referral, RolePermission, Tenant, TriageRecord,
 		UserRoleAssignment []ent.Hook
 	}
 	inters struct {
 		BillableCharge, BillableItemCatalog, DiagnosisCatalogDefault,
 		DiagnosisCatalogEntry, DocumentSequence, ExaminationRecord, HospitalPermission,
-		HospitalRole, HospitalUser, OutboxEvent, Outlet, Patient, PatientAccount,
+		HospitalRole, HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
+		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
 		PatientNextOfKin, PatientVisit, Referral, RolePermission, Tenant, TriageRecord,
 		UserRoleAssignment []ent.Interceptor
 	}

@@ -43,6 +43,8 @@ type Deps struct {
 	Consultation *handlers.ConsultationHandler
 	// Sprint 5 core: billing ledger (PatientAccount/BillableCharge collect/queue/settle).
 	Billing *handlers.BillingHandler
+	// Sprint 3: lab ordering, worklist, result capture, test catalog.
+	Lab *handlers.LabHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -180,6 +182,23 @@ func New(d Deps) http.Handler {
 					Post("/billing/accounts/{accountID}/settle", d.Billing.SettleAccount)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingOverrideSettlement)).
 					Post("/billing/accounts/{accountID}/override-settlement", d.Billing.OverrideSettlement)
+			}
+
+			// Sprint 3 — Laboratory.
+			if d.Lab != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabAdd)).
+					Post("/lab-orders", d.Lab.CreateOrder)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+					Get("/lab-orders", d.Lab.ListWorklist)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+					Get("/lab-orders/{orderID}", d.Lab.GetOrder)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc,
+					rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/lab-orders/{orderID}/activate", d.Lab.ActivateIfPaid)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabChange)).
+					Post("/lab-orders/lines/{lineID}/result", d.Lab.EnterResult)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+					Get("/lab-test-catalog", d.Lab.ListCatalog)
 			}
 		})
 	})

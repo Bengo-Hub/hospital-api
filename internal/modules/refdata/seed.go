@@ -12,6 +12,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 )
 
 type diagnosisSeed struct {
@@ -71,5 +72,56 @@ func SeedGlobalDiagnosisCatalog(ctx context.Context, client *ent.Client, log *za
 		created++
 	}
 	log.Info("global diagnosis catalog seeded", zap.Int("created", created), zap.Int("total", len(starterDiagnoses)))
+	return nil
+}
+
+type labTestSeed struct {
+	code, name, specimenType string
+	turnaroundHours          int
+	price                    float64
+}
+
+// starterLabTests is a SMALL starter set of common outpatient lab panels for a Kenyan primary
+// care setting. Not a full national lab catalogue — a facility is expected to extend this via
+// LabTestCatalogEntry (tenant-custom). Prices are indicative KES amounts, tenant-overridable.
+var starterLabTests = []labTestSeed{
+	{"FBC", "Full Blood Count", "Blood", 4, 500},
+	{"MPS", "Malaria Parasite Smear", "Blood", 1, 200},
+	{"URINALYSIS", "Urinalysis", "Urine", 1, 250},
+	{"RBS", "Random Blood Sugar", "Blood", 1, 150},
+	{"WIDAL", "Widal Test (Typhoid)", "Blood", 2, 300},
+	{"HIV_RAPID", "HIV Rapid Test", "Blood", 1, 300},
+	{"PREGNANCY_TEST", "Urine Pregnancy Test", "Urine", 1, 200},
+	{"STOOL_ANALYSIS", "Stool Analysis", "Stool", 2, 250},
+	{"LFT", "Liver Function Test", "Blood", 6, 1200},
+	{"RFT", "Renal Function Test", "Blood", 6, 1200},
+	{"LIPID_PROFILE", "Lipid Profile", "Blood", 6, 1500},
+	{"HBA1C", "HbA1c (Diabetes Monitoring)", "Blood", 24, 1800},
+}
+
+// SeedGlobalLabTestCatalog idempotently upserts the starter lab-test catalogue. Safe to run on
+// every deploy — matches on the unique `code` index and skips rows that already exist.
+func SeedGlobalLabTestCatalog(ctx context.Context, client *ent.Client, log *zap.Logger) error {
+	log = log.Named("refdata")
+	created := 0
+	for _, t := range starterLabTests {
+		exists, err := client.LabTestCatalogDefault.Query().
+			Where(labtestcatalogdefault.Code(t.code)).
+			Exist(ctx)
+		if err != nil {
+			return fmt.Errorf("refdata: check lab test %s: %w", t.code, err)
+		}
+		if exists {
+			continue
+		}
+		if _, err := client.LabTestCatalogDefault.Create().
+			SetCode(t.code).SetName(t.name).SetSpecimenType(t.specimenType).
+			SetTurnaroundHours(t.turnaroundHours).SetPrice(t.price).
+			Save(ctx); err != nil {
+			return fmt.Errorf("refdata: create lab test %s: %w", t.code, err)
+		}
+		created++
+	}
+	log.Info("global lab test catalog seeded", zap.Int("created", created), zap.Int("total", len(starterLabTests)))
 	return nil
 }

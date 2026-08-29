@@ -27,6 +27,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
+	"github.com/bengobox/hospital-service/internal/modules/lab"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/refdata"
@@ -138,6 +139,9 @@ func New(ctx context.Context) (*App, error) {
 	if seedErr := refdata.SeedGlobalDiagnosisCatalog(ctx, ormClient, log); seedErr != nil {
 		log.Warn("refdata: seed global diagnosis catalog failed", zap.Error(seedErr))
 	}
+	if seedErr := refdata.SeedGlobalLabTestCatalog(ctx, ormClient, log); seedErr != nil {
+		log.Warn("refdata: seed global lab test catalog failed", zap.Error(seedErr))
+	}
 
 	identitySvc := identity.NewService(ormClient, tenantSyncer)
 	identitySvc.SetRBACService(rbacService)
@@ -156,6 +160,10 @@ func New(ctx context.Context) (*App, error) {
 	treasurySvc := treasuryclient.NewClient(cfg.Services.TreasuryURL, cfg.Auth.APIKey, log)
 	billingSvc := billing.NewService(ormClient, treasurySvc, log)
 	billingHandler := handlers.NewBillingHandler(billingSvc, rbacService)
+
+	// ── Sprint 3: laboratory ───────────────────────────────────────────────
+	labSvc := lab.NewService(ormClient, billingSvc, log)
+	labHandler := handlers.NewLabHandler(labSvc)
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
@@ -189,6 +197,7 @@ func New(ctx context.Context) (*App, error) {
 		Patients:       patientsHandler,
 		Consultation:   consultationHandler,
 		Billing:        billingHandler,
+		Lab:            labHandler,
 	}
 	chiRouter := router.New(deps)
 
