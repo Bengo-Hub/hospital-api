@@ -211,3 +211,22 @@ Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses t
   `.claude/plans/pharmacy-to-hospital-service-migration-2026-08-29.md`. Not yet done: insurance
   eligibility/claim wiring into an actual checkout flow, `BillableItemCatalog` seed data, hospital-ui,
   and any live E2E run against a running server.
+- **2026-08-29 (Sprint 5 remainder)** — the three items the previous entry flagged as outstanding
+  are now done, except hospital-ui and a live E2E run. Insurance: `billing.Service` gained
+  `CheckEligibility`/`SubmitInsuranceClaim`/`PollInsuranceClaim` wrapping the Phase-0 treasury
+  client, called from a lab-order-scoped and a prescription-scoped insurance-claim action (the
+  actual clinical wiring points — a `requires_prepayment` lab order or a dispensed drug can now be
+  settled by an accepted claim instead of cash) plus the generic visit-level proxy routes the
+  sprint doc originally specified. `BillableCharge.status` gained the `exempted` value flagged in
+  the KenyaEMR-audit changelog entry above; `lab.ActivateIfPaid` now treats `paid` and `exempted`
+  as equally "settled." No Atlas migration file was generated for the enum addition — this repo's
+  ent-to-Postgres mapping stores every `field.Enum` as a plain `character varying` with no DB-level
+  CHECK constraint (confirmed against every existing migration file), so there is genuinely no SQL
+  diff to migrate; this was verified by actually running the ent versioned-migration diff against a
+  scratch local Postgres, not assumed from reading the schema. `BillableItemCatalog`: added
+  `refdata.SeedFacilityBillableItems` (a real per-facility-tier starter price list, matching the
+  schema doc's own forward-reference to this exact function name) called idempotently from
+  `tenant.Syncer.SyncTenant`, resolving `facility_type` via the existing
+  `subscriptions.Client.GetEntitlements` lookup; plus a tenant admin CRUD surface gated on the new
+  `hospital.billing.manage_catalog` permission. Full detail:
+  `docs/sprints/sprint-5-billing-insurance.md`.

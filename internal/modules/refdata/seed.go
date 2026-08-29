@@ -7,10 +7,13 @@ package refdata
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 )
@@ -123,5 +126,136 @@ func SeedGlobalLabTestCatalog(ctx context.Context, client *ent.Client, log *zap.
 		created++
 	}
 	log.Info("global lab test catalog seeded", zap.Int("created", created), zap.Int("total", len(starterLabTests)))
+	return nil
+}
+
+// ── BillableItemCatalog (tenant-scoped, per docs/architecture.md "Distributed Billing & Patient ──
+// Accounts") ─────────────────────────────────────────────────────────────────────────────────
+//
+// Unlike the two seeds above, BillableItemCatalog is NOT global reference data — it's a real
+// per-tenant pricing/policy decision (see internal/ent/schema/billable_item_catalog.go's own doc
+// comment). This is only a STARTER set so a newly provisioned tenant's billing ledger isn't empty
+// at go-live; every row is tenant-editable afterward via the admin CRUD in
+// internal/http/handlers/billing.go.
+
+func moneyKES(v float64) *float64 { return &v }
+
+type billableItemSeed struct {
+	department         billableitemcatalog.Department
+	code               string
+	name               string
+	price              *float64 // nil = priced elsewhere (drugs via inventory-api, lab tests via LabTest.price)
+	appliesTo          billableitemcatalog.AppliesTo
+	requiresPrepayment bool
+	collectionMode     billableitemcatalog.CollectionMode
+}
+
+// facilityBillableItemDefaults mirrors docs/architecture.md's facility-tier defaults table:
+// Chemist -> Billing is just Walk-in Sale (no PatientAccount ledger complexity, but still gets a
+// pharmacy policy row so the department isn't undefined); Clinic/health-centre -> registration +
+// consultation default billing_queue, pharmacy defaults direct, no in-house lab (referred out);
+// Facility/Hospital -> every department direct-capable (either, so Billing desk stays a fallback
+// too), Billing desk is the explicit inpatient-account owner (billing_queue), Hospital tier alone
+// adds Theatre/OT per the Supported Use Cases table. Prices are indicative KES amounts for a
+// Kenyan facility, loosely scaled by tier — sensible starting points, not a real pricing study.
+var facilityBillableItemDefaults = map[string][]billableItemSeed{
+	"chemist": {
+		{billableitemcatalog.DepartmentPharmacy, "PHARMACY_DISPENSE", "Pharmacy Dispensing", nil,
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeDirect},
+	},
+	"clinic": {
+		{billableitemcatalog.DepartmentRecords, "REGISTRATION_FEE", "Registration Fee (First Visit)", moneyKES(100),
+			billableitemcatalog.AppliesToFirstVisit, false, billableitemcatalog.CollectionModeBillingQueue},
+		{billableitemcatalog.DepartmentRecords, "RETURN_VISIT_FEE", "Return Visit Fee", moneyKES(50),
+			billableitemcatalog.AppliesToReturnVisit, false, billableitemcatalog.CollectionModeBillingQueue},
+		{billableitemcatalog.DepartmentConsultation, "CONSULTATION_FEE", "Consultation Fee", moneyKES(300),
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeBillingQueue},
+		{billableitemcatalog.DepartmentPharmacy, "PHARMACY_DISPENSE", "Pharmacy Dispensing", nil,
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeDirect},
+	},
+	"facility": {
+		{billableitemcatalog.DepartmentRecords, "REGISTRATION_FEE", "Registration Fee (First Visit)", moneyKES(150),
+			billableitemcatalog.AppliesToFirstVisit, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentRecords, "RETURN_VISIT_FEE", "Return Visit Fee", moneyKES(80),
+			billableitemcatalog.AppliesToReturnVisit, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentConsultation, "CONSULTATION_FEE", "Consultation Fee", moneyKES(500),
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentLab, "LAB_TEST", "Laboratory Test (priced per test)", nil,
+			billableitemcatalog.AppliesToAll, true, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentPharmacy, "PHARMACY_DISPENSE", "Pharmacy Dispensing", nil,
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentInpatient, "WARD_DAY_RATE", "Inpatient Ward — Day Rate", moneyKES(1500),
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeBillingQueue},
+	},
+	"hospital": {
+		{billableitemcatalog.DepartmentRecords, "REGISTRATION_FEE", "Registration Fee (First Visit)", moneyKES(200),
+			billableitemcatalog.AppliesToFirstVisit, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentRecords, "RETURN_VISIT_FEE", "Return Visit Fee", moneyKES(100),
+			billableitemcatalog.AppliesToReturnVisit, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentConsultation, "CONSULTATION_FEE", "Consultation Fee", moneyKES(800),
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentLab, "LAB_TEST", "Laboratory Test (priced per test)", nil,
+			billableitemcatalog.AppliesToAll, true, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentPharmacy, "PHARMACY_DISPENSE", "Pharmacy Dispensing", nil,
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeEither},
+		{billableitemcatalog.DepartmentInpatient, "WARD_DAY_RATE", "Inpatient Ward — Day Rate", moneyKES(3000),
+			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeBillingQueue},
+		{billableitemcatalog.DepartmentTheatre, "THEATRE_FEE", "Theatre/Operating Room Fee (per procedure)", nil,
+			billableitemcatalog.AppliesToAll, true, billableitemcatalog.CollectionModeBillingQueue},
+	},
+}
+
+// SeedFacilityBillableItems idempotently seeds a tenant's starter BillableItemCatalog row set,
+// keyed off its resolved facility_type (see internal/platform/subscriptions.Entitlements.
+// FacilityType — "chemist"|"clinic"|"facility"|"hospital"). Unlike the global seeds above this is
+// PER TENANT (BillableItemCatalog has a tenant_id + Unique(tenant_id, code) index, see
+// internal/ent/schema/billable_item_catalog.go), so idempotency is a single up-front count check
+// rather than a per-row existence check — once a tenant has ANY catalog rows (whether from this
+// seed or the tenant's own admin edits via the CRUD in handlers/billing.go), this is a no-op and
+// never overwrites tenant customization. An empty/unresolved facility_type falls back to the
+// "clinic" tier defaults — the safest minimal starting point when the subscriptions-api lookup
+// that resolves FacilityType is unavailable rather than seeding nothing at all.
+func SeedFacilityBillableItems(ctx context.Context, client *ent.Client, tenantID uuid.UUID, facilityType string, log *zap.Logger) error {
+	log = log.Named("refdata")
+	count, err := client.BillableItemCatalog.Query().
+		Where(billableitemcatalog.TenantID(tenantID)).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("refdata: count billable items for tenant %s: %w", tenantID, err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	key := strings.ToLower(strings.TrimSpace(facilityType))
+	items, ok := facilityBillableItemDefaults[key]
+	if !ok {
+		key = "clinic"
+		items = facilityBillableItemDefaults[key]
+	}
+
+	created := 0
+	for _, it := range items {
+		create := client.BillableItemCatalog.Create().
+			SetTenantID(tenantID).
+			SetDepartment(it.department).
+			SetCode(it.code).
+			SetName(it.name).
+			SetAppliesTo(it.appliesTo).
+			SetRequiresPrepayment(it.requiresPrepayment).
+			SetCollectionMode(it.collectionMode).
+			SetIsActive(true)
+		if it.price != nil {
+			create = create.SetPrice(*it.price)
+		}
+		if _, err := create.Save(ctx); err != nil {
+			return fmt.Errorf("refdata: seed billable item %s for tenant %s: %w", it.code, tenantID, err)
+		}
+		created++
+	}
+	log.Info("tenant billable item catalog seeded",
+		zap.String("tenant_id", tenantID.String()),
+		zap.String("facility_type_resolved", key),
+		zap.Int("created", created))
 	return nil
 }

@@ -283,6 +283,63 @@ func (h *PharmacyHandler) Dispense(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, rx)
 }
 
+type pharmacyInsuranceClaimRequest struct {
+	ProviderID string   `json:"provider_id"`
+	CoverageID string   `json:"coverage_id,omitempty"`
+	OutletID   string   `json:"outlet_id,omitempty"`
+	LineIDs    []string `json:"line_ids,omitempty"`
+}
+
+// SubmitInsuranceClaim handles POST /{tenant}/hospital/prescriptions/{prescriptionID}/insurance-claim
+// — the insurance-settlement alternative to a cash billing/charges/{id}/collect for this
+// prescription's dispensed lines.
+func (h *PharmacyHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	id, err := uuid.Parse(chi.URLParam(r, "prescriptionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid prescription ID")
+		return
+	}
+	var in pharmacyInsuranceClaimRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	providerID, err := uuid.Parse(in.ProviderID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid provider_id")
+		return
+	}
+	req := pharmacy.SubmitInsuranceClaimRequest{ProviderID: providerID}
+	if in.CoverageID != "" {
+		if cid, perr := uuid.Parse(in.CoverageID); perr == nil {
+			req.CoverageID = &cid
+		}
+	}
+	if in.OutletID != "" {
+		if oid, perr := uuid.Parse(in.OutletID); perr == nil {
+			req.OutletID = &oid
+		}
+	} else if outletID := currentOutletID(r); outletID != uuid.Nil {
+		req.OutletID = &outletID
+	}
+	for _, ls := range in.LineIDs {
+		if lid, perr := uuid.Parse(ls); perr == nil {
+			req.LineIDs = append(req.LineIDs, lid)
+		}
+	}
+	rx, claim, err := h.svc.SubmitInsuranceClaim(r.Context(), tenantID, id, req)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"prescription": rx, "claim": claim})
+}
+
 // ListControlledSubstanceLogs handles GET /{tenant}/hospital/pharmacy/controlled-substances
 func (h *PharmacyHandler) ListControlledSubstanceLogs(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

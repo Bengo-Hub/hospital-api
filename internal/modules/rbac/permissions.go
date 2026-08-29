@@ -39,6 +39,11 @@ const (
 	PermBillingCollectOwn         = "hospital.billing.collect_own"
 	PermBillingCollectAny         = "hospital.billing.collect_any"
 	PermBillingOverrideSettlement = "hospital.billing.override_settlement"
+	// manage_catalog = create/edit/deactivate BillableItemCatalog rows (the tenant-configured
+	// price list a facility is seeded with at provisioning time — see
+	// refdata.SeedFacilityBillableItems). Separate from PermBillingManage (general billing
+	// records) since catalog/pricing configuration is a narrower, more sensitive admin action.
+	PermBillingManageCatalog = "hospital.billing.manage_catalog"
 
 	// inpatient (admissions, wards, discharge)
 	PermInpatientView   = "hospital.inpatient.view"

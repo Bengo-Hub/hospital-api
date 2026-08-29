@@ -14,8 +14,12 @@ import (
 
 	"github.com/google/uuid"
 
+	"go.uber.org/zap"
+
 	"github.com/bengobox/hospital-service/internal/ent"
 	enttenant "github.com/bengobox/hospital-service/internal/ent/tenant"
+	"github.com/bengobox/hospital-service/internal/modules/refdata"
+	"github.com/bengobox/hospital-service/internal/platform/subscriptions"
 )
 
 // s2sHTTPClient is the shared HTTP client for service-to-service calls in this package.
@@ -43,6 +47,8 @@ type Syncer struct {
 	client  *ent.Client
 	authURL string
 	db      *sql.DB
+	subs    *subscriptions.Client
+	log     *zap.Logger
 
 	driftMu       sync.Mutex
 	lastDriftScan map[string]time.Time
@@ -59,6 +65,22 @@ func NewSyncer(client *ent.Client, authURL string) *Syncer {
 // because re-keying spans every tenant-scoped table and cannot be expressed through Ent.
 func (s *Syncer) WithDB(db *sql.DB) *Syncer {
 	s.db = db
+	return s
+}
+
+// WithSubscriptions attaches the subscriptions-api client used to resolve a newly-seen tenant's
+// facility_type (see subscriptions.Entitlements.FacilityType) for SeedFacilityBillableItems.
+// Without it (nil-safe, same pattern as WithDB) a new tenant still gets the safe "clinic"-tier
+// default catalog — see refdata.SeedFacilityBillableItems's own fallback.
+func (s *Syncer) WithSubscriptions(c *subscriptions.Client) *Syncer {
+	s.subs = c
+	return s
+}
+
+// WithLogger attaches a logger for best-effort background work (currently just the billable-item
+// catalog seed) that must never fail tenant sync itself.
+func (s *Syncer) WithLogger(log *zap.Logger) *Syncer {
+	s.log = log
 	return s
 }
 
@@ -83,10 +105,47 @@ func (s *Syncer) resolvedAuthAPIURL() string {
 	return authAPIURL
 }
 
-// SyncTenant fetches the tenant record from auth-api and persists only the
-// minimal reference fields locally (id, name, slug, status, use_case).
-// Branding, contact info, and subscription data remain in auth-api only.
+// SyncTenant fetches the tenant record from auth-api and persists only the minimal reference
+// fields locally (id, name, slug, status, use_case), then best-effort ensures this tenant's
+// BillableItemCatalog starter set exists (see ensureBillableItemsSeeded) — "a tenant is first
+// seen/synced" is exactly what this method resolves, on every path that can produce a valid
+// tenant UUID (fast-cached-local, drift-healed, newly-created). Branding, contact info, and
+// subscription data remain in auth-api only.
 func (s *Syncer) SyncTenant(ctx context.Context, slug string) (uuid.UUID, error) {
+	tenantID, err := s.syncTenantID(ctx, slug)
+	if err == nil && tenantID != uuid.Nil {
+		s.ensureBillableItemsSeeded(ctx, tenantID)
+	}
+	return tenantID, err
+}
+
+// ensureBillableItemsSeeded resolves this tenant's facility_type (the same subscriptions-api
+// lookup the rest of the platform uses — see subscriptions.Entitlements.FacilityType) and calls
+// refdata.SeedFacilityBillableItems, which itself no-ops once the tenant has any catalog rows.
+// Best-effort and non-fatal: a subscriptions-api outage or seed failure must never break tenant
+// sync (JIT user provisioning depends on this returning cleanly), so failures are only logged.
+func (s *Syncer) ensureBillableItemsSeeded(ctx context.Context, tenantID uuid.UUID) {
+	facilityType := ""
+	if s.subs != nil {
+		if ent := s.subs.GetEntitlements(ctx, tenantID.String()); ent != nil {
+			facilityType = ent.FacilityType
+		}
+	}
+	if err := refdata.SeedFacilityBillableItems(ctx, s.client, tenantID, facilityType, s.effectiveLogger()); err != nil {
+		log.Printf("  [tenant-sync] billable item catalog seed failed for tenant %s: %v", tenantID, err)
+	}
+}
+
+func (s *Syncer) effectiveLogger() *zap.Logger {
+	if s.log != nil {
+		return s.log
+	}
+	return zap.NewNop()
+}
+
+// syncTenantID is SyncTenant's original body (see that method's doc comment for the seeding step
+// wrapped around this).
+func (s *Syncer) syncTenantID(ctx context.Context, slug string) (uuid.UUID, error) {
 	existingFast, fastErr := s.client.Tenant.Query().Where(enttenant.SlugEQ(slug)).Only(ctx)
 	hasLocal := fastErr == nil && existingFast != nil
 

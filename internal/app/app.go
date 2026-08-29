@@ -38,6 +38,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
 	"github.com/bengobox/hospital-service/internal/platform/events"
+	"github.com/bengobox/hospital-service/internal/platform/subscriptions"
 	"github.com/bengobox/hospital-service/internal/shared/logger"
 
 	eventslib "github.com/Bengo-Hub/shared-events"
@@ -131,7 +132,17 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	// ── Tenant/outlet sync + RBAC + JIT identity ──────────────────────────────
-	tenantSyncer := tenant.NewSyncer(ormClient, cfg.Auth.ServiceURL).WithDB(sqlDB)
+	// Same S2S subscriptions-api client shape as the rest of the platform (see
+	// internal/platform/subscriptions.Client) — used here only to resolve a newly-seen tenant's
+	// facility_type for refdata.SeedFacilityBillableItems (see tenant.Syncer.SyncTenant).
+	subscriptionsClient := subscriptions.NewClient(subscriptions.Config{
+		ServiceURL: cfg.Services.SubscriptionsURL,
+		APIKey:     cfg.Auth.APIKey,
+	})
+	tenantSyncer := tenant.NewSyncer(ormClient, cfg.Auth.ServiceURL).
+		WithDB(sqlDB).
+		WithSubscriptions(subscriptionsClient).
+		WithLogger(log)
 
 	rbacRepo := rbac.NewEntRepository(ormClient)
 	rbacService := rbac.NewService(rbacRepo, log)

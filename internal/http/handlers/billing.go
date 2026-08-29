@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
@@ -181,6 +182,259 @@ func (h *BillingHandler) SettleAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, acct)
+}
+
+// ── BillableItemCatalog admin CRUD (Gap 3) ──────────────────────────────────────────────────
+
+// ListCatalog handles GET /{tenant}/hospital/billing/catalog?include_inactive=1
+func (h *BillingHandler) ListCatalog(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	includeInactive := r.URL.Query().Get("include_inactive") == "1" || r.URL.Query().Get("include_inactive") == "true"
+	list, err := h.svc.ListBillableItemCatalog(r.Context(), tenantID, includeInactive)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list billable item catalog")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+type catalogItemRequest struct {
+	Department         string   `json:"department"`
+	Code               string   `json:"code"`
+	Name               string   `json:"name"`
+	Price              *float64 `json:"price,omitempty"`
+	AppliesTo          string   `json:"applies_to,omitempty"`
+	RequiresPrepayment bool     `json:"requires_prepayment,omitempty"`
+	CollectionMode     string   `json:"collection_mode,omitempty"`
+}
+
+// CreateCatalogItem handles POST /{tenant}/hospital/billing/catalog
+func (h *BillingHandler) CreateCatalogItem(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	var in catalogItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	item, err := h.svc.CreateBillableItem(r.Context(), tenantID, billing.CatalogItemInput{
+		Department: in.Department, Code: in.Code, Name: in.Name, Price: in.Price,
+		AppliesTo: in.AppliesTo, RequiresPrepayment: in.RequiresPrepayment, CollectionMode: in.CollectionMode,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, item)
+}
+
+type catalogItemUpdateRequest struct {
+	Name               *string  `json:"name,omitempty"`
+	Price              *float64 `json:"price,omitempty"`
+	ClearPrice         bool     `json:"clear_price,omitempty"`
+	AppliesTo          *string  `json:"applies_to,omitempty"`
+	RequiresPrepayment *bool    `json:"requires_prepayment,omitempty"`
+	CollectionMode     *string  `json:"collection_mode,omitempty"`
+	IsActive           *bool    `json:"is_active,omitempty"`
+}
+
+// UpdateCatalogItem handles PUT /{tenant}/hospital/billing/catalog/{itemID}
+func (h *BillingHandler) UpdateCatalogItem(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	itemID, err := uuid.Parse(chi.URLParam(r, "itemID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid item ID")
+		return
+	}
+	var in catalogItemUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	item, err := h.svc.UpdateBillableItem(r.Context(), tenantID, itemID, billing.CatalogItemUpdate{
+		Name: in.Name, Price: in.Price, ClearPrice: in.ClearPrice, AppliesTo: in.AppliesTo,
+		RequiresPrepayment: in.RequiresPrepayment, CollectionMode: in.CollectionMode, IsActive: in.IsActive,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, item)
+}
+
+// DeactivateCatalogItem handles POST /{tenant}/hospital/billing/catalog/{itemID}/deactivate
+func (h *BillingHandler) DeactivateCatalogItem(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	itemID, err := uuid.Parse(chi.URLParam(r, "itemID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid item ID")
+		return
+	}
+	item, err := h.svc.DeactivateBillableItem(r.Context(), tenantID, itemID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, item)
+}
+
+// ── Insurance (Sprint 5 remainder) ──────────────────────────────────────────────────────────
+
+type checkEligibilityRequest struct {
+	ProviderID string            `json:"provider_id"`
+	Fields     map[string]string `json:"fields,omitempty"`
+}
+
+// CheckEligibility handles POST /{tenant}/hospital/visits/{visitID}/insurance/check-eligibility
+func (h *BillingHandler) CheckEligibility(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	var in checkEligibilityRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	providerID, err := uuid.Parse(in.ProviderID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid provider_id")
+		return
+	}
+	result, err := h.svc.CheckEligibility(r.Context(), tenantID, providerID, in.Fields)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": result})
+}
+
+type submitInsuranceClaimRequest struct {
+	ProviderID string   `json:"provider_id"`
+	CoverageID string   `json:"coverage_id,omitempty"`
+	OutletID   string   `json:"outlet_id,omitempty"`
+	ChargeIDs  []string `json:"charge_ids,omitempty"`
+}
+
+// SubmitInsuranceClaim handles POST /{tenant}/hospital/visits/{visitID}/insurance/submit-claim
+//
+// Aggregates every currently-pending charge on the visit's account (or, when charge_ids is
+// supplied, exactly those charges) into ONE treasury-api insurance claim — the visit-scoped
+// counterpart to lab/pharmacy's own order/prescription-scoped insurance-claim actions, for
+// settling whatever else is outstanding on the visit (e.g. a registration/consultation fee) the
+// same way.
+func (h *BillingHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	visitID, err := uuid.Parse(chi.URLParam(r, "visitID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid visit ID")
+		return
+	}
+	var in submitInsuranceClaimRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	providerID, err := uuid.Parse(in.ProviderID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid provider_id")
+		return
+	}
+	acct, charges, err := h.svc.GetAccountByVisit(r.Context(), tenantID, visitID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	req := billing.SubmitInsuranceClaimRequest{ProviderID: providerID}
+	if in.CoverageID != "" {
+		if id, perr := uuid.Parse(in.CoverageID); perr == nil {
+			req.CoverageID = &id
+		}
+	}
+	if in.OutletID != "" {
+		if id, perr := uuid.Parse(in.OutletID); perr == nil {
+			req.OutletID = &id
+		}
+	} else if outletID := currentOutletID(r); outletID != uuid.Nil {
+		req.OutletID = &outletID
+	}
+	for _, cs := range in.ChargeIDs {
+		if id, perr := uuid.Parse(cs); perr == nil {
+			req.ChargeIDs = append(req.ChargeIDs, id)
+		}
+	}
+
+	// Same per-charge source-module gate CollectCharge enforces on the cash path — without this,
+	// a collect_own-only holder (e.g. a nurse) could claim charges from ANY department on the
+	// visit via insurance, not just the ones they're allowed to collect themselves.
+	if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectAny) {
+		hasCollectOwn := outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectOwn)
+		wanted := make(map[uuid.UUID]bool, len(req.ChargeIDs))
+		for _, id := range req.ChargeIDs {
+			wanted[id] = true
+		}
+		for _, c := range charges {
+			if c.Status != billablecharge.StatusPending {
+				continue
+			}
+			if len(wanted) > 0 && !wanted[c.ID] {
+				continue
+			}
+			modulePerm := sourceModulePermission(c.SourceModule)
+			hasModulePerm := modulePerm != "" && outletmw.HasServicePermission(r, h.rbacSvc, modulePerm)
+			if !hasCollectOwn || !hasModulePerm {
+				respondError(w, http.StatusForbidden, "you do not have permission to claim one or more of these charges")
+				return
+			}
+		}
+	}
+
+	result, err := h.svc.SubmitInsuranceClaim(r.Context(), tenantID, acct.ID, req)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
+// PollInsuranceClaim handles GET /{tenant}/hospital/insurance/claims/{claimID}/status
+func (h *BillingHandler) PollInsuranceClaim(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	claimID, err := uuid.Parse(chi.URLParam(r, "claimID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid claim ID")
+		return
+	}
+	claim, err := h.svc.PollInsuranceClaim(r.Context(), tenantID, claimID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, claim)
 }
 
 type overrideSettlementRequest struct {

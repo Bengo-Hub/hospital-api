@@ -208,6 +208,39 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingOverrideSettlement)).
 					Post("/billing/accounts/{accountID}/override-settlement", d.Billing.OverrideSettlement)
+
+				// BillableItemCatalog admin CRUD (Gap 3, 2026-08-29) — so a tenant admin isn't
+				// stuck editing the seeded starter price list via direct DB access. Reads sit
+				// behind the broad billing view permission; mutations behind the narrower
+				// manage_catalog permission (pricing/policy config, not day-to-day collection).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+					Get("/billing/catalog", d.Billing.ListCatalog)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingManageCatalog)).
+					Post("/billing/catalog", d.Billing.CreateCatalogItem)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingManageCatalog)).
+					Put("/billing/catalog/{itemID}", d.Billing.UpdateCatalogItem)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingManageCatalog)).
+					Post("/billing/catalog/{itemID}/deactivate", d.Billing.DeactivateCatalogItem)
+
+				// Insurance (Sprint 5 remainder, 2026-08-29) — thin proxies to treasury-api's
+				// already-built eligibility/claims connector (see docs/sprints/sprint-5-billing-
+				// insurance.md). check-eligibility is read-only (PermBillingView); submit-claim
+				// moves a charge from pending to exempted so it carries the same collect
+				// permission as the cash path (billing/charges/{id}/collect).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+					Post("/visits/{visitID}/insurance/check-eligibility", d.Billing.CheckEligibility)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/visits/{visitID}/insurance/submit-claim", d.Billing.SubmitInsuranceClaim)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+					Get("/insurance/claims/{claimID}/status", d.Billing.PollInsuranceClaim)
 			}
 
 			// Sprint 3 — Laboratory.
@@ -231,6 +264,13 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
 					Get("/lab-test-catalog", d.Lab.ListCatalog)
+				// Insurance-path alternative to CollectCharge+activate — same permission gate as
+				// /lab-orders/{orderID}/activate since it's that same payment-gate action's
+				// insurance leg (see lab.Service.SubmitInsuranceClaim).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/lab-orders/{orderID}/insurance-claim", d.Lab.SubmitInsuranceClaim)
 			}
 
 			// Sprint 4 — Pharmacy / Dispensing (the core migration target). FeaturePharmacyDispense
@@ -263,6 +303,13 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Get("/pharmacy/controlled-substances", d.Pharmacy.ListControlledSubstanceLogs)
+				// Insurance-settlement alternative to a cash billing/charges/{id}/collect for a
+				// dispensed line — a billing action, so it carries the collect permission rather
+				// than a pharmacy one.
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/prescriptions/{prescriptionID}/insurance-claim", d.Pharmacy.SubmitInsuranceClaim)
 			}
 		})
 	})

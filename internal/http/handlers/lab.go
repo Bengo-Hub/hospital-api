@@ -113,6 +113,59 @@ func (h *LabHandler) ActivateIfPaid(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, order)
 }
 
+type labInsuranceClaimRequest struct {
+	ProviderID string `json:"provider_id"`
+	CoverageID string `json:"coverage_id,omitempty"`
+	OutletID   string `json:"outlet_id,omitempty"`
+}
+
+// SubmitInsuranceClaim handles POST /{tenant}/hospital/lab-orders/{orderID}/insurance-claim —
+// the insurance-path alternative to the cash CollectCharge+ActivateIfPaid flow: submits a claim
+// covering this order's test charges and, if treasury-api accepts it, activates the order in the
+// same call. Uses the same 402 convention as ActivateIfPaid for any failure (order not found,
+// nothing to claim, transport error) since this is that same payment-gate action's insurance leg.
+func (h *LabHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	orderID, err := uuid.Parse(chi.URLParam(r, "orderID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid order ID")
+		return
+	}
+	var in labInsuranceClaimRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	providerID, err := uuid.Parse(in.ProviderID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid provider_id")
+		return
+	}
+	req := lab.SubmitInsuranceClaimRequest{ProviderID: providerID}
+	if in.CoverageID != "" {
+		if id, perr := uuid.Parse(in.CoverageID); perr == nil {
+			req.CoverageID = &id
+		}
+	}
+	if in.OutletID != "" {
+		if id, perr := uuid.Parse(in.OutletID); perr == nil {
+			req.OutletID = &id
+		}
+	} else if outletID := currentOutletID(r); outletID != uuid.Nil {
+		req.OutletID = &outletID
+	}
+	order, claim, err := h.svc.SubmitInsuranceClaim(r.Context(), tenantID, orderID, req)
+	if err != nil {
+		respondError(w, http.StatusPaymentRequired, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"order": order, "claim": claim})
+}
+
 type enterResultRequest struct {
 	ResultValue    string `json:"result_value"`
 	Unit           string `json:"unit,omitempty"`

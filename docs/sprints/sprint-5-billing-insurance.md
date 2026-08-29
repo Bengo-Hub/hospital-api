@@ -4,13 +4,27 @@
 `PatientAccount`/`BillableCharge`/`PatientNextOfKin` schemas, `PostCharge`/`CollectCharge`/
 `SettleAccount`/`OverrideSettlement`/`ListPendingCharges` service logic, permission-gated handlers
 (new `RoleCashier` role + `collect_own`/`collect_any`/`override_settlement` permissions), all
-endpoints below except the 3 insurance proxy routes. **Not yet done**: the
-`insurance/check-eligibility`/`submit-claim`/claim-status endpoints are not wired to any real
-dispense/billing flow (client + treasury-api S2S routes exist from Phase 0, just unconnected here);
-`BillableItemCatalog` has no seed data or admin CRUD yet. Build/vet/test green; no live E2E
-walkthrough run yet (see the master migration plan's Known Gaps). A real RBAC seed idempotency bug
-was found and fixed while adding this sprint's permission codes — see the Changelog note in
-`docs/architecture.md`.
+endpoints below. ✅ **Insurance wiring + catalog seed/admin CRUD shipped 2026-08-29 (later same
+session)**: `billing.Service.CheckEligibility`/`SubmitInsuranceClaim`/`PollInsuranceClaim` wrap the
+Phase-0 treasury client and are called from three real flows — the generic visit-level insurance
+routes below, a lab-order-scoped `POST .../lab-orders/{orderID}/insurance-claim` (the insurance
+alternative to CollectCharge+`/activate` for a `requires_prepayment` order), and a
+prescription-scoped `POST .../prescriptions/{prescriptionID}/insurance-claim` (the insurance
+alternative to a cash charge collect for dispensed lines). An accepted claim marks its charge(s)
+`exempted` (the new `BillableCharge.status` value — no Atlas migration file exists for this: this
+repo's ent-to-Postgres enum mapping stores enum fields as plain unconstrained `character varying`
+with no DB-level CHECK constraint, confirmed against every other enum field's migration SQL, so
+`atlas`/ent's versioned-migration diff correctly produces zero DDL for adding an allowed value —
+verified by actually running the diff against a local dev Postgres, not assumed). `lab.ActivateIfPaid`
+now accepts `paid` OR `exempted` as "settled." `BillableItemCatalog` now has a real per-facility-tier
+starter seed (`refdata.SeedFacilityBillableItems`, called from `tenant.Syncer.SyncTenant`) and a
+tenant admin CRUD surface (`GET/POST /billing/catalog`, `PUT/POST .../{itemID}[/deactivate]`, gated
+on the new `hospital.billing.manage_catalog` permission). **Still not done**: no live E2E walkthrough
+against a running server/treasury-api this session; the exact terminal-status strings treasury-api's
+`InsuranceClaim.Status` uses were not confirmed against that repo (see `claimAccepted` in
+`internal/modules/billing/service.go` — a deliberately liberal string match, flagged for
+tightening). A real RBAC seed idempotency bug was found and fixed while adding this sprint's
+permission codes — see the Changelog note in `docs/architecture.md`.
 **Depends on:** Sprint 1/2/3/4 (each posts a `BillableCharge` at its billable step)
 **Goal:** A distributed billing ledger — every department can charge for what it does; the money
 itself (invoices/payments/claims) always stays treasury-owned. See `docs/architecture.md`'s
@@ -72,9 +86,12 @@ of first-contact fees + inpatient accounts.
 - `POST /{tenant}/hospital/billing/accounts/{id}/override-settlement` — releases a patient/body
   with an outstanding balance. Gated on `hospital.billing.override_settlement`, requires a `reason`
   string, fully audit-logged.
-- `POST /{tenant}/hospital/visits/{id}/insurance/check-eligibility` — proxies to treasury-api. **Not yet built** (2026-08-29) — the treasury client method exists, no handler calls it yet.
-- `POST /{tenant}/hospital/visits/{id}/insurance/submit-claim` — proxies to treasury-api. **Not yet built** — same gap.
-- `GET /{tenant}/hospital/insurance/claims/{claimID}/status` — proxies treasury-api's poll route. **Not yet built** — same gap.
+- `POST /{tenant}/hospital/visits/{id}/insurance/check-eligibility` — proxies to treasury-api. ✅ Built.
+- `POST /{tenant}/hospital/visits/{id}/insurance/submit-claim` — proxies to treasury-api, aggregating every pending charge on the visit's account (or exactly the `charge_ids` given) into one claim. ✅ Built.
+- `GET /{tenant}/hospital/insurance/claims/{claimID}/status` — proxies treasury-api's poll route (read-only; does not itself finalize a charge — see `billing.Service.PollInsuranceClaim`'s doc comment on why resubmission is the retry path instead). ✅ Built.
+- `POST /{tenant}/hospital/lab-orders/{orderID}/insurance-claim` — the insurance-path alternative to CollectCharge+`/activate` for one lab order's charges. ✅ Built (not in the original endpoint list above — added alongside the pharmacy equivalent since Gap 1's actual clinical wiring point is per-order/per-prescription, not just the generic visit-level proxy).
+- `POST /{tenant}/hospital/prescriptions/{prescriptionID}/insurance-claim` — the insurance-path alternative to a cash charge collect for a prescription's dispensed lines. ✅ Built.
+- `GET /{tenant}/hospital/billing/catalog`, `POST /{tenant}/hospital/billing/catalog`, `PUT /{tenant}/hospital/billing/catalog/{itemID}`, `POST /{tenant}/hospital/billing/catalog/{itemID}/deactivate` — `BillableItemCatalog` admin CRUD, gated on `hospital.billing.manage_catalog` for mutations. ✅ Built.
 
 ## Integration Points
 
@@ -128,9 +145,10 @@ of first-contact fees + inpatient accounts.
 - [ ] eTIMS opt-in flag correctly gates whether treasury-api transmits to KRA (default OFF);
       transmitted records carry `source: hospital_sale`. The `hospital_sale` source shipped
       treasury-api-side in Phase 0; not yet exercised end to end from a hospital-api charge.
-- [ ] Insurance eligibility check works against treasury-api's live connector for at least one
-      configured payer. **Not done** — this is the Phase 5 remainder: the client method and
-      treasury-api S2S route exist, but no hospital-api handler calls it from a real flow yet.
+- [x] Insurance eligibility check works against treasury-api's live connector for at least one
+      configured payer. `billing.Service.CheckEligibility` + `SubmitInsuranceClaim` are wired into
+      real flows (lab-order/prescription/visit-level, see Endpoints above); **not yet verified
+      against a live running treasury-api** — no E2E walkthrough this session.
 - [x] `go build`/`go vet` clean; no financial-document schema (`Invoice`/`Payment`/etc.)
       introduced in hospital-api — only the billing ledger above.
 

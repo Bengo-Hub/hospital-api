@@ -222,8 +222,10 @@ func (s *Service) ActivateIfPaid(ctx context.Context, tenantID, orderID uuid.UUI
 		if cerr != nil || charge == nil {
 			return nil, fmt.Errorf("lab: no charge found for line %s", line.TestCode)
 		}
-		if string(charge.Status) != "paid" {
-			return nil, fmt.Errorf("lab: test %s must be paid for before it can be run", line.TestName)
+		// exempted = an insurance claim covered this charge in full (see
+		// billing.Service.SubmitInsuranceClaim) — an equally valid "settled" outcome to paid.
+		if charge.Status != billablecharge.StatusPaid && charge.Status != billablecharge.StatusExempted {
+			return nil, fmt.Errorf("lab: test %s must be paid for (cash or insurance) before it can be run", line.TestName)
 		}
 	}
 	return s.client.LabOrder.UpdateOneID(orderID).SetStatus(laborder.StatusRequested).Save(ctx)
@@ -233,6 +235,73 @@ func (s *Service) chargeForLine(ctx context.Context, tenantID, lineID uuid.UUID)
 	return s.client.BillableCharge.Query().
 		Where(billablecharge.TenantID(tenantID), billablecharge.SourceReferenceID(lineID)).
 		Only(ctx)
+}
+
+// SubmitInsuranceClaimRequest is the input to SubmitInsuranceClaim.
+type SubmitInsuranceClaimRequest struct {
+	ProviderID uuid.UUID
+	CoverageID *uuid.UUID
+	OutletID   *uuid.UUID
+}
+
+// SubmitInsuranceClaim is the insurance-path alternative to the cash CollectCharge +
+// ActivateIfPaid flow for an awaiting_payment order: if the patient has a payer, the ordering
+// clinician/records staff can submit an insurance claim covering this order's test charges
+// instead of collecting cash. On acceptance the charges are marked exempted (via
+// billing.Service.SubmitInsuranceClaim) and the order is activated in the same call — mirroring
+// how the existing cash path is CollectCharge (billing) followed by a separate
+// POST .../activate. A non-accepted claim (async payer adjudication) leaves the order
+// awaiting_payment; the caller polls GET .../insurance/claims/{claimID}/status and resubmits once
+// approved (see billing.Service.PollInsuranceClaim's doc comment for why resubmission, not a
+// stored claim id, is the retry mechanism).
+func (s *Service) SubmitInsuranceClaim(ctx context.Context, tenantID, orderID uuid.UUID, req SubmitInsuranceClaimRequest) (*ent.LabOrder, *billing.InsuranceClaimResult, error) {
+	order, lines, err := s.GetOrder(ctx, tenantID, orderID)
+	if err != nil {
+		return nil, nil, err
+	}
+	visit, err := s.client.PatientVisit.Query().
+		Where(patientvisit.ID(order.VisitID), patientvisit.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("lab: visit not found: %w", err)
+	}
+	acct, _, err := s.billing.GetAccountByVisit(ctx, tenantID, visit.ID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("lab: account not found: %w", err)
+	}
+
+	chargeIDs := make([]uuid.UUID, 0, len(lines))
+	for _, line := range lines {
+		if line.Price <= 0 {
+			continue
+		}
+		if charge, cerr := s.chargeForLine(ctx, tenantID, line.ID); cerr == nil && charge != nil &&
+			charge.Status == billablecharge.StatusPending {
+			chargeIDs = append(chargeIDs, charge.ID)
+		}
+	}
+	if len(chargeIDs) == 0 {
+		return order, nil, fmt.Errorf("lab: no pending charges to claim for this order")
+	}
+
+	result, err := s.billing.SubmitInsuranceClaim(ctx, tenantID, acct.ID, billing.SubmitInsuranceClaimRequest{
+		ProviderID: req.ProviderID,
+		CoverageID: req.CoverageID,
+		OutletID:   req.OutletID,
+		OrderID:    &orderID,
+		ChargeIDs:  chargeIDs,
+	})
+	if err != nil {
+		return order, nil, err
+	}
+	if !result.Accepted {
+		return order, result, nil
+	}
+	activated, aerr := s.ActivateIfPaid(ctx, tenantID, orderID)
+	if aerr != nil {
+		return order, result, aerr
+	}
+	return activated, result, nil
 }
 
 // EnterResultRequest is the input to EnterResult.

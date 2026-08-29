@@ -38,6 +38,7 @@ var defaultPermissions = []HospitalPermission{
 	{PermissionCode: PermBillingCollectOwn, Name: "Collect Own Charges", Module: "billing", Action: "collect_own"},
 	{PermissionCode: PermBillingCollectAny, Name: "Collect Any Charge (Cashier)", Module: "billing", Action: "collect_any"},
 	{PermissionCode: PermBillingOverrideSettlement, Name: "Override Settlement Requirement", Module: "billing", Action: "override_settlement"},
+	{PermissionCode: PermBillingManageCatalog, Name: "Manage Billable Item Catalog", Module: "billing", Action: "manage_catalog"},
 
 	{PermissionCode: PermInpatientView, Name: "View Inpatient/Wards", Module: "inpatient", Action: "view"},
 	{PermissionCode: PermInpatientAdd, Name: "Admit Patients", Module: "inpatient", Action: "add"},

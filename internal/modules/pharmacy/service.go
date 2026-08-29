@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
@@ -465,6 +466,73 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 		return nil, fmt.Errorf("pharmacy: commit dispense: %w", err)
 	}
 	return updated, nil
+}
+
+// SubmitInsuranceClaimRequest is the input to SubmitInsuranceClaim.
+type SubmitInsuranceClaimRequest struct {
+	ProviderID uuid.UUID
+	CoverageID *uuid.UUID
+	OutletID   *uuid.UUID
+	// LineIDs optionally restricts the claim to specific PrescriptionLine charges (e.g. the
+	// patient's cover only reimburses some of the dispensed drugs); empty = every pending
+	// pharmacy charge for this prescription.
+	LineIDs []uuid.UUID
+}
+
+// SubmitInsuranceClaim is the insurance-settlement counterpart to a cash
+// POST .../billing/charges/{id}/collect for a dispensed line: submits a treasury-api claim
+// (tagged with this prescription's ID, per treasury.SubmitClaimRequest.PrescriptionID) covering
+// the dispensed lines' still-pending charges. Dispensing itself already happened via Dispense —
+// this only settles how the resulting charge gets paid, exactly like the cash collect action
+// does. See billing.Service.SubmitInsuranceClaim for the accept/pending-adjudication split.
+func (s *Service) SubmitInsuranceClaim(ctx context.Context, tenantID, rxID uuid.UUID, req SubmitInsuranceClaimRequest) (*ent.Prescription, *billing.InsuranceClaimResult, error) {
+	rx, err := s.GetPrescription(ctx, tenantID, rxID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("pharmacy: prescription not found: %w", err)
+	}
+	if rx.PatientID == nil || rx.VisitID == nil {
+		return nil, nil, fmt.Errorf("pharmacy: prescription has no linked patient/visit account to claim against")
+	}
+	acct, _, err := s.billing.GetAccountByVisit(ctx, tenantID, *rx.VisitID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("pharmacy: account not found: %w", err)
+	}
+
+	var wanted map[uuid.UUID]bool
+	if len(req.LineIDs) > 0 {
+		wanted = make(map[uuid.UUID]bool, len(req.LineIDs))
+		for _, id := range req.LineIDs {
+			wanted[id] = true
+		}
+	}
+	chargeIDs := make([]uuid.UUID, 0, len(rx.Edges.Lines))
+	for _, l := range rx.Edges.Lines {
+		if wanted != nil && !wanted[l.ID] {
+			continue
+		}
+		charge, cerr := s.client.BillableCharge.Query().
+			Where(billablecharge.TenantID(tenantID), billablecharge.SourceReferenceID(l.ID),
+				billablecharge.StatusEQ(billablecharge.StatusPending)).
+			Only(ctx)
+		if cerr == nil && charge != nil {
+			chargeIDs = append(chargeIDs, charge.ID)
+		}
+	}
+	if len(chargeIDs) == 0 {
+		return rx, nil, fmt.Errorf("pharmacy: no pending charges to claim for this prescription")
+	}
+
+	result, err := s.billing.SubmitInsuranceClaim(ctx, tenantID, acct.ID, billing.SubmitInsuranceClaimRequest{
+		ProviderID:     req.ProviderID,
+		CoverageID:     req.CoverageID,
+		OutletID:       req.OutletID,
+		PrescriptionID: &rxID,
+		ChargeIDs:      chargeIDs,
+	})
+	if err != nil {
+		return rx, nil, err
+	}
+	return rx, result, nil
 }
 
 // ListControlledSubstanceLogs lists the dual-witness register, newest first.

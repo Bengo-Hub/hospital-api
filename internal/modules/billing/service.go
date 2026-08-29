@@ -9,6 +9,7 @@ package billing
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
+	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/modules/treasury"
 )
@@ -261,6 +263,311 @@ func (s *Service) SettleAccount(ctx context.Context, tenantID, accountID uuid.UU
 		upd = upd.SetNextOfKinID(*nextOfKinID)
 	}
 	return upd.Save(ctx)
+}
+
+// ── BillableItemCatalog admin CRUD (Gap 3 — a tenant admin isn't stuck editing rows via direct ──
+// DB access; the starter set itself comes from refdata.SeedFacilityBillableItems) ─────────────
+
+// ListBillableItemCatalog lists a tenant's catalog, active-only by default.
+func (s *Service) ListBillableItemCatalog(ctx context.Context, tenantID uuid.UUID, includeInactive bool) ([]*ent.BillableItemCatalog, error) {
+	q := s.client.BillableItemCatalog.Query().Where(billableitemcatalog.TenantID(tenantID))
+	if !includeInactive {
+		q = q.Where(billableitemcatalog.IsActive(true))
+	}
+	return q.Order(ent.Asc(billableitemcatalog.FieldDepartment), ent.Asc(billableitemcatalog.FieldCode)).All(ctx)
+}
+
+// CatalogItemInput is the input to CreateBillableItem.
+type CatalogItemInput struct {
+	Department         string
+	Code               string
+	Name               string
+	Price              *float64 // nil = priced elsewhere (drugs/lab tests — see the schema's own doc comment)
+	AppliesTo          string   // first_visit|return_visit|all — defaults to "all" when empty
+	RequiresPrepayment bool
+	CollectionMode     string // direct|billing_queue|either — defaults to "billing_queue" when empty
+}
+
+// CreateBillableItem adds one tenant-configured catalog row (the unique(tenant_id, code) index
+// enforces no duplicate code per tenant).
+func (s *Service) CreateBillableItem(ctx context.Context, tenantID uuid.UUID, in CatalogItemInput) (*ent.BillableItemCatalog, error) {
+	if in.Code == "" || in.Name == "" {
+		return nil, fmt.Errorf("billing: code and name are required")
+	}
+	if in.Department == "" {
+		return nil, fmt.Errorf("billing: department is required")
+	}
+	create := s.client.BillableItemCatalog.Create().
+		SetTenantID(tenantID).
+		SetDepartment(billableitemcatalog.Department(in.Department)).
+		SetCode(in.Code).
+		SetName(in.Name).
+		SetRequiresPrepayment(in.RequiresPrepayment).
+		SetIsActive(true)
+	if in.Price != nil {
+		create = create.SetPrice(*in.Price)
+	}
+	if in.AppliesTo != "" {
+		create = create.SetAppliesTo(billableitemcatalog.AppliesTo(in.AppliesTo))
+	}
+	if in.CollectionMode != "" {
+		create = create.SetCollectionMode(billableitemcatalog.CollectionMode(in.CollectionMode))
+	}
+	item, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: create catalog item: %w", err)
+	}
+	return item, nil
+}
+
+// CatalogItemUpdate is the input to UpdateBillableItem — every field is a pointer so only fields
+// the caller actually sent are changed. ClearPrice is a separate explicit flag (rather than
+// overloading Price==nil) because "don't change the price" and "set the price back to nil/priced-
+// elsewhere" are both real, distinct requests.
+type CatalogItemUpdate struct {
+	Name               *string
+	Price              *float64
+	ClearPrice         bool
+	AppliesTo          *string
+	RequiresPrepayment *bool
+	CollectionMode     *string
+	IsActive           *bool
+}
+
+// UpdateBillableItem applies a partial update to one tenant-scoped catalog row.
+func (s *Service) UpdateBillableItem(ctx context.Context, tenantID, itemID uuid.UUID, in CatalogItemUpdate) (*ent.BillableItemCatalog, error) {
+	existing, err := s.client.BillableItemCatalog.Query().
+		Where(billableitemcatalog.ID(itemID), billableitemcatalog.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: catalog item not found: %w", err)
+	}
+	upd := s.client.BillableItemCatalog.UpdateOneID(existing.ID)
+	if in.Name != nil {
+		upd = upd.SetName(*in.Name)
+	}
+	if in.ClearPrice {
+		upd = upd.ClearPrice()
+	} else if in.Price != nil {
+		upd = upd.SetPrice(*in.Price)
+	}
+	if in.AppliesTo != nil {
+		upd = upd.SetAppliesTo(billableitemcatalog.AppliesTo(*in.AppliesTo))
+	}
+	if in.RequiresPrepayment != nil {
+		upd = upd.SetRequiresPrepayment(*in.RequiresPrepayment)
+	}
+	if in.CollectionMode != nil {
+		upd = upd.SetCollectionMode(billableitemcatalog.CollectionMode(*in.CollectionMode))
+	}
+	if in.IsActive != nil {
+		upd = upd.SetIsActive(*in.IsActive)
+	}
+	item, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: update catalog item: %w", err)
+	}
+	return item, nil
+}
+
+// DeactivateBillableItem soft-deletes a catalog row (is_active=false) — never a hard delete, so
+// existing BillableCharge rows that reference it (billable_item_id) keep resolving.
+func (s *Service) DeactivateBillableItem(ctx context.Context, tenantID, itemID uuid.UUID) (*ent.BillableItemCatalog, error) {
+	existing, err := s.client.BillableItemCatalog.Query().
+		Where(billableitemcatalog.ID(itemID), billableitemcatalog.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: catalog item not found: %w", err)
+	}
+	return s.client.BillableItemCatalog.UpdateOneID(existing.ID).SetIsActive(false).Save(ctx)
+}
+
+// ── Insurance (Sprint 5 remainder — wires the treasury.Client eligibility/claim methods that ──
+// existed since Phase 0 but were never called from a real clinical flow) ──────────────────────
+
+// CheckEligibility checks a patient's insurance eligibility against treasury-api's connector for
+// the given provider. A transport/config failure is returned as an error — callers (lab/pharmacy
+// insurance-claim actions) must treat that as "unknown, offer cash instead," never as
+// "ineligible," per docs/integrations.md §2.4.
+func (s *Service) CheckEligibility(ctx context.Context, tenantID, providerID uuid.UUID, fields map[string]string) (treasury.EligibilityResult, error) {
+	if !s.treasury.Enabled() {
+		return nil, fmt.Errorf("billing: treasury client not configured")
+	}
+	return s.treasury.CheckEligibility(ctx, tenantID, providerID, fields)
+}
+
+// PollInsuranceClaim polls a previously submitted claim's async adjudication status — a thin
+// proxy to treasury-api (see docs/sprints/sprint-5-billing-insurance.md's
+// GET .../insurance/claims/{claimID}/status). Does not touch any BillableCharge: hospital-api
+// does not persist a charge->claim linkage (see SubmitInsuranceClaim's doc comment), so finalizing
+// a charge once a pending claim is later approved means calling SubmitInsuranceClaim again —
+// treasury-api's claim creation is idempotent on its own reference (order_id/prescription_id), so
+// a resubmission for the same order/prescription is safe and simply reports the now-approved
+// status instead of creating a duplicate claim.
+func (s *Service) PollInsuranceClaim(ctx context.Context, tenantID, claimID uuid.UUID) (*treasury.Claim, error) {
+	if !s.treasury.Enabled() {
+		return nil, fmt.Errorf("billing: treasury client not configured")
+	}
+	return s.treasury.PollClaimStatus(ctx, tenantID, claimID)
+}
+
+// claimAccepted reports whether a treasury-api Claim.Status represents a terminal, fully-covered
+// outcome. treasury-api's InsuranceClaim status enum is defined in a different repo and wasn't
+// inspectable from here, so this is deliberately a liberal, case-insensitive match against the
+// common terms real payer connectors use (SHA/AAR/Jubilee/etc., per treasury.Claim's own doc
+// comment) rather than a single hard-coded string — tighten this once treasury-api's exact enum
+// values are confirmed. Any non-terminal outcome ("submitted"/"pending"/"processing"/unknown) is
+// treated as NOT yet accepted: the charge stays "pending" and the caller polls/resubmits later.
+func claimAccepted(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "approved", "accepted", "paid", "settled", "success", "successful", "completed", "adjudicated", "adjudicated_approved":
+		return true
+	default:
+		return false
+	}
+}
+
+// SubmitInsuranceClaimRequest is the input to SubmitInsuranceClaim.
+type SubmitInsuranceClaimRequest struct {
+	ProviderID uuid.UUID
+	CoverageID *uuid.UUID
+	OutletID   *uuid.UUID
+	// OrderID/PrescriptionID are passed through to treasury.SubmitClaimRequest verbatim (the
+	// S2S-relevant subset of treasury-api's insurance.SaleClaimInput) so treasury-api's claim
+	// record links back to whichever hospital-api order/prescription generated it. Optional —
+	// leave nil for a claim not tied to one specific order/prescription (e.g. a mixed-charges
+	// visit-level claim).
+	OrderID        *uuid.UUID
+	PrescriptionID *uuid.UUID
+	// ChargeIDs selects exactly which of the account's PENDING charges this claim should cover
+	// (the KenyaEMR-validated "claim references already-posted charges, never re-derives them"
+	// shape — see docs/architecture.md). Empty = every pending charge on the account, mirroring
+	// SettleAccount's "settle everything outstanding" behavior for the cash path.
+	ChargeIDs []uuid.UUID
+}
+
+// InsuranceClaimResult is the outcome of SubmitInsuranceClaim.
+type InsuranceClaimResult struct {
+	Claim    *treasury.Claim       `json:"claim"`
+	Accepted bool                  `json:"accepted"`
+	Charges  []*ent.BillableCharge `json:"charges"` // exempted if Accepted, otherwise still pending
+}
+
+// SubmitInsuranceClaim is the insurance-settlement counterpart to CollectCharge (cash): instead
+// of creating a treasury invoice+payment intent, it submits ONE treasury-api insurance claim
+// covering the selected pending charges' total amount. treasury-api's SubmitClaim call is
+// best-effort against the external payer but always records the claim locally treasury-side (see
+// treasury.Client.SubmitClaim's doc comment) — so a claim that comes back non-terminal (SHA's
+// async mediator_id pattern) is not an error here, it just leaves the charge(s) pending for a
+// later PollInsuranceClaim + resubmit.
+//
+// Design note (claim-id tracking): BillableCharge has no dedicated "claim id" column (adding one
+// was out of this session's scope — only the `exempted` status was requested). Once a claim IS
+// accepted, this reuses the existing nullable treasury_payment_intent_id column to record the
+// treasury Claim.ID — same purpose as its cash-path use ("which treasury record settled this
+// charge"), just a claim id instead of a payment-intent id for the insurance path. This avoids a
+// second migration while still leaving an audit trail on the charge.
+func (s *Service) SubmitInsuranceClaim(ctx context.Context, tenantID, accountID uuid.UUID, req SubmitInsuranceClaimRequest) (*InsuranceClaimResult, error) {
+	if !s.treasury.Enabled() {
+		return nil, fmt.Errorf("billing: treasury client not configured")
+	}
+	if req.ProviderID == uuid.Nil {
+		return nil, fmt.Errorf("billing: provider_id is required")
+	}
+	acct, allCharges, err := s.GetAccount(ctx, tenantID, accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	var wanted map[uuid.UUID]bool
+	if len(req.ChargeIDs) > 0 {
+		wanted = make(map[uuid.UUID]bool, len(req.ChargeIDs))
+		for _, id := range req.ChargeIDs {
+			wanted[id] = true
+		}
+	}
+	target := make([]*ent.BillableCharge, 0, len(allCharges))
+	var amount float64
+	for _, c := range allCharges {
+		if c.Status != billablecharge.StatusPending {
+			continue
+		}
+		if wanted != nil && !wanted[c.ID] {
+			continue
+		}
+		target = append(target, c)
+		amount += c.Amount
+	}
+	if len(target) == 0 {
+		return nil, fmt.Errorf("billing: no pending charges to claim")
+	}
+
+	claim, err := s.treasury.SubmitClaim(ctx, tenantID, treasury.SubmitClaimRequest{
+		ProviderID:     req.ProviderID,
+		CoverageID:     req.CoverageID,
+		OutletID:       req.OutletID,
+		OrderID:        req.OrderID,
+		PrescriptionID: req.PrescriptionID,
+		Amount:         amount,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("billing: submit insurance claim: %w", err)
+	}
+
+	result := &InsuranceClaimResult{Claim: claim, Charges: target}
+	if !claimAccepted(claim.Status) {
+		return result, nil
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	now := time.Now()
+	updated := make([]*ent.BillableCharge, 0, len(target))
+	var totalExempted float64
+	for _, c := range target {
+		u, uerr := tx.BillableCharge.UpdateOneID(c.ID).
+			SetStatus(billablecharge.StatusExempted).
+			SetTreasuryPaymentIntentID(claim.ID).
+			SetPaidAt(now).
+			Save(ctx)
+		if uerr != nil {
+			err = uerr
+			return nil, fmt.Errorf("billing: mark charge exempted: %w", uerr)
+		}
+		updated = append(updated, u)
+		totalExempted += c.Amount
+	}
+
+	// Deliberately AddBalance only, NOT AddTotalPaid: total_paid tracks cash actually collected
+	// from the patient (see CollectCharge's AddTotalPaid+AddBalance pair above) — an exempted
+	// charge was covered by insurance, not paid by the patient, so it must reduce what's owed
+	// without inflating a "cash collected" figure a cashier/report might read literally.
+	updatedAcct, err := tx.PatientAccount.UpdateOneID(acct.ID).
+		AddBalance(-totalExempted).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: update account totals: %w", err)
+	}
+	if updatedAcct.Balance <= 0 && updatedAcct.Status == patientaccount.StatusOpen {
+		if _, err = tx.PatientAccount.UpdateOneID(acct.ID).SetStatus(patientaccount.StatusSettled).Save(ctx); err != nil {
+			return nil, fmt.Errorf("billing: mark account settled: %w", err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("billing: commit insurance claim: %w", err)
+	}
+	result.Accepted = true
+	result.Charges = updated
+	return result, nil
 }
 
 // OverrideSettlement releases a patient/body with an outstanding balance — an audited escape

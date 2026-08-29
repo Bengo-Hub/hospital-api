@@ -17,7 +17,7 @@ var (
 		{Name: "source_reference_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "description", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "invoiced", "paid", "waived", "written_off"}, Default: "pending"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "invoiced", "paid", "exempted", "waived", "written_off"}, Default: "pending"},
 		{Name: "treasury_invoice_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "treasury_payment_intent_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "created_by_user_id", Type: field.TypeUUID, Nullable: true},
