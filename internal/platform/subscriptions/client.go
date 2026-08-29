@@ -81,6 +81,12 @@ type Entitlements struct {
 	BillingMode  string         `json:"billing_mode"`
 	PlanCode     string         `json:"plan_code"`
 	IsDemoBypass bool           `json:"is_demo_bypass"`
+	// FacilityType is the resolved plan's presentation-only facility hint ("chemist" | "clinic" |
+	// "facility" | "hospital"), sourced from subscriptions-api's plan Metadata (see
+	// subscriptions-api's SubscriptionResult.FacilityType and cmd/seed/plans_hospital.go's
+	// afyaTier.facilityType). Empty for tenants on a non-Afya plan family. Additive field — caches
+	// into Tenant.metadata (see ent/schema/tenant.go) for hospital-ui's adaptive sidebar.
+	FacilityType string `json:"facility_type,omitempty"`
 }
 
 // GetEntitlements fetches the tenant's full subscription snapshot (features, limits,

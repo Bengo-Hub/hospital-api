@@ -136,92 +136,132 @@ func New(d Deps) http.Handler {
 			// each gated with outletmw.RequireServicePermission(d.RBACSvc, ...).
 			prot.Get("/ping", handlers.Ping)
 
-			// Sprint 1 — Patients / OPD Reception / Triage.
+			// Sprint 1 — Patients / OPD Reception / Triage. Each group carries BOTH the Layer 2
+			// licensing gate (subscriptions.RequireFeature — enforces the standalone-chemist
+			// module toggle at the ROUTE level, not just hidden in hospital-ui's sidebar) and the
+			// existing Layer 3 RBAC gate. A chemist-tier tenant's JWT carries only
+			// pharmacy_dispensing+billing (see subscriptions-api's hospChemistCore()), so these
+			// routes 403 with feature_not_available for it even if someone calls the API directly
+			// — closing the gap flagged in sprint-4-pharmacy-dispensing.md's Acceptance Gate.
 			if d.Patients != nil {
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsAdd)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsAdd)).
 					Post("/patients", d.Patients.RegisterPatient)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
 					Get("/patients", d.Patients.ListPatients)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
 					Get("/patients/{patientID}", d.Patients.GetPatient)
 
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionAdd)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureReceptionQueuing),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionAdd)).
 					Post("/visits", d.Patients.CheckInVisit)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureReceptionQueuing),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
 					Get("/visits", d.Patients.ListVisits)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureReceptionQueuing),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
 					Get("/visits/{visitID}", d.Patients.GetVisit)
 
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTriageAdd)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTriage),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTriageAdd)).
 					Post("/visits/{visitID}/triage", d.Patients.RecordTriage)
 			}
 
 			// Sprint 2 — Consultation / Examination / Diagnosis Catalog / Referrals.
 			if d.Consultation != nil {
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
 					Post("/visits/{visitID}/examination", d.Consultation.RecordExamination)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
 					Post("/visits/{visitID}/refer", d.Consultation.CreateReferral)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
 					Get("/diagnosis-catalog", d.Consultation.ListDiagnosisCatalog)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
 					Post("/diagnosis-catalog", d.Consultation.CreateDiagnosisEntry)
 			}
 
-			// Sprint 5 core — Billing ledger. Permission checks for collect/override are partly
-			// in-handler (collect_own depends on the specific charge's source_module, resolved
-			// after the request body/URL param are known) — see BillingHandler.CollectCharge.
+			// Sprint 5 core — Billing ledger. FeatureBilling is in every Afya tier including
+			// Chemist, so this gate never blocks a standalone chemist's own walk-in billing.
+			// Permission checks for collect/override are partly in-handler (collect_own depends
+			// on the specific charge's source_module, resolved after the request body/URL param
+			// are known) — see BillingHandler.CollectCharge.
 			if d.Billing != nil {
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
 					Get("/visits/{visitID}/account", d.Billing.GetAccountByVisit)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingCollectAny)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingCollectAny)).
 					Get("/billing/queue", d.Billing.ListPendingCharges)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc,
-					rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/billing/charges/{chargeID}/collect", d.Billing.CollectCharge)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc,
-					rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/billing/accounts/{accountID}/settle", d.Billing.SettleAccount)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingOverrideSettlement)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingOverrideSettlement)).
 					Post("/billing/accounts/{accountID}/override-settlement", d.Billing.OverrideSettlement)
 			}
 
 			// Sprint 3 — Laboratory.
 			if d.Lab != nil {
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabAdd)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabAdd)).
 					Post("/lab-orders", d.Lab.CreateOrder)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
 					Get("/lab-orders", d.Lab.ListWorklist)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
 					Get("/lab-orders/{orderID}", d.Lab.GetOrder)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc,
-					rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/lab-orders/{orderID}/activate", d.Lab.ActivateIfPaid)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabChange)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabChange)).
 					Post("/lab-orders/lines/{lineID}/result", d.Lab.EnterResult)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
 					Get("/lab-test-catalog", d.Lab.ListCatalog)
 			}
 
-			// Sprint 4 — Pharmacy / Dispensing (the core migration target).
+			// Sprint 4 — Pharmacy / Dispensing (the core migration target). FeaturePharmacyDispense
+			// is in every Afya tier including Chemist, so this never blocks a standalone chemist.
 			if d.Pharmacy != nil {
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyPrescribe)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyPrescribe)).
 					Post("/prescriptions", d.Pharmacy.CreatePrescription)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
 					Get("/prescriptions", d.Pharmacy.ListPrescriptions)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
 					Get("/prescriptions/{prescriptionID}", d.Pharmacy.GetPrescription)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/approve", d.Pharmacy.ApprovePrescription)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/lock", d.Pharmacy.LockPrescription)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/reject", d.Pharmacy.RejectPrescription)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/cancel", d.Pharmacy.CancelPrescription)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyDispense)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyDispense)).
 					Post("/prescriptions/{prescriptionID}/dispense", d.Pharmacy.Dispense)
-				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Get("/pharmacy/controlled-substances", d.Pharmacy.ListControlledSubstanceLogs)
 			}
 		})
