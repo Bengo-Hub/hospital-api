@@ -3,6 +3,7 @@ package patients
 import (
 	"testing"
 
+	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 )
 
@@ -54,13 +55,32 @@ func TestNextVisitStatusAfterTriage(t *testing.T) {
 	}
 }
 
+func TestRegistrationAppliesTo(t *testing.T) {
+	cases := []struct {
+		name            string
+		priorVisitCount int
+		want            billableitemcatalog.AppliesTo
+	}{
+		{"first visit ever (0 prior) charges the first-visit fee", 0, billableitemcatalog.AppliesToFirstVisit},
+		{"one prior visit charges the return-visit fee", 1, billableitemcatalog.AppliesToReturnVisit},
+		{"many prior visits still charge the return-visit fee", 12, billableitemcatalog.AppliesToReturnVisit},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := registrationAppliesTo(tc.priorVisitCount); got != tc.want {
+				t.Errorf("registrationAppliesTo(%d) = %q, want %q", tc.priorVisitCount, got, tc.want)
+			}
+		})
+	}
+}
+
 // NOTE: RegisterPatient's and CheckInVisit's own required-field checks (full_name / patient_id
 // non-empty) are single-line guard clauses with no decision table worth extracting on their
 // own — they're exercised indirectly by the pure functions above wherever they share a code
-// path. The rest of RegisterPatient/CheckInVisit/RecordTriage (sequence allocation, ent
-// create/update, outbox event publish, transaction commit/rollback) is inseparable from the ent
-// client and is not covered by an automated test in this pass — hospital-api has no
-// sqlite/in-memory ent driver wired for DB-free service tests (unlike e.g. pos-api's promotions
-// package, which extracts a pure decision function specifically to avoid this). A follow-up
-// should either add an ent sqlite test driver or an integration test against the local Postgres
-// dev DB.
+// path. chargeRegistrationFee/findActiveBillableItem's catalog lookup + PostCharge call are
+// inseparable from the ent client (same as the rest of RegisterPatient/CheckInVisit/RecordTriage:
+// sequence allocation, ent create/update, outbox event publish, transaction commit/rollback) and
+// are not covered by an automated test in this pass — hospital-api has no sqlite/in-memory ent
+// driver wired for DB-free service tests (unlike e.g. pos-api's promotions package, which
+// extracts a pure decision function specifically to avoid this). A follow-up should either add
+// an ent sqlite test driver or an integration test against the local Postgres dev DB.

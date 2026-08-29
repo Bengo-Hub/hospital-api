@@ -13,21 +13,24 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	events "github.com/bengobox/hospital-service/internal/events"
+	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
 )
 
 // Service implements patient/visit/triage business logic.
 type Service struct {
-	client *ent.Client
-	log    *zap.Logger
+	client  *ent.Client
+	billing *billing.Service
+	log     *zap.Logger
 }
 
 // NewService creates a new patients service.
-func NewService(client *ent.Client, log *zap.Logger) *Service {
-	return &Service{client: client, log: log.Named("patients.service")}
+func NewService(client *ent.Client, billingSvc *billing.Service, log *zap.Logger) *Service {
+	return &Service{client: client, billing: billingSvc, log: log.Named("patients.service")}
 }
 
 // RegisterPatientRequest is the input to RegisterPatient.
@@ -184,6 +187,8 @@ func (s *Service) CheckInVisit(ctx context.Context, tenantID uuid.UUID, req Chec
 		return nil, fmt.Errorf("patients: create visit: %w", err)
 	}
 
+	s.chargeRegistrationFee(ctx, tx, tenantID, v, req.RegisteredBy)
+
 	if pubErr := events.Publish(ctx, tx.OutboxEvent, tenantID, v.ID.String(), events.EventVisitAdmitted, map[string]any{
 		"visit_id":     v.ID.String(),
 		"patient_id":   v.PatientID.String(),
@@ -312,6 +317,75 @@ func (s *Service) RecordTriage(ctx context.Context, tenantID uuid.UUID, req Reco
 		return nil, fmt.Errorf("patients: commit triage: %w", err)
 	}
 	return t, nil
+}
+
+// chargeRegistrationFee posts the tenant's configured registration/return-visit fee for a fresh
+// check-in — best-effort: a tenant with no configured/active catalog row, or any billing
+// failure, must never block check-in itself (mirrors this codebase's established "must never
+// break the primary flow" convention, e.g. tenant.Syncer.ensureBillableItemsSeeded). Determines
+// first-visit vs return-visit by counting the patient's OTHER visits (excluding the one just
+// created, within the same transaction so the count can't race a concurrent check-in).
+func (s *Service) chargeRegistrationFee(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID, v *ent.PatientVisit, registeredBy *uuid.UUID) {
+	if s.billing == nil {
+		return
+	}
+	priorCount, err := tx.PatientVisit.Query().
+		Where(patientvisit.TenantID(tenantID), patientvisit.PatientID(v.PatientID), patientvisit.IDNEQ(v.ID)).
+		Count(ctx)
+	if err != nil {
+		s.log.Warn("registration fee: count prior visits failed", zap.Error(err))
+		return
+	}
+	item, err := findActiveBillableItem(ctx, tx, tenantID, billableitemcatalog.DepartmentRecords, registrationAppliesTo(priorCount))
+	if err != nil {
+		return // nothing configured/active for this tenant — nothing to charge, not an error
+	}
+	if item.Price == nil || *item.Price <= 0 {
+		return // priced elsewhere or free — nothing to post
+	}
+	req := billing.PostChargeRequest{
+		PatientID: v.PatientID, VisitID: v.ID, SourceModule: "records", SourceRefID: &v.ID,
+		Description: item.Name, Amount: *item.Price, BillableItemID: &item.ID,
+	}
+	if registeredBy != nil {
+		req.CreatedByUser = *registeredBy
+	}
+	if _, err := s.billing.PostCharge(ctx, tx, tenantID, req); err != nil {
+		s.log.Warn("registration fee: post charge failed", zap.Error(err))
+	}
+}
+
+// registrationAppliesTo decides which BillableItemCatalog `applies_to` value governs the
+// registration fee for a new visit, based on how many prior visits this patient already has
+// (0 = their first ever visit). Pure/testable — the catalog lookup itself (including the "all"
+// fallback for a tenant that hasn't configured a first/return-specific row) lives in
+// findActiveBillableItem.
+func registrationAppliesTo(priorVisitCount int) billableitemcatalog.AppliesTo {
+	if priorVisitCount == 0 {
+		return billableitemcatalog.AppliesToFirstVisit
+	}
+	return billableitemcatalog.AppliesToReturnVisit
+}
+
+// findActiveBillableItem looks up one active BillableItemCatalog row for a department, preferring
+// an exact applies_to match and falling back to "all" when the tenant hasn't configured a more
+// specific row. Returns an ent.IsNotFound-wrappable error when neither exists — callers must
+// treat that as "nothing configured to charge here," not a real failure.
+func findActiveBillableItem(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID, dept billableitemcatalog.Department, appliesTo billableitemcatalog.AppliesTo) (*ent.BillableItemCatalog, error) {
+	item, err := tx.BillableItemCatalog.Query().
+		Where(billableitemcatalog.TenantID(tenantID), billableitemcatalog.DepartmentEQ(dept),
+			billableitemcatalog.AppliesToEQ(appliesTo), billableitemcatalog.IsActive(true)).
+		First(ctx)
+	if err == nil {
+		return item, nil
+	}
+	if !ent.IsNotFound(err) {
+		return nil, err
+	}
+	return tx.BillableItemCatalog.Query().
+		Where(billableitemcatalog.TenantID(tenantID), billableitemcatalog.DepartmentEQ(dept),
+			billableitemcatalog.AppliesToEQ(billableitemcatalog.AppliesToAll), billableitemcatalog.IsActive(true)).
+		First(ctx)
 }
 
 // resolveVisitType normalizes the requested visit type to a valid patientvisit.VisitType. Only

@@ -97,4 +97,7 @@ func TestNextVisitStatusAfterReferral(t *testing.T) {
 // pass — hospital-api has no sqlite/in-memory ent driver wired for DB-free service tests (unlike
 // e.g. pos-api's promotions package, which extracts a pure decision function specifically to
 // avoid this). A follow-up should either add an ent sqlite test driver or an integration test
-// against the local Postgres dev DB.
+// against the local Postgres dev DB. chargeConsultationFee (same 2026-08-29 fix as patients'
+// chargeRegistrationFee) has no separable pure kernel of its own — the once-per-visit decision is
+// the priorExamCount==0 check already inline in RecordExamination above, and the catalog
+// lookup/PostCharge call needs the ent client — same limitation, not a new gap.

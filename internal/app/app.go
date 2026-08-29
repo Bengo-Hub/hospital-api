@@ -183,18 +183,20 @@ func New(ctx context.Context) (*App, error) {
 		authMiddleware = authclient.NewAuthMiddleware(validator)
 	}
 
-	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
-	patientsSvc := patients.NewService(ormClient, log)
-	patientsHandler := handlers.NewPatientsHandler(patientsSvc)
-
-	// ── Sprint 2: consultation / examination / diagnosis catalog / referrals ──
-	consultationSvc := consultation.NewService(ormClient, log)
-	consultationHandler := handlers.NewConsultationHandler(consultationSvc)
-
 	// ── Sprint 5 core: billing ledger ──────────────────────────────────────
+	// Constructed ahead of Sprints 1/2 below: both patients.CheckInVisit (registration fee) and
+	// consultation.RecordExamination (consultation fee) now post charges via billing.PostCharge.
 	treasurySvc := treasuryclient.NewClient(cfg.Services.TreasuryURL, cfg.Auth.APIKey, log)
 	billingSvc := billing.NewService(ormClient, treasurySvc, log)
 	billingHandler := handlers.NewBillingHandler(billingSvc, rbacService)
+
+	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
+	patientsSvc := patients.NewService(ormClient, billingSvc, log)
+	patientsHandler := handlers.NewPatientsHandler(patientsSvc)
+
+	// ── Sprint 2: consultation / examination / diagnosis catalog / referrals ──
+	consultationSvc := consultation.NewService(ormClient, billingSvc, log)
+	consultationHandler := handlers.NewConsultationHandler(consultationSvc)
 
 	// ── Sprint 3: laboratory ───────────────────────────────────────────────
 	labSvc := lab.NewService(ormClient, billingSvc, log)

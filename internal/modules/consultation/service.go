@@ -11,22 +11,25 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
+	"github.com/bengobox/hospital-service/internal/modules/billing"
 )
 
 // Service implements consultation/examination/diagnosis-catalog/referral business logic.
 type Service struct {
-	client *ent.Client
-	log    *zap.Logger
+	client  *ent.Client
+	billing *billing.Service
+	log     *zap.Logger
 }
 
 // NewService creates a new consultation service.
-func NewService(client *ent.Client, log *zap.Logger) *Service {
-	return &Service{client: client, log: log.Named("consultation.service")}
+func NewService(client *ent.Client, billingSvc *billing.Service, log *zap.Logger) *Service {
+	return &Service{client: client, billing: billingSvc, log: log.Named("consultation.service")}
 }
 
 // RecordExaminationRequest is the input to RecordExamination.
@@ -65,6 +68,18 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		}
 	}()
 
+	// Counted BEFORE creating this record, so a visit's very first examination sees 0 — the
+	// consultation fee is charged once per visit, not once per examination NOTE (a visit can
+	// accumulate several ExaminationRecord rows over its lifetime, e.g. resumed after lab
+	// results return — see lab.Service.EnterResult's reopen-to-in_progress behaviour).
+	priorExamCount, cerr := tx.ExaminationRecord.Query().
+		Where(examinationrecord.TenantID(tenantID), examinationrecord.VisitID(req.VisitID)).
+		Count(ctx)
+	if cerr != nil {
+		s.log.Warn("consultation fee: count prior examinations failed", zap.Error(cerr))
+		priorExamCount = -1 // suppress charging below rather than risk a double-charge on a failed count
+	}
+
 	queueType := resolveQueueType(req.QueueType)
 	create := tx.ExaminationRecord.Create().
 		SetTenantID(tenantID).
@@ -84,6 +99,10 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		return nil, fmt.Errorf("consultation: create examination record: %w", err)
 	}
 
+	if priorExamCount == 0 {
+		s.chargeConsultationFee(ctx, tx, tenantID, visit.PatientID, req.VisitID, rec.ID, req.ClinicianID)
+	}
+
 	if next, ok := nextVisitStatusAfterExamination(visit.Status, req.Complete); ok {
 		if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).SetStatus(next).Save(ctx); err != nil {
 			return nil, fmt.Errorf("consultation: advance visit status: %w", err)
@@ -94,6 +113,33 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		return nil, fmt.Errorf("consultation: commit examination: %w", err)
 	}
 	return rec, nil
+}
+
+// chargeConsultationFee posts the tenant's configured consultation fee for a visit's FIRST
+// examination record only (see RecordExamination's priorExamCount==0 guard) — best-effort,
+// mirroring patients.Service.chargeRegistrationFee's never-block-the-primary-action semantics: a
+// tenant with no configured/active catalog row, or any billing failure, must never block
+// recording the examination itself.
+func (s *Service) chargeConsultationFee(ctx context.Context, tx *ent.Tx, tenantID, patientID, visitID, examID, clinicianID uuid.UUID) {
+	if s.billing == nil {
+		return
+	}
+	item, err := tx.BillableItemCatalog.Query().
+		Where(billableitemcatalog.TenantID(tenantID), billableitemcatalog.DepartmentEQ(billableitemcatalog.DepartmentConsultation),
+			billableitemcatalog.AppliesToEQ(billableitemcatalog.AppliesToAll), billableitemcatalog.IsActive(true)).
+		First(ctx)
+	if err != nil {
+		return // nothing configured/active for this tenant — nothing to charge, not an error
+	}
+	if item.Price == nil || *item.Price <= 0 {
+		return // priced elsewhere or free — nothing to post
+	}
+	if _, err := s.billing.PostCharge(ctx, tx, tenantID, billing.PostChargeRequest{
+		PatientID: patientID, VisitID: visitID, SourceModule: "consultation", SourceRefID: &examID,
+		Description: item.Name, Amount: *item.Price, CreatedByUser: clinicianID, BillableItemID: &item.ID,
+	}); err != nil {
+		s.log.Warn("consultation fee: post charge failed", zap.Error(err))
+	}
 }
 
 // resolveQueueType normalizes the requested queue type to an examinationrecord.QueueType,
