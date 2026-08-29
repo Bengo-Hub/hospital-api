@@ -36,6 +36,9 @@ type Deps struct {
 	IdentitySvc *identity.Service
 	RBACSvc     *rbacmodule.Service
 	AuthMe      *handlers.AuthMeHandler
+
+	// Sprint 1: patient registration, OPD visit check-in/queue, triage.
+	Patients *handlers.PatientsHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -121,9 +124,29 @@ func New(d Deps) http.Handler {
 			}
 
 			// Placeholder route proving JWKS auth + Trinity middleware chain works end to
-			// end. Sprint 4+ mounts real domain routes (patients, visits, triage, ...) here,
+			// end. Sprint 4+ mounts further domain routes (lab, pharmacy, billing, ...) here,
 			// each gated with outletmw.RequireServicePermission(d.RBACSvc, ...).
 			prot.Get("/ping", handlers.Ping)
+
+			// Sprint 1 — Patients / OPD Reception / Triage.
+			if d.Patients != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsAdd)).
+					Post("/patients", d.Patients.RegisterPatient)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
+					Get("/patients", d.Patients.ListPatients)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
+					Get("/patients/{patientID}", d.Patients.GetPatient)
+
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionAdd)).
+					Post("/visits", d.Patients.CheckInVisit)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
+					Get("/visits", d.Patients.ListVisits)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
+					Get("/visits/{visitID}", d.Patients.GetVisit)
+
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTriageAdd)).
+					Post("/visits/{visitID}/triage", d.Patients.RecordTriage)
+			}
 		})
 	})
 

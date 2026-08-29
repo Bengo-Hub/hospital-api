@@ -5,12 +5,18 @@ package ent
 import (
 	"time"
 
+	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
+	"github.com/bengobox/hospital-service/internal/ent/patient"
+	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
+	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/google/uuid"
 )
@@ -19,6 +25,38 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	documentsequenceFields := schema.DocumentSequence{}.Fields()
+	_ = documentsequenceFields
+	// documentsequenceDescKind is the schema descriptor for kind field.
+	documentsequenceDescKind := documentsequenceFields[2].Descriptor()
+	// documentsequence.KindValidator is a validator for the "kind" field. It is called by the builders before save.
+	documentsequence.KindValidator = documentsequenceDescKind.Validators[0].(func(string) error)
+	// documentsequenceDescNextValue is the schema descriptor for next_value field.
+	documentsequenceDescNextValue := documentsequenceFields[4].Descriptor()
+	// documentsequence.DefaultNextValue holds the default value on creation for the next_value field.
+	documentsequence.DefaultNextValue = documentsequenceDescNextValue.Default.(int64)
+	// documentsequenceDescPadWidth is the schema descriptor for pad_width field.
+	documentsequenceDescPadWidth := documentsequenceFields[5].Descriptor()
+	// documentsequence.DefaultPadWidth holds the default value on creation for the pad_width field.
+	documentsequence.DefaultPadWidth = documentsequenceDescPadWidth.Default.(int)
+	// documentsequenceDescResetPeriod is the schema descriptor for reset_period field.
+	documentsequenceDescResetPeriod := documentsequenceFields[7].Descriptor()
+	// documentsequence.DefaultResetPeriod holds the default value on creation for the reset_period field.
+	documentsequence.DefaultResetPeriod = documentsequenceDescResetPeriod.Default.(string)
+	// documentsequenceDescCreatedAt is the schema descriptor for created_at field.
+	documentsequenceDescCreatedAt := documentsequenceFields[9].Descriptor()
+	// documentsequence.DefaultCreatedAt holds the default value on creation for the created_at field.
+	documentsequence.DefaultCreatedAt = documentsequenceDescCreatedAt.Default.(func() time.Time)
+	// documentsequenceDescUpdatedAt is the schema descriptor for updated_at field.
+	documentsequenceDescUpdatedAt := documentsequenceFields[10].Descriptor()
+	// documentsequence.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	documentsequence.DefaultUpdatedAt = documentsequenceDescUpdatedAt.Default.(func() time.Time)
+	// documentsequence.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	documentsequence.UpdateDefaultUpdatedAt = documentsequenceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// documentsequenceDescID is the schema descriptor for id field.
+	documentsequenceDescID := documentsequenceFields[0].Descriptor()
+	// documentsequence.DefaultID holds the default value on creation for the id field.
+	documentsequence.DefaultID = documentsequenceDescID.Default.(func() uuid.UUID)
 	hospitalpermissionFields := schema.HospitalPermission{}.Fields()
 	_ = hospitalpermissionFields
 	// hospitalpermissionDescPermissionCode is the schema descriptor for permission_code field.
@@ -101,6 +139,36 @@ func init() {
 	hospitaluserDescID := hospitaluserFields[0].Descriptor()
 	// hospitaluser.DefaultID holds the default value on creation for the id field.
 	hospitaluser.DefaultID = hospitaluserDescID.Default.(func() uuid.UUID)
+	outboxeventFields := schema.OutboxEvent{}.Fields()
+	_ = outboxeventFields
+	// outboxeventDescAggregateType is the schema descriptor for aggregate_type field.
+	outboxeventDescAggregateType := outboxeventFields[2].Descriptor()
+	// outboxevent.AggregateTypeValidator is a validator for the "aggregate_type" field. It is called by the builders before save.
+	outboxevent.AggregateTypeValidator = outboxeventDescAggregateType.Validators[0].(func(string) error)
+	// outboxeventDescAggregateID is the schema descriptor for aggregate_id field.
+	outboxeventDescAggregateID := outboxeventFields[3].Descriptor()
+	// outboxevent.AggregateIDValidator is a validator for the "aggregate_id" field. It is called by the builders before save.
+	outboxevent.AggregateIDValidator = outboxeventDescAggregateID.Validators[0].(func(string) error)
+	// outboxeventDescEventType is the schema descriptor for event_type field.
+	outboxeventDescEventType := outboxeventFields[4].Descriptor()
+	// outboxevent.EventTypeValidator is a validator for the "event_type" field. It is called by the builders before save.
+	outboxevent.EventTypeValidator = outboxeventDescEventType.Validators[0].(func(string) error)
+	// outboxeventDescStatus is the schema descriptor for status field.
+	outboxeventDescStatus := outboxeventFields[6].Descriptor()
+	// outboxevent.DefaultStatus holds the default value on creation for the status field.
+	outboxevent.DefaultStatus = outboxeventDescStatus.Default.(string)
+	// outboxeventDescAttempts is the schema descriptor for attempts field.
+	outboxeventDescAttempts := outboxeventFields[7].Descriptor()
+	// outboxevent.DefaultAttempts holds the default value on creation for the attempts field.
+	outboxevent.DefaultAttempts = outboxeventDescAttempts.Default.(int)
+	// outboxeventDescCreatedAt is the schema descriptor for created_at field.
+	outboxeventDescCreatedAt := outboxeventFields[11].Descriptor()
+	// outboxevent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	outboxevent.DefaultCreatedAt = outboxeventDescCreatedAt.Default.(func() time.Time)
+	// outboxeventDescID is the schema descriptor for id field.
+	outboxeventDescID := outboxeventFields[0].Descriptor()
+	// outboxevent.DefaultID holds the default value on creation for the id field.
+	outboxevent.DefaultID = outboxeventDescID.Default.(func() uuid.UUID)
 	outletFields := schema.Outlet{}.Fields()
 	_ = outletFields
 	// outletDescTenantSlug is the schema descriptor for tenant_slug field.
@@ -137,6 +205,80 @@ func init() {
 	outletDescID := outletFields[0].Descriptor()
 	// outlet.DefaultID holds the default value on creation for the id field.
 	outlet.DefaultID = outletDescID.Default.(func() uuid.UUID)
+	patientFields := schema.Patient{}.Fields()
+	_ = patientFields
+	// patientDescMrn is the schema descriptor for mrn field.
+	patientDescMrn := patientFields[3].Descriptor()
+	// patient.MrnValidator is a validator for the "mrn" field. It is called by the builders before save.
+	patient.MrnValidator = patientDescMrn.Validators[0].(func(string) error)
+	// patientDescFullName is the schema descriptor for full_name field.
+	patientDescFullName := patientFields[4].Descriptor()
+	// patient.FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
+	patient.FullNameValidator = patientDescFullName.Validators[0].(func(string) error)
+	// patientDescAllergyFlags is the schema descriptor for allergy_flags field.
+	patientDescAllergyFlags := patientFields[11].Descriptor()
+	// patient.DefaultAllergyFlags holds the default value on creation for the allergy_flags field.
+	patient.DefaultAllergyFlags = patientDescAllergyFlags.Default.([]string)
+	// patientDescStatus is the schema descriptor for status field.
+	patientDescStatus := patientFields[14].Descriptor()
+	// patient.DefaultStatus holds the default value on creation for the status field.
+	patient.DefaultStatus = patientDescStatus.Default.(string)
+	// patientDescCreatedAt is the schema descriptor for created_at field.
+	patientDescCreatedAt := patientFields[15].Descriptor()
+	// patient.DefaultCreatedAt holds the default value on creation for the created_at field.
+	patient.DefaultCreatedAt = patientDescCreatedAt.Default.(func() time.Time)
+	// patientDescUpdatedAt is the schema descriptor for updated_at field.
+	patientDescUpdatedAt := patientFields[16].Descriptor()
+	// patient.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	patient.DefaultUpdatedAt = patientDescUpdatedAt.Default.(func() time.Time)
+	// patient.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	patient.UpdateDefaultUpdatedAt = patientDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// patientDescID is the schema descriptor for id field.
+	patientDescID := patientFields[0].Descriptor()
+	// patient.DefaultID holds the default value on creation for the id field.
+	patient.DefaultID = patientDescID.Default.(func() uuid.UUID)
+	patientvisitFields := schema.PatientVisit{}.Fields()
+	_ = patientvisitFields
+	// patientvisitDescVisitNumber is the schema descriptor for visit_number field.
+	patientvisitDescVisitNumber := patientvisitFields[4].Descriptor()
+	// patientvisit.VisitNumberValidator is a validator for the "visit_number" field. It is called by the builders before save.
+	patientvisit.VisitNumberValidator = patientvisitDescVisitNumber.Validators[0].(func(string) error)
+	// patientvisitDescCheckedInAt is the schema descriptor for checked_in_at field.
+	patientvisitDescCheckedInAt := patientvisitFields[9].Descriptor()
+	// patientvisit.DefaultCheckedInAt holds the default value on creation for the checked_in_at field.
+	patientvisit.DefaultCheckedInAt = patientvisitDescCheckedInAt.Default.(func() time.Time)
+	// patientvisitDescCreatedAt is the schema descriptor for created_at field.
+	patientvisitDescCreatedAt := patientvisitFields[11].Descriptor()
+	// patientvisit.DefaultCreatedAt holds the default value on creation for the created_at field.
+	patientvisit.DefaultCreatedAt = patientvisitDescCreatedAt.Default.(func() time.Time)
+	// patientvisitDescUpdatedAt is the schema descriptor for updated_at field.
+	patientvisitDescUpdatedAt := patientvisitFields[12].Descriptor()
+	// patientvisit.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	patientvisit.DefaultUpdatedAt = patientvisitDescUpdatedAt.Default.(func() time.Time)
+	// patientvisit.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	patientvisit.UpdateDefaultUpdatedAt = patientvisitDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// patientvisitDescID is the schema descriptor for id field.
+	patientvisitDescID := patientvisitFields[0].Descriptor()
+	// patientvisit.DefaultID holds the default value on creation for the id field.
+	patientvisit.DefaultID = patientvisitDescID.Default.(func() uuid.UUID)
+	referralFields := schema.Referral{}.Fields()
+	_ = referralFields
+	// referralDescReferredTo is the schema descriptor for referred_to field.
+	referralDescReferredTo := referralFields[3].Descriptor()
+	// referral.ReferredToValidator is a validator for the "referred_to" field. It is called by the builders before save.
+	referral.ReferredToValidator = referralDescReferredTo.Validators[0].(func(string) error)
+	// referralDescStatus is the schema descriptor for status field.
+	referralDescStatus := referralFields[5].Descriptor()
+	// referral.DefaultStatus holds the default value on creation for the status field.
+	referral.DefaultStatus = referralDescStatus.Default.(string)
+	// referralDescCreatedAt is the schema descriptor for created_at field.
+	referralDescCreatedAt := referralFields[7].Descriptor()
+	// referral.DefaultCreatedAt holds the default value on creation for the created_at field.
+	referral.DefaultCreatedAt = referralDescCreatedAt.Default.(func() time.Time)
+	// referralDescID is the schema descriptor for id field.
+	referralDescID := referralFields[0].Descriptor()
+	// referral.DefaultID holds the default value on creation for the id field.
+	referral.DefaultID = referralDescID.Default.(func() uuid.UUID)
 	tenantFields := schema.Tenant{}.Fields()
 	_ = tenantFields
 	// tenantDescName is the schema descriptor for name field.
@@ -169,6 +311,16 @@ func init() {
 	tenantDescID := tenantFields[0].Descriptor()
 	// tenant.DefaultID holds the default value on creation for the id field.
 	tenant.DefaultID = tenantDescID.Default.(func() uuid.UUID)
+	triagerecordFields := schema.TriageRecord{}.Fields()
+	_ = triagerecordFields
+	// triagerecordDescTakenAt is the schema descriptor for taken_at field.
+	triagerecordDescTakenAt := triagerecordFields[14].Descriptor()
+	// triagerecord.DefaultTakenAt holds the default value on creation for the taken_at field.
+	triagerecord.DefaultTakenAt = triagerecordDescTakenAt.Default.(func() time.Time)
+	// triagerecordDescID is the schema descriptor for id field.
+	triagerecordDescID := triagerecordFields[0].Descriptor()
+	// triagerecord.DefaultID holds the default value on creation for the id field.
+	triagerecord.DefaultID = triagerecordDescID.Default.(func() uuid.UUID)
 	userroleassignmentFields := schema.UserRoleAssignment{}.Fields()
 	_ = userroleassignmentFields
 	// userroleassignmentDescAssignedAt is the schema descriptor for assigned_at field.

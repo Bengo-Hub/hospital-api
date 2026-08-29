@@ -8,6 +8,33 @@ import (
 )
 
 var (
+	// DocumentSequencesColumns holds the columns for the "document_sequences" table.
+	DocumentSequencesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "prefix", Type: field.TypeString, Nullable: true},
+		{Name: "next_value", Type: field.TypeInt64, Default: 1},
+		{Name: "pad_width", Type: field.TypeInt, Default: 5},
+		{Name: "format", Type: field.TypeString, Nullable: true},
+		{Name: "reset_period", Type: field.TypeString, Default: "none"},
+		{Name: "period_key", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// DocumentSequencesTable holds the schema information for the "document_sequences" table.
+	DocumentSequencesTable = &schema.Table{
+		Name:       "document_sequences",
+		Columns:    DocumentSequencesColumns,
+		PrimaryKey: []*schema.Column{DocumentSequencesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "documentsequence_tenant_id_kind",
+				Unique:  true,
+				Columns: []*schema.Column{DocumentSequencesColumns[1], DocumentSequencesColumns[2]},
+			},
+		},
+	}
 	// HospitalPermissionsColumns holds the columns for the "hospital_permissions" table.
 	HospitalPermissionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -129,6 +156,44 @@ var (
 			},
 		},
 	}
+	// OutboxEventsColumns holds the columns for the "outbox_events" table.
+	OutboxEventsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "aggregate_type", Type: field.TypeString},
+		{Name: "aggregate_id", Type: field.TypeString},
+		{Name: "event_type", Type: field.TypeString},
+		{Name: "payload", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeString, Default: "PENDING"},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "last_attempt_at", Type: field.TypeTime, Nullable: true},
+		{Name: "published_at", Type: field.TypeTime, Nullable: true},
+		{Name: "error_message", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// OutboxEventsTable holds the schema information for the "outbox_events" table.
+	OutboxEventsTable = &schema.Table{
+		Name:       "outbox_events",
+		Columns:    OutboxEventsColumns,
+		PrimaryKey: []*schema.Column{OutboxEventsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "outboxevent_status",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxEventsColumns[6]},
+			},
+			{
+				Name:    "outboxevent_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxEventsColumns[11]},
+			},
+			{
+				Name:    "outboxevent_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{OutboxEventsColumns[1], OutboxEventsColumns[6]},
+			},
+		},
+	}
 	// OutletsColumns holds the columns for the "outlets" table.
 	OutletsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -166,6 +231,143 @@ var (
 				Name:    "outlet_tenant_slug",
 				Unique:  false,
 				Columns: []*schema.Column{OutletsColumns[1]},
+			},
+		},
+	}
+	// PatientsColumns holds the columns for the "patients" table.
+	PatientsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "mrn", Type: field.TypeString},
+		{Name: "full_name", Type: field.TypeString},
+		{Name: "dob", Type: field.TypeTime, Nullable: true},
+		{Name: "sex", Type: field.TypeString, Nullable: true},
+		{Name: "phone", Type: field.TypeString, Nullable: true},
+		{Name: "id_number", Type: field.TypeString, Nullable: true},
+		{Name: "address", Type: field.TypeString, Nullable: true},
+		{Name: "next_of_kin", Type: field.TypeString, Nullable: true},
+		{Name: "allergy_flags", Type: field.TypeJSON, Nullable: true},
+		{Name: "client_registry_id", Type: field.TypeString, Nullable: true},
+		{Name: "crm_contact_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: "active"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PatientsTable holds the schema information for the "patients" table.
+	PatientsTable = &schema.Table{
+		Name:       "patients",
+		Columns:    PatientsColumns,
+		PrimaryKey: []*schema.Column{PatientsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "patient_tenant_id_mrn",
+				Unique:  true,
+				Columns: []*schema.Column{PatientsColumns[1], PatientsColumns[3]},
+			},
+			{
+				Name:    "patient_tenant_id_phone",
+				Unique:  false,
+				Columns: []*schema.Column{PatientsColumns[1], PatientsColumns[7]},
+			},
+			{
+				Name:    "patient_tenant_id_id_number",
+				Unique:  false,
+				Columns: []*schema.Column{PatientsColumns[1], PatientsColumns[8]},
+			},
+			{
+				Name:    "patient_tenant_id_full_name",
+				Unique:  false,
+				Columns: []*schema.Column{PatientsColumns[1], PatientsColumns[4]},
+			},
+		},
+	}
+	// PatientVisitsColumns holds the columns for the "patient_visits" table.
+	PatientVisitsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "visit_number", Type: field.TypeString},
+		{Name: "visit_type", Type: field.TypeEnum, Enums: []string{"OPD", "IPD"}, Default: "OPD"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"registered", "triaged", "in_examination", "awaiting_lab", "lab_complete", "prescribed", "dispensed", "admitted", "completed", "cancelled"}, Default: "registered"},
+		{Name: "chief_complaint", Type: field.TypeString, Nullable: true},
+		{Name: "registered_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "checked_in_at", Type: field.TypeTime},
+		{Name: "discharged_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "patient_id", Type: field.TypeUUID},
+	}
+	// PatientVisitsTable holds the schema information for the "patient_visits" table.
+	PatientVisitsTable = &schema.Table{
+		Name:       "patient_visits",
+		Columns:    PatientVisitsColumns,
+		PrimaryKey: []*schema.Column{PatientVisitsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "patient_visits_patients_visits",
+				Columns:    []*schema.Column{PatientVisitsColumns[12]},
+				RefColumns: []*schema.Column{PatientsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "patientvisit_tenant_id_visit_number",
+				Unique:  true,
+				Columns: []*schema.Column{PatientVisitsColumns[1], PatientVisitsColumns[3]},
+			},
+			{
+				Name:    "patientvisit_tenant_id_patient_id",
+				Unique:  false,
+				Columns: []*schema.Column{PatientVisitsColumns[1], PatientVisitsColumns[12]},
+			},
+			{
+				Name:    "patientvisit_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{PatientVisitsColumns[1], PatientVisitsColumns[5]},
+			},
+			{
+				Name:    "patientvisit_tenant_id_outlet_id",
+				Unique:  false,
+				Columns: []*schema.Column{PatientVisitsColumns[1], PatientVisitsColumns[2]},
+			},
+		},
+	}
+	// ReferralsColumns holds the columns for the "referrals" table.
+	ReferralsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "referred_to", Type: field.TypeString},
+		{Name: "reason", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: "pending"},
+		{Name: "referred_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "visit_id", Type: field.TypeUUID},
+	}
+	// ReferralsTable holds the schema information for the "referrals" table.
+	ReferralsTable = &schema.Table{
+		Name:       "referrals",
+		Columns:    ReferralsColumns,
+		PrimaryKey: []*schema.Column{ReferralsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "referrals_patient_visits_referrals",
+				Columns:    []*schema.Column{ReferralsColumns[7]},
+				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "referral_tenant_id_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{ReferralsColumns[1], ReferralsColumns[7]},
+			},
+			{
+				Name:    "referral_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ReferralsColumns[1], ReferralsColumns[4]},
 			},
 		},
 	}
@@ -243,6 +445,45 @@ var (
 			},
 		},
 	}
+	// TriageRecordsColumns holds the columns for the "triage_records" table.
+	TriageRecordsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "taken_by", Type: field.TypeUUID},
+		{Name: "bp_systolic", Type: field.TypeInt, Nullable: true},
+		{Name: "bp_diastolic", Type: field.TypeInt, Nullable: true},
+		{Name: "temperature_celsius", Type: field.TypeFloat64, Nullable: true},
+		{Name: "pulse_bpm", Type: field.TypeInt, Nullable: true},
+		{Name: "respiration_rate", Type: field.TypeInt, Nullable: true},
+		{Name: "spo2_percent", Type: field.TypeFloat64, Nullable: true},
+		{Name: "weight_kg", Type: field.TypeFloat64, Nullable: true},
+		{Name: "height_cm", Type: field.TypeFloat64, Nullable: true},
+		{Name: "priority", Type: field.TypeString, Nullable: true},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "taken_at", Type: field.TypeTime},
+		{Name: "visit_id", Type: field.TypeUUID},
+	}
+	// TriageRecordsTable holds the schema information for the "triage_records" table.
+	TriageRecordsTable = &schema.Table{
+		Name:       "triage_records",
+		Columns:    TriageRecordsColumns,
+		PrimaryKey: []*schema.Column{TriageRecordsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "triage_records_patient_visits_triage_records",
+				Columns:    []*schema.Column{TriageRecordsColumns[14]},
+				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "triagerecord_tenant_id_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{TriageRecordsColumns[1], TriageRecordsColumns[14]},
+			},
+		},
+	}
 	// UserRoleAssignmentsColumns holds the columns for the "user_role_assignments" table.
 	UserRoleAssignmentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -302,12 +543,18 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		DocumentSequencesTable,
 		HospitalPermissionsTable,
 		HospitalRolesTable,
 		HospitalUsersTable,
+		OutboxEventsTable,
 		OutletsTable,
+		PatientsTable,
+		PatientVisitsTable,
+		ReferralsTable,
 		RolePermissionsTable,
 		TenantsTable,
+		TriageRecordsTable,
 		UserRoleAssignmentsTable,
 	}
 )
@@ -315,8 +562,11 @@ var (
 func init() {
 	HospitalUsersTable.ForeignKeys[0].RefTable = TenantsTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
+	PatientVisitsTable.ForeignKeys[0].RefTable = PatientsTable
+	ReferralsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	RolePermissionsTable.ForeignKeys[0].RefTable = HospitalRolesTable
 	RolePermissionsTable.ForeignKeys[1].RefTable = HospitalPermissionsTable
+	TriageRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	UserRoleAssignmentsTable.ForeignKeys[0].RefTable = HospitalUsersTable
 	UserRoleAssignmentsTable.ForeignKeys[1].RefTable = HospitalRolesTable
 }

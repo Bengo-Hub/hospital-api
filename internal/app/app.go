@@ -25,12 +25,15 @@ import (
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
+	"github.com/bengobox/hospital-service/internal/modules/patients"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
 	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
 	"github.com/bengobox/hospital-service/internal/platform/events"
 	"github.com/bengobox/hospital-service/internal/shared/logger"
+
+	eventslib "github.com/Bengo-Hub/shared-events"
 )
 
 // App holds the wired runtime for the hospital service — Trinity Authorization plumbing
@@ -48,6 +51,7 @@ type App struct {
 
 	authEventHandler       *identity.AuthEventHandler
 	authOutletEventHandler *identity.AuthOutletEventHandler
+	outboxPublisher        *eventslib.OutboxPoller
 }
 
 // New constructs and wires the application.
@@ -101,6 +105,24 @@ func New(ctx context.Context) (*App, error) {
 		log.Info("versioned migrations applied (POSTGRES_RUN_MIGRATIONS=true)")
 	}
 
+	// Transactional outbox poller (first real business events, Sprint 1: patient.created,
+	// visit.admitted). Publishing = an outbox_events row inserted in the same Ent tx as the
+	// domain write (internal/events.Publish); this poller drains PENDING rows to NATS.
+	var outboxPublisher *eventslib.OutboxPoller
+	if natsConn != nil && cfg.Events.OutboxEnabled {
+		js, jsErr := natsConn.JetStream()
+		if jsErr != nil {
+			return nil, fmt.Errorf("jetstream init for outbox poller: %w", jsErr)
+		}
+		outboxRepo := eventslib.NewSQLOutboxRepository(sqlDB)
+		outboxPublisher = eventslib.NewOutboxPoller(outboxRepo, eventslib.NewJetStreamAdapter(js, log), log, eventslib.PollerConfig{
+			BatchSize:  cfg.Events.OutboxBatchSize,
+			PollPeriod: cfg.Events.OutboxPollPeriod,
+		})
+		outboxPublisher.Start(ctx)
+		log.Info("outbox background publisher started")
+	}
+
 	// ── Tenant/outlet sync + RBAC + JIT identity ──────────────────────────────
 	tenantSyncer := tenant.NewSyncer(ormClient, cfg.Auth.ServiceURL).WithDB(sqlDB)
 
@@ -114,6 +136,10 @@ func New(ctx context.Context) (*App, error) {
 	identitySvc.SetRBACService(rbacService)
 
 	authMeHandler := handlers.NewAuthMeHandler(rbacService)
+
+	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
+	patientsSvc := patients.NewService(ormClient, log)
+	patientsHandler := handlers.NewPatientsHandler(patientsSvc)
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
@@ -144,6 +170,7 @@ func New(ctx context.Context) (*App, error) {
 		IdentitySvc:    identitySvc,
 		RBACSvc:        rbacService,
 		AuthMe:         authMeHandler,
+		Patients:       patientsHandler,
 	}
 	chiRouter := router.New(deps)
 
@@ -166,6 +193,7 @@ func New(ctx context.Context) (*App, error) {
 		orm:                    ormClient,
 		authEventHandler:       authEventHandler,
 		authOutletEventHandler: authOutletEventHandler,
+		outboxPublisher:        outboxPublisher,
 	}, nil
 }
 
@@ -211,6 +239,9 @@ func (a *App) Run(ctx context.Context) error {
 
 // Close releases resources in reverse dependency order.
 func (a *App) Close() {
+	if a.outboxPublisher != nil {
+		a.outboxPublisher.Stop()
+	}
 	if a.events != nil {
 		_ = a.events.Drain()
 		a.events.Close()

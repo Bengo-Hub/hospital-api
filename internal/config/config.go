@@ -65,6 +65,11 @@ type EventsConfig struct {
 	NATSURL      string `envconfig:"EVENTS_NATS_URL" default:"nats://localhost:4222"`
 	StreamName   string `envconfig:"NATS_STREAM" default:"hospital"`
 	DeliverGroup string `envconfig:"NATS_DELIVER_GROUP" default:"hospital-workers"`
+
+	// Transactional outbox poller (drains internal/ent/schema/outbox_event.go rows to NATS).
+	OutboxEnabled    bool          `envconfig:"EVENTS_OUTBOX_ENABLED" default:"true"`
+	OutboxBatchSize  int           `envconfig:"EVENTS_OUTBOX_BATCH_SIZE" default:"50"`
+	OutboxPollPeriod time.Duration `envconfig:"EVENTS_OUTBOX_POLL_PERIOD" default:"2s"`
 }
 
 // AuthConfig validates SSO JWTs via auth-api's JWKS endpoint (Trinity Layer 1).

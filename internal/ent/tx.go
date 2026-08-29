@@ -12,18 +12,30 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// DocumentSequence is the client for interacting with the DocumentSequence builders.
+	DocumentSequence *DocumentSequenceClient
 	// HospitalPermission is the client for interacting with the HospitalPermission builders.
 	HospitalPermission *HospitalPermissionClient
 	// HospitalRole is the client for interacting with the HospitalRole builders.
 	HospitalRole *HospitalRoleClient
 	// HospitalUser is the client for interacting with the HospitalUser builders.
 	HospitalUser *HospitalUserClient
+	// OutboxEvent is the client for interacting with the OutboxEvent builders.
+	OutboxEvent *OutboxEventClient
 	// Outlet is the client for interacting with the Outlet builders.
 	Outlet *OutletClient
+	// Patient is the client for interacting with the Patient builders.
+	Patient *PatientClient
+	// PatientVisit is the client for interacting with the PatientVisit builders.
+	PatientVisit *PatientVisitClient
+	// Referral is the client for interacting with the Referral builders.
+	Referral *ReferralClient
 	// RolePermission is the client for interacting with the RolePermission builders.
 	RolePermission *RolePermissionClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
+	// TriageRecord is the client for interacting with the TriageRecord builders.
+	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
 	UserRoleAssignment *UserRoleAssignmentClient
 
@@ -157,12 +169,18 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.DocumentSequence = NewDocumentSequenceClient(tx.config)
 	tx.HospitalPermission = NewHospitalPermissionClient(tx.config)
 	tx.HospitalRole = NewHospitalRoleClient(tx.config)
 	tx.HospitalUser = NewHospitalUserClient(tx.config)
+	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.Outlet = NewOutletClient(tx.config)
+	tx.Patient = NewPatientClient(tx.config)
+	tx.PatientVisit = NewPatientVisitClient(tx.config)
+	tx.Referral = NewReferralClient(tx.config)
 	tx.RolePermission = NewRolePermissionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
+	tx.TriageRecord = NewTriageRecordClient(tx.config)
 	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
 }
 
@@ -173,7 +191,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: HospitalPermission.QueryXXX(), the query will be executed
+// applies a query, for example: DocumentSequence.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

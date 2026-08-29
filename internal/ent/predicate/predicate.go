@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// DocumentSequence is the predicate function for documentsequence builders.
+type DocumentSequence func(*sql.Selector)
+
 // HospitalPermission is the predicate function for hospitalpermission builders.
 type HospitalPermission func(*sql.Selector)
 
@@ -15,14 +18,29 @@ type HospitalRole func(*sql.Selector)
 // HospitalUser is the predicate function for hospitaluser builders.
 type HospitalUser func(*sql.Selector)
 
+// OutboxEvent is the predicate function for outboxevent builders.
+type OutboxEvent func(*sql.Selector)
+
 // Outlet is the predicate function for outlet builders.
 type Outlet func(*sql.Selector)
+
+// Patient is the predicate function for patient builders.
+type Patient func(*sql.Selector)
+
+// PatientVisit is the predicate function for patientvisit builders.
+type PatientVisit func(*sql.Selector)
+
+// Referral is the predicate function for referral builders.
+type Referral func(*sql.Selector)
 
 // RolePermission is the predicate function for rolepermission builders.
 type RolePermission func(*sql.Selector)
 
 // Tenant is the predicate function for tenant builders.
 type Tenant func(*sql.Selector)
+
+// TriageRecord is the predicate function for triagerecord builders.
+type TriageRecord func(*sql.Selector)
 
 // UserRoleAssignment is the predicate function for userroleassignment builders.
 type UserRoleAssignment func(*sql.Selector)

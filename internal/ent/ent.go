@@ -12,12 +12,18 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
+	"github.com/bengobox/hospital-service/internal/ent/patient"
+	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
+	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 )
 
@@ -79,12 +85,18 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			documentsequence.Table:   documentsequence.ValidColumn,
 			hospitalpermission.Table: hospitalpermission.ValidColumn,
 			hospitalrole.Table:       hospitalrole.ValidColumn,
 			hospitaluser.Table:       hospitaluser.ValidColumn,
+			outboxevent.Table:        outboxevent.ValidColumn,
 			outlet.Table:             outlet.ValidColumn,
+			patient.Table:            patient.ValidColumn,
+			patientvisit.Table:       patientvisit.ValidColumn,
+			referral.Table:           referral.ValidColumn,
 			rolepermission.Table:     rolepermission.ValidColumn,
 			tenant.Table:             tenant.ValidColumn,
+			triagerecord.Table:       triagerecord.ValidColumn,
 			userroleassignment.Table: userroleassignment.ValidColumn,
 		})
 	})
