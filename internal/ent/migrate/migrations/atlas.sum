@@ -1,5 +1,6 @@
-h1:I+wAv8Yt9yIFNTzdoxrcvcqs1bgkqof/daPhvSraABE=
+h1:RT3gssV1FJvnS2lVfAmTrWDvL3e+Y58X+tL6c8SjjNQ=
 20260731212101_add_rbac_and_sync_schemas.sql h1:k+F/1ko7AGn0h9CZoWquPgsfoCCH+wMm8/wdycvUnxs=
 20260829112442_tenant_facility_metadata.sql h1:NaPnpW01TiNmyX6U6hQR2bIZekD6r7QqiIjU+HM5Aaw=
 20260829120437_sprint1_patient_opd_triage.sql h1:Qya7Ud7B6bbQMJHBecWOtx5+KFtu74ROeeRFHnCrLPw=
 20260829121417_sprint1_outbox_and_sequence.sql h1:Rb7uKaQoBrdFtVqlXZiR/uWA6xwBFYXYy9Y7pzaOj8Q=
+20260829122302_sprint2_consultation_examination.sql h1:zDUwRpt2MuNedCzlyDfGcxeZIilgsRv43/tIBVE7d1Y=

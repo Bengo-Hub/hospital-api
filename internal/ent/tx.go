@@ -12,8 +12,14 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// DiagnosisCatalogDefault is the client for interacting with the DiagnosisCatalogDefault builders.
+	DiagnosisCatalogDefault *DiagnosisCatalogDefaultClient
+	// DiagnosisCatalogEntry is the client for interacting with the DiagnosisCatalogEntry builders.
+	DiagnosisCatalogEntry *DiagnosisCatalogEntryClient
 	// DocumentSequence is the client for interacting with the DocumentSequence builders.
 	DocumentSequence *DocumentSequenceClient
+	// ExaminationRecord is the client for interacting with the ExaminationRecord builders.
+	ExaminationRecord *ExaminationRecordClient
 	// HospitalPermission is the client for interacting with the HospitalPermission builders.
 	HospitalPermission *HospitalPermissionClient
 	// HospitalRole is the client for interacting with the HospitalRole builders.
@@ -169,7 +175,10 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.DiagnosisCatalogDefault = NewDiagnosisCatalogDefaultClient(tx.config)
+	tx.DiagnosisCatalogEntry = NewDiagnosisCatalogEntryClient(tx.config)
 	tx.DocumentSequence = NewDocumentSequenceClient(tx.config)
+	tx.ExaminationRecord = NewExaminationRecordClient(tx.config)
 	tx.HospitalPermission = NewHospitalPermissionClient(tx.config)
 	tx.HospitalRole = NewHospitalRoleClient(tx.config)
 	tx.HospitalUser = NewHospitalUserClient(tx.config)
@@ -191,7 +200,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: DocumentSequence.QueryXXX(), the query will be executed
+// applies a query, for example: DiagnosisCatalogDefault.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

@@ -5,7 +5,10 @@ package ent
 import (
 	"time"
 
+	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
+	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
@@ -25,6 +28,62 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	diagnosiscatalogdefaultFields := schema.DiagnosisCatalogDefault{}.Fields()
+	_ = diagnosiscatalogdefaultFields
+	// diagnosiscatalogdefaultDescCode is the schema descriptor for code field.
+	diagnosiscatalogdefaultDescCode := diagnosiscatalogdefaultFields[1].Descriptor()
+	// diagnosiscatalogdefault.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	diagnosiscatalogdefault.CodeValidator = diagnosiscatalogdefaultDescCode.Validators[0].(func(string) error)
+	// diagnosiscatalogdefaultDescName is the schema descriptor for name field.
+	diagnosiscatalogdefaultDescName := diagnosiscatalogdefaultFields[2].Descriptor()
+	// diagnosiscatalogdefault.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	diagnosiscatalogdefault.NameValidator = diagnosiscatalogdefaultDescName.Validators[0].(func(string) error)
+	// diagnosiscatalogdefaultDescIsActive is the schema descriptor for is_active field.
+	diagnosiscatalogdefaultDescIsActive := diagnosiscatalogdefaultFields[4].Descriptor()
+	// diagnosiscatalogdefault.DefaultIsActive holds the default value on creation for the is_active field.
+	diagnosiscatalogdefault.DefaultIsActive = diagnosiscatalogdefaultDescIsActive.Default.(bool)
+	// diagnosiscatalogdefaultDescCreatedAt is the schema descriptor for created_at field.
+	diagnosiscatalogdefaultDescCreatedAt := diagnosiscatalogdefaultFields[5].Descriptor()
+	// diagnosiscatalogdefault.DefaultCreatedAt holds the default value on creation for the created_at field.
+	diagnosiscatalogdefault.DefaultCreatedAt = diagnosiscatalogdefaultDescCreatedAt.Default.(func() time.Time)
+	// diagnosiscatalogdefaultDescUpdatedAt is the schema descriptor for updated_at field.
+	diagnosiscatalogdefaultDescUpdatedAt := diagnosiscatalogdefaultFields[6].Descriptor()
+	// diagnosiscatalogdefault.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	diagnosiscatalogdefault.DefaultUpdatedAt = diagnosiscatalogdefaultDescUpdatedAt.Default.(func() time.Time)
+	// diagnosiscatalogdefault.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	diagnosiscatalogdefault.UpdateDefaultUpdatedAt = diagnosiscatalogdefaultDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// diagnosiscatalogdefaultDescID is the schema descriptor for id field.
+	diagnosiscatalogdefaultDescID := diagnosiscatalogdefaultFields[0].Descriptor()
+	// diagnosiscatalogdefault.DefaultID holds the default value on creation for the id field.
+	diagnosiscatalogdefault.DefaultID = diagnosiscatalogdefaultDescID.Default.(func() uuid.UUID)
+	diagnosiscatalogentryFields := schema.DiagnosisCatalogEntry{}.Fields()
+	_ = diagnosiscatalogentryFields
+	// diagnosiscatalogentryDescCode is the schema descriptor for code field.
+	diagnosiscatalogentryDescCode := diagnosiscatalogentryFields[2].Descriptor()
+	// diagnosiscatalogentry.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	diagnosiscatalogentry.CodeValidator = diagnosiscatalogentryDescCode.Validators[0].(func(string) error)
+	// diagnosiscatalogentryDescName is the schema descriptor for name field.
+	diagnosiscatalogentryDescName := diagnosiscatalogentryFields[3].Descriptor()
+	// diagnosiscatalogentry.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	diagnosiscatalogentry.NameValidator = diagnosiscatalogentryDescName.Validators[0].(func(string) error)
+	// diagnosiscatalogentryDescIsActive is the schema descriptor for is_active field.
+	diagnosiscatalogentryDescIsActive := diagnosiscatalogentryFields[5].Descriptor()
+	// diagnosiscatalogentry.DefaultIsActive holds the default value on creation for the is_active field.
+	diagnosiscatalogentry.DefaultIsActive = diagnosiscatalogentryDescIsActive.Default.(bool)
+	// diagnosiscatalogentryDescCreatedAt is the schema descriptor for created_at field.
+	diagnosiscatalogentryDescCreatedAt := diagnosiscatalogentryFields[6].Descriptor()
+	// diagnosiscatalogentry.DefaultCreatedAt holds the default value on creation for the created_at field.
+	diagnosiscatalogentry.DefaultCreatedAt = diagnosiscatalogentryDescCreatedAt.Default.(func() time.Time)
+	// diagnosiscatalogentryDescUpdatedAt is the schema descriptor for updated_at field.
+	diagnosiscatalogentryDescUpdatedAt := diagnosiscatalogentryFields[7].Descriptor()
+	// diagnosiscatalogentry.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	diagnosiscatalogentry.DefaultUpdatedAt = diagnosiscatalogentryDescUpdatedAt.Default.(func() time.Time)
+	// diagnosiscatalogentry.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	diagnosiscatalogentry.UpdateDefaultUpdatedAt = diagnosiscatalogentryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// diagnosiscatalogentryDescID is the schema descriptor for id field.
+	diagnosiscatalogentryDescID := diagnosiscatalogentryFields[0].Descriptor()
+	// diagnosiscatalogentry.DefaultID holds the default value on creation for the id field.
+	diagnosiscatalogentry.DefaultID = diagnosiscatalogentryDescID.Default.(func() uuid.UUID)
 	documentsequenceFields := schema.DocumentSequence{}.Fields()
 	_ = documentsequenceFields
 	// documentsequenceDescKind is the schema descriptor for kind field.
@@ -57,6 +116,16 @@ func init() {
 	documentsequenceDescID := documentsequenceFields[0].Descriptor()
 	// documentsequence.DefaultID holds the default value on creation for the id field.
 	documentsequence.DefaultID = documentsequenceDescID.Default.(func() uuid.UUID)
+	examinationrecordFields := schema.ExaminationRecord{}.Fields()
+	_ = examinationrecordFields
+	// examinationrecordDescExaminedAt is the schema descriptor for examined_at field.
+	examinationrecordDescExaminedAt := examinationrecordFields[10].Descriptor()
+	// examinationrecord.DefaultExaminedAt holds the default value on creation for the examined_at field.
+	examinationrecord.DefaultExaminedAt = examinationrecordDescExaminedAt.Default.(func() time.Time)
+	// examinationrecordDescID is the schema descriptor for id field.
+	examinationrecordDescID := examinationrecordFields[0].Descriptor()
+	// examinationrecord.DefaultID holds the default value on creation for the id field.
+	examinationrecord.DefaultID = examinationrecordDescID.Default.(func() uuid.UUID)
 	hospitalpermissionFields := schema.HospitalPermission{}.Fields()
 	_ = hospitalpermissionFields
 	// hospitalpermissionDescPermissionCode is the schema descriptor for permission_code field.

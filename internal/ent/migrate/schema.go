@@ -8,6 +8,58 @@ import (
 )
 
 var (
+	// DiagnosisCatalogDefaultsColumns holds the columns for the "diagnosis_catalog_defaults" table.
+	DiagnosisCatalogDefaultsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "category", Type: field.TypeString, Nullable: true},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// DiagnosisCatalogDefaultsTable holds the schema information for the "diagnosis_catalog_defaults" table.
+	DiagnosisCatalogDefaultsTable = &schema.Table{
+		Name:       "diagnosis_catalog_defaults",
+		Columns:    DiagnosisCatalogDefaultsColumns,
+		PrimaryKey: []*schema.Column{DiagnosisCatalogDefaultsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "diagnosiscatalogdefault_code",
+				Unique:  true,
+				Columns: []*schema.Column{DiagnosisCatalogDefaultsColumns[1]},
+			},
+			{
+				Name:    "diagnosiscatalogdefault_category",
+				Unique:  false,
+				Columns: []*schema.Column{DiagnosisCatalogDefaultsColumns[3]},
+			},
+		},
+	}
+	// DiagnosisCatalogEntriesColumns holds the columns for the "diagnosis_catalog_entries" table.
+	DiagnosisCatalogEntriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "category", Type: field.TypeString, Nullable: true},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// DiagnosisCatalogEntriesTable holds the schema information for the "diagnosis_catalog_entries" table.
+	DiagnosisCatalogEntriesTable = &schema.Table{
+		Name:       "diagnosis_catalog_entries",
+		Columns:    DiagnosisCatalogEntriesColumns,
+		PrimaryKey: []*schema.Column{DiagnosisCatalogEntriesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "diagnosiscatalogentry_tenant_id_code",
+				Unique:  true,
+				Columns: []*schema.Column{DiagnosisCatalogEntriesColumns[1], DiagnosisCatalogEntriesColumns[2]},
+			},
+		},
+	}
 	// DocumentSequencesColumns holds the columns for the "document_sequences" table.
 	DocumentSequencesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -32,6 +84,47 @@ var (
 				Name:    "documentsequence_tenant_id_kind",
 				Unique:  true,
 				Columns: []*schema.Column{DocumentSequencesColumns[1], DocumentSequencesColumns[2]},
+			},
+		},
+	}
+	// ExaminationRecordsColumns holds the columns for the "examination_records" table.
+	ExaminationRecordsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "clinician_id", Type: field.TypeUUID},
+		{Name: "queue_type", Type: field.TypeEnum, Enums: []string{"doctor", "dental", "mch", "specialist"}, Default: "doctor"},
+		{Name: "chief_complaint", Type: field.TypeString, Nullable: true},
+		{Name: "diagnosis_code", Type: field.TypeString, Nullable: true},
+		{Name: "diagnosis_name", Type: field.TypeString, Nullable: true},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"in_progress", "awaiting_lab", "completed"}, Default: "in_progress"},
+		{Name: "examined_at", Type: field.TypeTime},
+		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "visit_id", Type: field.TypeUUID},
+	}
+	// ExaminationRecordsTable holds the schema information for the "examination_records" table.
+	ExaminationRecordsTable = &schema.Table{
+		Name:       "examination_records",
+		Columns:    ExaminationRecordsColumns,
+		PrimaryKey: []*schema.Column{ExaminationRecordsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "examination_records_patient_visits_examination_records",
+				Columns:    []*schema.Column{ExaminationRecordsColumns[11]},
+				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "examinationrecord_tenant_id_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{ExaminationRecordsColumns[1], ExaminationRecordsColumns[11]},
+			},
+			{
+				Name:    "examinationrecord_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ExaminationRecordsColumns[1], ExaminationRecordsColumns[8]},
 			},
 		},
 	}
@@ -543,7 +636,10 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		DiagnosisCatalogDefaultsTable,
+		DiagnosisCatalogEntriesTable,
 		DocumentSequencesTable,
+		ExaminationRecordsTable,
 		HospitalPermissionsTable,
 		HospitalRolesTable,
 		HospitalUsersTable,
@@ -560,6 +656,7 @@ var (
 )
 
 func init() {
+	ExaminationRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	HospitalUsersTable.ForeignKeys[0].RefTable = TenantsTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
 	PatientVisitsTable.ForeignKeys[0].RefTable = PatientsTable

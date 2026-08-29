@@ -9,6 +9,30 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 )
 
+// The DiagnosisCatalogDefaultFunc type is an adapter to allow the use of ordinary
+// function as DiagnosisCatalogDefault mutator.
+type DiagnosisCatalogDefaultFunc func(context.Context, *ent.DiagnosisCatalogDefaultMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DiagnosisCatalogDefaultFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DiagnosisCatalogDefaultMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DiagnosisCatalogDefaultMutation", m)
+}
+
+// The DiagnosisCatalogEntryFunc type is an adapter to allow the use of ordinary
+// function as DiagnosisCatalogEntry mutator.
+type DiagnosisCatalogEntryFunc func(context.Context, *ent.DiagnosisCatalogEntryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DiagnosisCatalogEntryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DiagnosisCatalogEntryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DiagnosisCatalogEntryMutation", m)
+}
+
 // The DocumentSequenceFunc type is an adapter to allow the use of ordinary
 // function as DocumentSequence mutator.
 type DocumentSequenceFunc func(context.Context, *ent.DocumentSequenceMutation) (ent.Value, error)
@@ -19,6 +43,18 @@ func (f DocumentSequenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DocumentSequenceMutation", m)
+}
+
+// The ExaminationRecordFunc type is an adapter to allow the use of ordinary
+// function as ExaminationRecord mutator.
+type ExaminationRecordFunc func(context.Context, *ent.ExaminationRecordMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ExaminationRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ExaminationRecordMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExaminationRecordMutation", m)
 }
 
 // The HospitalPermissionFunc type is an adapter to allow the use of ordinary

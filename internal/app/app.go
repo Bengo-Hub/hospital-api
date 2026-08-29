@@ -24,9 +24,11 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/migrate"
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
+	"github.com/bengobox/hospital-service/internal/modules/consultation"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
+	"github.com/bengobox/hospital-service/internal/modules/refdata"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
 	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
@@ -131,6 +133,9 @@ func New(ctx context.Context) (*App, error) {
 	if seedErr := rbacService.SeedRoles(ctx); seedErr != nil {
 		log.Warn("rbac: seed global roles/permissions failed (will retry via JIT)", zap.Error(seedErr))
 	}
+	if seedErr := refdata.SeedGlobalDiagnosisCatalog(ctx, ormClient, log); seedErr != nil {
+		log.Warn("refdata: seed global diagnosis catalog failed", zap.Error(seedErr))
+	}
 
 	identitySvc := identity.NewService(ormClient, tenantSyncer)
 	identitySvc.SetRBACService(rbacService)
@@ -140,6 +145,10 @@ func New(ctx context.Context) (*App, error) {
 	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
 	patientsSvc := patients.NewService(ormClient, log)
 	patientsHandler := handlers.NewPatientsHandler(patientsSvc)
+
+	// ── Sprint 2: consultation / examination / diagnosis catalog / referrals ──
+	consultationSvc := consultation.NewService(ormClient, log)
+	consultationHandler := handlers.NewConsultationHandler(consultationSvc)
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
@@ -171,6 +180,7 @@ func New(ctx context.Context) (*App, error) {
 		RBACSvc:        rbacService,
 		AuthMe:         authMeHandler,
 		Patients:       patientsHandler,
+		Consultation:   consultationHandler,
 	}
 	chiRouter := router.New(deps)
 

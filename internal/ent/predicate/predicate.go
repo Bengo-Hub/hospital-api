@@ -6,8 +6,17 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// DiagnosisCatalogDefault is the predicate function for diagnosiscatalogdefault builders.
+type DiagnosisCatalogDefault func(*sql.Selector)
+
+// DiagnosisCatalogEntry is the predicate function for diagnosiscatalogentry builders.
+type DiagnosisCatalogEntry func(*sql.Selector)
+
 // DocumentSequence is the predicate function for documentsequence builders.
 type DocumentSequence func(*sql.Selector)
+
+// ExaminationRecord is the predicate function for examinationrecord builders.
+type ExaminationRecord func(*sql.Selector)
 
 // HospitalPermission is the predicate function for hospitalpermission builders.
 type HospitalPermission func(*sql.Selector)

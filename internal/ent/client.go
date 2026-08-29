@@ -16,7 +16,10 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
+	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
@@ -36,8 +39,14 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// DiagnosisCatalogDefault is the client for interacting with the DiagnosisCatalogDefault builders.
+	DiagnosisCatalogDefault *DiagnosisCatalogDefaultClient
+	// DiagnosisCatalogEntry is the client for interacting with the DiagnosisCatalogEntry builders.
+	DiagnosisCatalogEntry *DiagnosisCatalogEntryClient
 	// DocumentSequence is the client for interacting with the DocumentSequence builders.
 	DocumentSequence *DocumentSequenceClient
+	// ExaminationRecord is the client for interacting with the ExaminationRecord builders.
+	ExaminationRecord *ExaminationRecordClient
 	// HospitalPermission is the client for interacting with the HospitalPermission builders.
 	HospitalPermission *HospitalPermissionClient
 	// HospitalRole is the client for interacting with the HospitalRole builders.
@@ -73,7 +82,10 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.DiagnosisCatalogDefault = NewDiagnosisCatalogDefaultClient(c.config)
+	c.DiagnosisCatalogEntry = NewDiagnosisCatalogEntryClient(c.config)
 	c.DocumentSequence = NewDocumentSequenceClient(c.config)
+	c.ExaminationRecord = NewExaminationRecordClient(c.config)
 	c.HospitalPermission = NewHospitalPermissionClient(c.config)
 	c.HospitalRole = NewHospitalRoleClient(c.config)
 	c.HospitalUser = NewHospitalUserClient(c.config)
@@ -176,21 +188,24 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                ctx,
-		config:             cfg,
-		DocumentSequence:   NewDocumentSequenceClient(cfg),
-		HospitalPermission: NewHospitalPermissionClient(cfg),
-		HospitalRole:       NewHospitalRoleClient(cfg),
-		HospitalUser:       NewHospitalUserClient(cfg),
-		OutboxEvent:        NewOutboxEventClient(cfg),
-		Outlet:             NewOutletClient(cfg),
-		Patient:            NewPatientClient(cfg),
-		PatientVisit:       NewPatientVisitClient(cfg),
-		Referral:           NewReferralClient(cfg),
-		RolePermission:     NewRolePermissionClient(cfg),
-		Tenant:             NewTenantClient(cfg),
-		TriageRecord:       NewTriageRecordClient(cfg),
-		UserRoleAssignment: NewUserRoleAssignmentClient(cfg),
+		ctx:                     ctx,
+		config:                  cfg,
+		DiagnosisCatalogDefault: NewDiagnosisCatalogDefaultClient(cfg),
+		DiagnosisCatalogEntry:   NewDiagnosisCatalogEntryClient(cfg),
+		DocumentSequence:        NewDocumentSequenceClient(cfg),
+		ExaminationRecord:       NewExaminationRecordClient(cfg),
+		HospitalPermission:      NewHospitalPermissionClient(cfg),
+		HospitalRole:            NewHospitalRoleClient(cfg),
+		HospitalUser:            NewHospitalUserClient(cfg),
+		OutboxEvent:             NewOutboxEventClient(cfg),
+		Outlet:                  NewOutletClient(cfg),
+		Patient:                 NewPatientClient(cfg),
+		PatientVisit:            NewPatientVisitClient(cfg),
+		Referral:                NewReferralClient(cfg),
+		RolePermission:          NewRolePermissionClient(cfg),
+		Tenant:                  NewTenantClient(cfg),
+		TriageRecord:            NewTriageRecordClient(cfg),
+		UserRoleAssignment:      NewUserRoleAssignmentClient(cfg),
 	}, nil
 }
 
@@ -208,28 +223,31 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                ctx,
-		config:             cfg,
-		DocumentSequence:   NewDocumentSequenceClient(cfg),
-		HospitalPermission: NewHospitalPermissionClient(cfg),
-		HospitalRole:       NewHospitalRoleClient(cfg),
-		HospitalUser:       NewHospitalUserClient(cfg),
-		OutboxEvent:        NewOutboxEventClient(cfg),
-		Outlet:             NewOutletClient(cfg),
-		Patient:            NewPatientClient(cfg),
-		PatientVisit:       NewPatientVisitClient(cfg),
-		Referral:           NewReferralClient(cfg),
-		RolePermission:     NewRolePermissionClient(cfg),
-		Tenant:             NewTenantClient(cfg),
-		TriageRecord:       NewTriageRecordClient(cfg),
-		UserRoleAssignment: NewUserRoleAssignmentClient(cfg),
+		ctx:                     ctx,
+		config:                  cfg,
+		DiagnosisCatalogDefault: NewDiagnosisCatalogDefaultClient(cfg),
+		DiagnosisCatalogEntry:   NewDiagnosisCatalogEntryClient(cfg),
+		DocumentSequence:        NewDocumentSequenceClient(cfg),
+		ExaminationRecord:       NewExaminationRecordClient(cfg),
+		HospitalPermission:      NewHospitalPermissionClient(cfg),
+		HospitalRole:            NewHospitalRoleClient(cfg),
+		HospitalUser:            NewHospitalUserClient(cfg),
+		OutboxEvent:             NewOutboxEventClient(cfg),
+		Outlet:                  NewOutletClient(cfg),
+		Patient:                 NewPatientClient(cfg),
+		PatientVisit:            NewPatientVisitClient(cfg),
+		Referral:                NewReferralClient(cfg),
+		RolePermission:          NewRolePermissionClient(cfg),
+		Tenant:                  NewTenantClient(cfg),
+		TriageRecord:            NewTriageRecordClient(cfg),
+		UserRoleAssignment:      NewUserRoleAssignmentClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		DocumentSequence.
+//		DiagnosisCatalogDefault.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -252,7 +270,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.DocumentSequence, c.HospitalPermission, c.HospitalRole, c.HospitalUser,
+		c.DiagnosisCatalogDefault, c.DiagnosisCatalogEntry, c.DocumentSequence,
+		c.ExaminationRecord, c.HospitalPermission, c.HospitalRole, c.HospitalUser,
 		c.OutboxEvent, c.Outlet, c.Patient, c.PatientVisit, c.Referral,
 		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
@@ -264,7 +283,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.DocumentSequence, c.HospitalPermission, c.HospitalRole, c.HospitalUser,
+		c.DiagnosisCatalogDefault, c.DiagnosisCatalogEntry, c.DocumentSequence,
+		c.ExaminationRecord, c.HospitalPermission, c.HospitalRole, c.HospitalUser,
 		c.OutboxEvent, c.Outlet, c.Patient, c.PatientVisit, c.Referral,
 		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
@@ -275,8 +295,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *DiagnosisCatalogDefaultMutation:
+		return c.DiagnosisCatalogDefault.mutate(ctx, m)
+	case *DiagnosisCatalogEntryMutation:
+		return c.DiagnosisCatalogEntry.mutate(ctx, m)
 	case *DocumentSequenceMutation:
 		return c.DocumentSequence.mutate(ctx, m)
+	case *ExaminationRecordMutation:
+		return c.ExaminationRecord.mutate(ctx, m)
 	case *HospitalPermissionMutation:
 		return c.HospitalPermission.mutate(ctx, m)
 	case *HospitalRoleMutation:
@@ -303,6 +329,272 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.UserRoleAssignment.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// DiagnosisCatalogDefaultClient is a client for the DiagnosisCatalogDefault schema.
+type DiagnosisCatalogDefaultClient struct {
+	config
+}
+
+// NewDiagnosisCatalogDefaultClient returns a client for the DiagnosisCatalogDefault from the given config.
+func NewDiagnosisCatalogDefaultClient(c config) *DiagnosisCatalogDefaultClient {
+	return &DiagnosisCatalogDefaultClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `diagnosiscatalogdefault.Hooks(f(g(h())))`.
+func (c *DiagnosisCatalogDefaultClient) Use(hooks ...Hook) {
+	c.hooks.DiagnosisCatalogDefault = append(c.hooks.DiagnosisCatalogDefault, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `diagnosiscatalogdefault.Intercept(f(g(h())))`.
+func (c *DiagnosisCatalogDefaultClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DiagnosisCatalogDefault = append(c.inters.DiagnosisCatalogDefault, interceptors...)
+}
+
+// Create returns a builder for creating a DiagnosisCatalogDefault entity.
+func (c *DiagnosisCatalogDefaultClient) Create() *DiagnosisCatalogDefaultCreate {
+	mutation := newDiagnosisCatalogDefaultMutation(c.config, OpCreate)
+	return &DiagnosisCatalogDefaultCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DiagnosisCatalogDefault entities.
+func (c *DiagnosisCatalogDefaultClient) CreateBulk(builders ...*DiagnosisCatalogDefaultCreate) *DiagnosisCatalogDefaultCreateBulk {
+	return &DiagnosisCatalogDefaultCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DiagnosisCatalogDefaultClient) MapCreateBulk(slice any, setFunc func(*DiagnosisCatalogDefaultCreate, int)) *DiagnosisCatalogDefaultCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DiagnosisCatalogDefaultCreateBulk{err: fmt.Errorf("calling to DiagnosisCatalogDefaultClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DiagnosisCatalogDefaultCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DiagnosisCatalogDefaultCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DiagnosisCatalogDefault.
+func (c *DiagnosisCatalogDefaultClient) Update() *DiagnosisCatalogDefaultUpdate {
+	mutation := newDiagnosisCatalogDefaultMutation(c.config, OpUpdate)
+	return &DiagnosisCatalogDefaultUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DiagnosisCatalogDefaultClient) UpdateOne(_m *DiagnosisCatalogDefault) *DiagnosisCatalogDefaultUpdateOne {
+	mutation := newDiagnosisCatalogDefaultMutation(c.config, OpUpdateOne, withDiagnosisCatalogDefault(_m))
+	return &DiagnosisCatalogDefaultUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DiagnosisCatalogDefaultClient) UpdateOneID(id uuid.UUID) *DiagnosisCatalogDefaultUpdateOne {
+	mutation := newDiagnosisCatalogDefaultMutation(c.config, OpUpdateOne, withDiagnosisCatalogDefaultID(id))
+	return &DiagnosisCatalogDefaultUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DiagnosisCatalogDefault.
+func (c *DiagnosisCatalogDefaultClient) Delete() *DiagnosisCatalogDefaultDelete {
+	mutation := newDiagnosisCatalogDefaultMutation(c.config, OpDelete)
+	return &DiagnosisCatalogDefaultDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DiagnosisCatalogDefaultClient) DeleteOne(_m *DiagnosisCatalogDefault) *DiagnosisCatalogDefaultDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DiagnosisCatalogDefaultClient) DeleteOneID(id uuid.UUID) *DiagnosisCatalogDefaultDeleteOne {
+	builder := c.Delete().Where(diagnosiscatalogdefault.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DiagnosisCatalogDefaultDeleteOne{builder}
+}
+
+// Query returns a query builder for DiagnosisCatalogDefault.
+func (c *DiagnosisCatalogDefaultClient) Query() *DiagnosisCatalogDefaultQuery {
+	return &DiagnosisCatalogDefaultQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDiagnosisCatalogDefault},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DiagnosisCatalogDefault entity by its id.
+func (c *DiagnosisCatalogDefaultClient) Get(ctx context.Context, id uuid.UUID) (*DiagnosisCatalogDefault, error) {
+	return c.Query().Where(diagnosiscatalogdefault.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DiagnosisCatalogDefaultClient) GetX(ctx context.Context, id uuid.UUID) *DiagnosisCatalogDefault {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DiagnosisCatalogDefaultClient) Hooks() []Hook {
+	return c.hooks.DiagnosisCatalogDefault
+}
+
+// Interceptors returns the client interceptors.
+func (c *DiagnosisCatalogDefaultClient) Interceptors() []Interceptor {
+	return c.inters.DiagnosisCatalogDefault
+}
+
+func (c *DiagnosisCatalogDefaultClient) mutate(ctx context.Context, m *DiagnosisCatalogDefaultMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DiagnosisCatalogDefaultCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DiagnosisCatalogDefaultUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DiagnosisCatalogDefaultUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DiagnosisCatalogDefaultDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DiagnosisCatalogDefault mutation op: %q", m.Op())
+	}
+}
+
+// DiagnosisCatalogEntryClient is a client for the DiagnosisCatalogEntry schema.
+type DiagnosisCatalogEntryClient struct {
+	config
+}
+
+// NewDiagnosisCatalogEntryClient returns a client for the DiagnosisCatalogEntry from the given config.
+func NewDiagnosisCatalogEntryClient(c config) *DiagnosisCatalogEntryClient {
+	return &DiagnosisCatalogEntryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `diagnosiscatalogentry.Hooks(f(g(h())))`.
+func (c *DiagnosisCatalogEntryClient) Use(hooks ...Hook) {
+	c.hooks.DiagnosisCatalogEntry = append(c.hooks.DiagnosisCatalogEntry, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `diagnosiscatalogentry.Intercept(f(g(h())))`.
+func (c *DiagnosisCatalogEntryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DiagnosisCatalogEntry = append(c.inters.DiagnosisCatalogEntry, interceptors...)
+}
+
+// Create returns a builder for creating a DiagnosisCatalogEntry entity.
+func (c *DiagnosisCatalogEntryClient) Create() *DiagnosisCatalogEntryCreate {
+	mutation := newDiagnosisCatalogEntryMutation(c.config, OpCreate)
+	return &DiagnosisCatalogEntryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DiagnosisCatalogEntry entities.
+func (c *DiagnosisCatalogEntryClient) CreateBulk(builders ...*DiagnosisCatalogEntryCreate) *DiagnosisCatalogEntryCreateBulk {
+	return &DiagnosisCatalogEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DiagnosisCatalogEntryClient) MapCreateBulk(slice any, setFunc func(*DiagnosisCatalogEntryCreate, int)) *DiagnosisCatalogEntryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DiagnosisCatalogEntryCreateBulk{err: fmt.Errorf("calling to DiagnosisCatalogEntryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DiagnosisCatalogEntryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DiagnosisCatalogEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DiagnosisCatalogEntry.
+func (c *DiagnosisCatalogEntryClient) Update() *DiagnosisCatalogEntryUpdate {
+	mutation := newDiagnosisCatalogEntryMutation(c.config, OpUpdate)
+	return &DiagnosisCatalogEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DiagnosisCatalogEntryClient) UpdateOne(_m *DiagnosisCatalogEntry) *DiagnosisCatalogEntryUpdateOne {
+	mutation := newDiagnosisCatalogEntryMutation(c.config, OpUpdateOne, withDiagnosisCatalogEntry(_m))
+	return &DiagnosisCatalogEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DiagnosisCatalogEntryClient) UpdateOneID(id uuid.UUID) *DiagnosisCatalogEntryUpdateOne {
+	mutation := newDiagnosisCatalogEntryMutation(c.config, OpUpdateOne, withDiagnosisCatalogEntryID(id))
+	return &DiagnosisCatalogEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DiagnosisCatalogEntry.
+func (c *DiagnosisCatalogEntryClient) Delete() *DiagnosisCatalogEntryDelete {
+	mutation := newDiagnosisCatalogEntryMutation(c.config, OpDelete)
+	return &DiagnosisCatalogEntryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DiagnosisCatalogEntryClient) DeleteOne(_m *DiagnosisCatalogEntry) *DiagnosisCatalogEntryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DiagnosisCatalogEntryClient) DeleteOneID(id uuid.UUID) *DiagnosisCatalogEntryDeleteOne {
+	builder := c.Delete().Where(diagnosiscatalogentry.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DiagnosisCatalogEntryDeleteOne{builder}
+}
+
+// Query returns a query builder for DiagnosisCatalogEntry.
+func (c *DiagnosisCatalogEntryClient) Query() *DiagnosisCatalogEntryQuery {
+	return &DiagnosisCatalogEntryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDiagnosisCatalogEntry},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DiagnosisCatalogEntry entity by its id.
+func (c *DiagnosisCatalogEntryClient) Get(ctx context.Context, id uuid.UUID) (*DiagnosisCatalogEntry, error) {
+	return c.Query().Where(diagnosiscatalogentry.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DiagnosisCatalogEntryClient) GetX(ctx context.Context, id uuid.UUID) *DiagnosisCatalogEntry {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DiagnosisCatalogEntryClient) Hooks() []Hook {
+	return c.hooks.DiagnosisCatalogEntry
+}
+
+// Interceptors returns the client interceptors.
+func (c *DiagnosisCatalogEntryClient) Interceptors() []Interceptor {
+	return c.inters.DiagnosisCatalogEntry
+}
+
+func (c *DiagnosisCatalogEntryClient) mutate(ctx context.Context, m *DiagnosisCatalogEntryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DiagnosisCatalogEntryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DiagnosisCatalogEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DiagnosisCatalogEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DiagnosisCatalogEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DiagnosisCatalogEntry mutation op: %q", m.Op())
 	}
 }
 
@@ -436,6 +728,155 @@ func (c *DocumentSequenceClient) mutate(ctx context.Context, m *DocumentSequence
 		return (&DocumentSequenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown DocumentSequence mutation op: %q", m.Op())
+	}
+}
+
+// ExaminationRecordClient is a client for the ExaminationRecord schema.
+type ExaminationRecordClient struct {
+	config
+}
+
+// NewExaminationRecordClient returns a client for the ExaminationRecord from the given config.
+func NewExaminationRecordClient(c config) *ExaminationRecordClient {
+	return &ExaminationRecordClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `examinationrecord.Hooks(f(g(h())))`.
+func (c *ExaminationRecordClient) Use(hooks ...Hook) {
+	c.hooks.ExaminationRecord = append(c.hooks.ExaminationRecord, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `examinationrecord.Intercept(f(g(h())))`.
+func (c *ExaminationRecordClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ExaminationRecord = append(c.inters.ExaminationRecord, interceptors...)
+}
+
+// Create returns a builder for creating a ExaminationRecord entity.
+func (c *ExaminationRecordClient) Create() *ExaminationRecordCreate {
+	mutation := newExaminationRecordMutation(c.config, OpCreate)
+	return &ExaminationRecordCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ExaminationRecord entities.
+func (c *ExaminationRecordClient) CreateBulk(builders ...*ExaminationRecordCreate) *ExaminationRecordCreateBulk {
+	return &ExaminationRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ExaminationRecordClient) MapCreateBulk(slice any, setFunc func(*ExaminationRecordCreate, int)) *ExaminationRecordCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ExaminationRecordCreateBulk{err: fmt.Errorf("calling to ExaminationRecordClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ExaminationRecordCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ExaminationRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ExaminationRecord.
+func (c *ExaminationRecordClient) Update() *ExaminationRecordUpdate {
+	mutation := newExaminationRecordMutation(c.config, OpUpdate)
+	return &ExaminationRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ExaminationRecordClient) UpdateOne(_m *ExaminationRecord) *ExaminationRecordUpdateOne {
+	mutation := newExaminationRecordMutation(c.config, OpUpdateOne, withExaminationRecord(_m))
+	return &ExaminationRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ExaminationRecordClient) UpdateOneID(id uuid.UUID) *ExaminationRecordUpdateOne {
+	mutation := newExaminationRecordMutation(c.config, OpUpdateOne, withExaminationRecordID(id))
+	return &ExaminationRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ExaminationRecord.
+func (c *ExaminationRecordClient) Delete() *ExaminationRecordDelete {
+	mutation := newExaminationRecordMutation(c.config, OpDelete)
+	return &ExaminationRecordDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ExaminationRecordClient) DeleteOne(_m *ExaminationRecord) *ExaminationRecordDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ExaminationRecordClient) DeleteOneID(id uuid.UUID) *ExaminationRecordDeleteOne {
+	builder := c.Delete().Where(examinationrecord.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ExaminationRecordDeleteOne{builder}
+}
+
+// Query returns a query builder for ExaminationRecord.
+func (c *ExaminationRecordClient) Query() *ExaminationRecordQuery {
+	return &ExaminationRecordQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeExaminationRecord},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ExaminationRecord entity by its id.
+func (c *ExaminationRecordClient) Get(ctx context.Context, id uuid.UUID) (*ExaminationRecord, error) {
+	return c.Query().Where(examinationrecord.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ExaminationRecordClient) GetX(ctx context.Context, id uuid.UUID) *ExaminationRecord {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryVisit queries the visit edge of a ExaminationRecord.
+func (c *ExaminationRecordClient) QueryVisit(_m *ExaminationRecord) *PatientVisitQuery {
+	query := (&PatientVisitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(examinationrecord.Table, examinationrecord.FieldID, id),
+			sqlgraph.To(patientvisit.Table, patientvisit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, examinationrecord.VisitTable, examinationrecord.VisitColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ExaminationRecordClient) Hooks() []Hook {
+	return c.hooks.ExaminationRecord
+}
+
+// Interceptors returns the client interceptors.
+func (c *ExaminationRecordClient) Interceptors() []Interceptor {
+	return c.inters.ExaminationRecord
+}
+
+func (c *ExaminationRecordClient) mutate(ctx context.Context, m *ExaminationRecordMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ExaminationRecordCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ExaminationRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ExaminationRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ExaminationRecordDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ExaminationRecord mutation op: %q", m.Op())
 	}
 }
 
@@ -1537,6 +1978,22 @@ func (c *PatientVisitClient) QueryReferrals(_m *PatientVisit) *ReferralQuery {
 	return query
 }
 
+// QueryExaminationRecords queries the examination_records edge of a PatientVisit.
+func (c *PatientVisitClient) QueryExaminationRecords(_m *PatientVisit) *ExaminationRecordQuery {
+	query := (&ExaminationRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(patientvisit.Table, patientvisit.FieldID, id),
+			sqlgraph.To(examinationrecord.Table, examinationrecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, patientvisit.ExaminationRecordsTable, patientvisit.ExaminationRecordsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PatientVisitClient) Hooks() []Hook {
 	return c.hooks.PatientVisit
@@ -2358,12 +2815,14 @@ func (c *UserRoleAssignmentClient) mutate(ctx context.Context, m *UserRoleAssign
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		DocumentSequence, HospitalPermission, HospitalRole, HospitalUser, OutboxEvent,
+		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
+		ExaminationRecord, HospitalPermission, HospitalRole, HospitalUser, OutboxEvent,
 		Outlet, Patient, PatientVisit, Referral, RolePermission, Tenant, TriageRecord,
 		UserRoleAssignment []ent.Hook
 	}
 	inters struct {
-		DocumentSequence, HospitalPermission, HospitalRole, HospitalUser, OutboxEvent,
+		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
+		ExaminationRecord, HospitalPermission, HospitalRole, HospitalUser, OutboxEvent,
 		Outlet, Patient, PatientVisit, Referral, RolePermission, Tenant, TriageRecord,
 		UserRoleAssignment []ent.Interceptor
 	}

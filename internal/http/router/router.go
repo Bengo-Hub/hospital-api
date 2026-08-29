@@ -39,6 +39,8 @@ type Deps struct {
 
 	// Sprint 1: patient registration, OPD visit check-in/queue, triage.
 	Patients *handlers.PatientsHandler
+	// Sprint 2: consultation/examination, diagnosis catalog, referrals.
+	Consultation *handlers.ConsultationHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -146,6 +148,18 @@ func New(d Deps) http.Handler {
 
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTriageAdd)).
 					Post("/visits/{visitID}/triage", d.Patients.RecordTriage)
+			}
+
+			// Sprint 2 — Consultation / Examination / Diagnosis Catalog / Referrals.
+			if d.Consultation != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
+					Post("/visits/{visitID}/examination", d.Consultation.RecordExamination)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
+					Post("/visits/{visitID}/refer", d.Consultation.CreateReferral)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
+					Get("/diagnosis-catalog", d.Consultation.ListDiagnosisCatalog)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
+					Post("/diagnosis-catalog", d.Consultation.CreateDiagnosisEntry)
 			}
 		})
 	})

@@ -46,6 +46,8 @@ const (
 	EdgeTriageRecords = "triage_records"
 	// EdgeReferrals holds the string denoting the referrals edge name in mutations.
 	EdgeReferrals = "referrals"
+	// EdgeExaminationRecords holds the string denoting the examination_records edge name in mutations.
+	EdgeExaminationRecords = "examination_records"
 	// Table holds the table name of the patientvisit in the database.
 	Table = "patient_visits"
 	// PatientTable is the table that holds the patient relation/edge.
@@ -69,6 +71,13 @@ const (
 	ReferralsInverseTable = "referrals"
 	// ReferralsColumn is the table column denoting the referrals relation/edge.
 	ReferralsColumn = "visit_id"
+	// ExaminationRecordsTable is the table that holds the examination_records relation/edge.
+	ExaminationRecordsTable = "examination_records"
+	// ExaminationRecordsInverseTable is the table name for the ExaminationRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "examinationrecord" package.
+	ExaminationRecordsInverseTable = "examination_records"
+	// ExaminationRecordsColumn is the table column denoting the examination_records relation/edge.
+	ExaminationRecordsColumn = "visit_id"
 )
 
 // Columns holds all SQL columns for patientvisit fields.
@@ -275,6 +284,20 @@ func ByReferrals(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newReferralsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByExaminationRecordsCount orders the results by examination_records count.
+func ByExaminationRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newExaminationRecordsStep(), opts...)
+	}
+}
+
+// ByExaminationRecords orders the results by examination_records terms.
+func ByExaminationRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newExaminationRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPatientStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -294,5 +317,12 @@ func newReferralsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ReferralsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ReferralsTable, ReferralsColumn),
+	)
+}
+func newExaminationRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ExaminationRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ExaminationRecordsTable, ExaminationRecordsColumn),
 	)
 }

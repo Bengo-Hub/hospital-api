@@ -12,7 +12,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogdefault"
+	"github.com/bengobox/hospital-service/internal/ent/diagnosiscatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/documentsequence"
+	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
@@ -85,19 +88,22 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			documentsequence.Table:   documentsequence.ValidColumn,
-			hospitalpermission.Table: hospitalpermission.ValidColumn,
-			hospitalrole.Table:       hospitalrole.ValidColumn,
-			hospitaluser.Table:       hospitaluser.ValidColumn,
-			outboxevent.Table:        outboxevent.ValidColumn,
-			outlet.Table:             outlet.ValidColumn,
-			patient.Table:            patient.ValidColumn,
-			patientvisit.Table:       patientvisit.ValidColumn,
-			referral.Table:           referral.ValidColumn,
-			rolepermission.Table:     rolepermission.ValidColumn,
-			tenant.Table:             tenant.ValidColumn,
-			triagerecord.Table:       triagerecord.ValidColumn,
-			userroleassignment.Table: userroleassignment.ValidColumn,
+			diagnosiscatalogdefault.Table: diagnosiscatalogdefault.ValidColumn,
+			diagnosiscatalogentry.Table:   diagnosiscatalogentry.ValidColumn,
+			documentsequence.Table:        documentsequence.ValidColumn,
+			examinationrecord.Table:       examinationrecord.ValidColumn,
+			hospitalpermission.Table:      hospitalpermission.ValidColumn,
+			hospitalrole.Table:            hospitalrole.ValidColumn,
+			hospitaluser.Table:            hospitaluser.ValidColumn,
+			outboxevent.Table:             outboxevent.ValidColumn,
+			outlet.Table:                  outlet.ValidColumn,
+			patient.Table:                 patient.ValidColumn,
+			patientvisit.Table:            patientvisit.ValidColumn,
+			referral.Table:                referral.ValidColumn,
+			rolepermission.Table:          rolepermission.ValidColumn,
+			tenant.Table:                  tenant.ValidColumn,
+			triagerecord.Table:            triagerecord.ValidColumn,
+			userroleassignment.Table:      userroleassignment.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)
