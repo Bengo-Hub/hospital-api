@@ -1,6 +1,16 @@
 # Hospital API — Sprint 5: Billing & Patient Accounts (Insurance)
 
-**Status:** ⏳ Planned
+**Status:** ✅ Core ledger shipped 2026-08-29 (`hospital-api@126adbf`) — `BillableItemCatalog`/
+`PatientAccount`/`BillableCharge`/`PatientNextOfKin` schemas, `PostCharge`/`CollectCharge`/
+`SettleAccount`/`OverrideSettlement`/`ListPendingCharges` service logic, permission-gated handlers
+(new `RoleCashier` role + `collect_own`/`collect_any`/`override_settlement` permissions), all
+endpoints below except the 3 insurance proxy routes. **Not yet done**: the
+`insurance/check-eligibility`/`submit-claim`/claim-status endpoints are not wired to any real
+dispense/billing flow (client + treasury-api S2S routes exist from Phase 0, just unconnected here);
+`BillableItemCatalog` has no seed data or admin CRUD yet. Build/vet/test green; no live E2E
+walkthrough run yet (see the master migration plan's Known Gaps). A real RBAC seed idempotency bug
+was found and fixed while adding this sprint's permission codes — see the Changelog note in
+`docs/architecture.md`.
 **Depends on:** Sprint 1/2/3/4 (each posts a `BillableCharge` at its billable step)
 **Goal:** A distributed billing ledger — every department can charge for what it does; the money
 itself (invoices/payments/claims) always stays treasury-owned. See `docs/architecture.md`'s
@@ -62,9 +72,9 @@ of first-contact fees + inpatient accounts.
 - `POST /{tenant}/hospital/billing/accounts/{id}/override-settlement` — releases a patient/body
   with an outstanding balance. Gated on `hospital.billing.override_settlement`, requires a `reason`
   string, fully audit-logged.
-- `POST /{tenant}/hospital/visits/{id}/insurance/check-eligibility` — proxies to treasury-api.
-- `POST /{tenant}/hospital/visits/{id}/insurance/submit-claim` — proxies to treasury-api.
-- `GET /{tenant}/hospital/insurance/claims/{claimID}/status` — proxies treasury-api's poll route.
+- `POST /{tenant}/hospital/visits/{id}/insurance/check-eligibility` — proxies to treasury-api. **Not yet built** (2026-08-29) — the treasury client method exists, no handler calls it yet.
+- `POST /{tenant}/hospital/visits/{id}/insurance/submit-claim` — proxies to treasury-api. **Not yet built** — same gap.
+- `GET /{tenant}/hospital/insurance/claims/{claimID}/status` — proxies treasury-api's poll route. **Not yet built** — same gap.
 
 ## Integration Points
 
@@ -96,23 +106,32 @@ of first-contact fees + inpatient accounts.
 ## Definition of Done
 
 - [ ] A charge posted by any of Sprints 1-4's billable steps appears on `GET .../account`
-      immediately (no polling delay, no reliance on a physical receipt).
+      immediately (no polling delay, no reliance on a physical receipt). Code-complete
+      (`PostCharge`/`GetPatientAccount`), not yet exercised against a live running server.
 - [ ] A department holding only `collect_own` can settle its own charges but is rejected (403) on
-      another department's charge; Billing (`collect_any`) can settle anything.
+      another department's charge; Billing (`collect_any`) can settle anything. The permission-mapping
+      logic (`sourceModulePermission`) has a unit test; the DB-touching collect flow itself does not
+      yet.
 - [ ] `requires_prepayment` charges correctly block the downstream clinical step
-      (`ActivateLabOrderIfPaid`-equivalent) until `status == paid`.
+      (`ActivateLabOrderIfPaid`-equivalent) until `status == paid`. Shipped in Sprint 3's
+      `lab.CreateOrder`/`ActivateIfPaid` (fails open when unconfigured), not yet live-verified.
 - [ ] Discharge/body-release is blocked with a clear balance + settlement options when
       `PatientAccount.balance > 0`, and `override-settlement` requires the dedicated permission +
-      reason and is fully audit-logged.
+      reason and is fully audit-logged. `OverrideSettlement` itself is shipped; the actual
+      discharge/mortuary-release workflow this gates is Sprint 6/10 (Inpatient/Morgue), not built yet,
+      so this can't be verified end to end until then.
 - [ ] A chemist-configured tenant's Billing UI shows only Walk-in Sale — no account/ledger
-      complexity surfaced.
+      complexity surfaced. **Not done** — hospital-ui has not been touched this session (Phase 7).
 - [ ] Full checkout flow tested: multiple billable line types aggregate into one treasury invoice
       when collected together (e.g. Billing desk settling several pending charges at once).
+      **Not yet run** — no live E2E walkthrough this session.
 - [ ] eTIMS opt-in flag correctly gates whether treasury-api transmits to KRA (default OFF);
-      transmitted records carry `source: hospital_sale`.
+      transmitted records carry `source: hospital_sale`. The `hospital_sale` source shipped
+      treasury-api-side in Phase 0; not yet exercised end to end from a hospital-api charge.
 - [ ] Insurance eligibility check works against treasury-api's live connector for at least one
-      configured payer.
-- [ ] `go build`/`go vet` clean; no financial-document schema (`Invoice`/`Payment`/etc.)
+      configured payer. **Not done** — this is the Phase 5 remainder: the client method and
+      treasury-api S2S route exist, but no hospital-api handler calls it from a real flow yet.
+- [x] `go build`/`go vet` clean; no financial-document schema (`Invoice`/`Payment`/etc.)
       introduced in hospital-api — only the billing ledger above.
 
 ## Next Sprint

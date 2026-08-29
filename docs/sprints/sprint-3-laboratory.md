@@ -1,6 +1,10 @@
 # Hospital API — Sprint 3: Laboratory
 
-**Status:** ⏳ Planned
+**Status:** ✅ Shipped 2026-08-29 (`hospital-api@878e0ce`) — `LabTestCatalogDefault`/
+`LabTestCatalogEntry` (a 12-test starter catalogue), `LabOrder`/`LabOrderLine`, real
+`requires_prepayment` gating against Sprint 5-core's billing ledger (fails open when unconfigured),
+and every endpoint below. Build/vet/test green; no live E2E walkthrough run yet (see the master
+migration plan's Known Gaps).
 **Depends on:** Sprint 2 (Consultation & Examination)
 **Goal:** Test ordering, sample tracking, and result capture/delivery — in-house lab for Afya Facility/Hospital tiers; Afya Clinic tenants use this module only for referred-out result capture (no in-house test catalogue).
 
@@ -41,10 +45,12 @@ integration target than in-house analyzer connectivity for a Level 2-4 facility.
 
 ## Definition of Done
 
-- [ ] Global lab-test catalogue seeded idempotently.
-- [ ] Order → collect → result → patient-notified happy path works end to end.
-- [ ] Atlas migration generated and committed.
-- [ ] `go build`/`go vet` clean.
+- [x] Global lab-test catalogue seeded idempotently (12-test starter set via `internal/modules/refdata`).
+- [ ] Order → collect → result → patient-notified happy path works end to end — **not yet run**
+      against a live server/NATS this session; `hospital.lab_order.resulted` publishes on result
+      entry, but notifications-api's actual consumption of it is unverified this round.
+- [x] Atlas migration generated and committed.
+- [x] `go build`/`go vet` clean.
 
 ## Next Sprint
 

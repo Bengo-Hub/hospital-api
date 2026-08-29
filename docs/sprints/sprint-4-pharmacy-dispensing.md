@@ -1,6 +1,13 @@
 # Hospital API — Sprint 4: Pharmacy & Dispensing
 
-**Status:** ⏳ Planned
+**Status:** ✅ Core dispensing lifecycle shipped 2026-08-29 (`hospital-api@4005c21`) —
+`Prescription`/`PrescriptionLine`/`ControlledSubstanceLog`/`DrugInteractionCheck` schemas, full
+create→interaction-check→approve→lock→dispense→reject/cancel lifecycle, FEFO-aware dispense via
+the fixed `ConsumeReservation`, controlled-substance dual-witness log, per-line `BillableCharge`
+posting. Build/vet/test green. **Not yet shipped**: the `GET .../label.pdf` dispensing-label
+endpoint below (no such route/handler exists yet) and the Phase B route-level `enabled_modules`
+403 enforcement (that's Phase 6 of the master migration plan, still open) — see the Acceptance
+Gate checklist for the exact state of each item.
 **Depends on:** Sprint 2 (Examination, for prescribing) — can run in parallel with Sprint 3
 **Goal:** Full prescription/dispensing workflow to feature parity with pos-api's existing pharmacy module, **plus** the standalone-chemist module-toggle configuration. This is Phase A + Phase B of `docs/migration-pos-pharmacy.md` — read that document in full before starting this sprint.
 
@@ -26,7 +33,7 @@ hand-rolled `net/http` client and is explicitly not the pattern to copy (see `do
 - `POST /{tenant}/hospital/prescriptions` — create from an examination.
 - `POST /{tenant}/hospital/prescriptions/{id}/approve` / `/lock` / `/reject` / `/cancel` — lifecycle, matching pos-api's existing state machine.
 - `POST /{tenant}/hospital/prescriptions/{id}/dispense` — dispense (calls inventory-api consumption via the fixed FEFO-aware `ConsumeReservation`, posts a `BillableCharge` per line — Sprint 5, priced from inventory-api's `ItemPricing` — triggers the controlled-substance dual-witness flow when applicable). Pharmacy defaults to `direct` collection mode at every facility tier including a standalone chemist (Phase B below) — the prescriber/pharmacist collects payment on the spot, same as today's pos-api "direct" workflow mode; `billing_queue` remains available as a tenant override for larger facilities that want a dedicated cashier.
-- `GET /{tenant}/hospital/prescriptions/{id}/label.pdf` — dispensing label (adopt the `treasury-api/internal/modules/docs` fpdf engine per `docs/architecture.md`'s Runtime Document Generation note — do **not** copy pos-api's `report_pdf_pharmacy.go`/`printing/dispensing_label.go` verbatim, rebuild on the shared engine).
+- `GET /{tenant}/hospital/prescriptions/{id}/label.pdf` — dispensing label (adopt the `treasury-api/internal/modules/docs` fpdf engine per `docs/architecture.md`'s Runtime Document Generation note — do **not** copy pos-api's `report_pdf_pharmacy.go`/`printing/dispensing_label.go` verbatim, rebuild on the shared engine). **Not yet built** (2026-08-29) — `internal/http/handlers/pharmacy.go` has no label/PDF route yet; deferred, not silently dropped.
 
 ## Integration Points
 
@@ -35,22 +42,37 @@ hand-rolled `net/http` client and is explicitly not the pattern to copy (see `do
 
 ## Phase B — Standalone-chemist configuration (same sprint)
 
-- [ ] Add a tenant-level `enabled_modules` metadata field (JSON on the tenant/subscription config —
-      no new schema table) so a tenant can run with **only** Pharmacy exposed.
-- [ ] Register the standalone-chemist price point in subscriptions-api alongside the Afya tiers.
+- [x] Add a tenant-level `enabled_modules` metadata field (JSON on the tenant/subscription config —
+      no new schema table) so a tenant can run with **only** Pharmacy exposed. Shipped as
+      `Tenant.metadata JSON` in Phase 0 — **the field exists, but no route currently reads it to
+      gate access** (see the Acceptance Gate item below, still open).
+- [x] Register the standalone-chemist price point in subscriptions-api alongside the Afya tiers.
+      Shipped 2026-08-29 as a genuine 4th, cheaper `AFYA_CHEMIST` tier (not a reuse of Afya Clinic's
+      price point) in `subscriptions-api/cmd/seed/plans_hospital.go` — KES 4,500/month, features
+      `pharmacy_dispensing`+`billing` only.
 - [ ] Coordinate with subscriptions-api to migrate existing `POWERSUITE_DAWA_*` subscribers to the
       new configuration (a data task, not a schema change) — see `migration-pos-pharmacy.md` Phase B.3.
+      **Not started** — this is a Phase 9-adjacent data-migration task, gated on pos-api's decisive
+      removal, not this sprint's own scope.
 
 ## Acceptance Gate (Definition of Done)
 
 - [ ] Every workflow in `pos-service/pos-api/docs/sprints/sprint-8-pharmacy-module.md` and
-      `sprint-9-service-module.md` is verified working in hospital-api, one by one.
-- [ ] Controlled-substance dual-witness dispensing verified.
+      `sprint-9-service-module.md` is verified working in hospital-api, one by one. **Not yet
+      done** — no live E2E walkthrough has been run this session (Phase 8's job).
+- [ ] Controlled-substance dual-witness dispensing verified. Code-complete (`Dispense` writes a
+      `ControlledSubstanceLog` row for any line whose dual-witness was supplied) but not exercised
+      against a running server yet.
 - [ ] Drug-interaction check verified against inventory-api's live `DrugInteractionRule` data.
-- [ ] Dispensing label PDF renders via the shared fpdf engine.
+      Code-complete (`CreatePrescription` calls the real check-interactions endpoint) but not
+      exercised live this session.
+- [ ] Dispensing label PDF renders via the shared fpdf engine. **Not built** — no `label.pdf`
+      route/handler exists yet, deferred rather than silently dropped.
 - [ ] Standalone-chemist module toggle verified: a tenant with only Pharmacy enabled cannot reach
-      Consultation/Lab/Inpatient routes (403, not just hidden in the UI).
-- [ ] Atlas migration generated and committed. `go build`/`go vet` clean.
+      Consultation/Lab/Inpatient routes (403, not just hidden in the UI). **Not built** — the
+      `Tenant.metadata` field exists (Phase B above) but no router-level `enabled_modules` gate
+      reads it yet; this is Phase 6 of the master migration plan, still open.
+- [x] Atlas migration generated and committed. `go build`/`go vet` clean.
 - [ ] **Only after all of the above**: proceed to `migration-pos-pharmacy.md` Phase C (per-tenant cutover) as a separate, later effort — not blocking this sprint's own completion.
 
 ## Next Sprint

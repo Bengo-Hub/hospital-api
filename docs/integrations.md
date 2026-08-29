@@ -2,14 +2,20 @@
 
 **Last updated:** 2026-08-29 (§1.7, §2C, §2D, §2E added after a KenyaEMR technical audit and a Kenya
 national-HIE research pass, see `docs/kenyaemr-technical-reference.md` and `docs/compliance-kenya.md`
-§9-10)
+§9-10; later the same day, §1.1-1.3 and §2.1 flipped to "implemented" once Sprint 4/5-core actually
+shipped — see the status note below)
 
-> **Status note:** none of the S2S clients described below are implemented yet — this document
-> specifies the target integration contracts (mirroring proven patterns already live in `pos-api`)
-> so that Sprint 4/5 implement them correctly the first time, using `shared/service-client`
-> (circuit breaker + retry + OTel) rather than a hand-rolled HTTP client — pos-api's
-> `internal/modules/inventory/client.go` is a hand-rolled client and is explicitly **not** the
-> pattern to copy; only its endpoint contracts are worth reusing.
+> **Status note (2026-08-29):** the inventory-api and treasury-api S2S clients described in §1/§2
+> are now implemented — `internal/modules/{inventory,treasury}/client.go`, built on
+> `shared-service-client` (circuit breaker + retry + OTel), not a hand-rolled HTTP client like
+> pos-api's `internal/modules/inventory/client.go` (that file's endpoint contracts were reused,
+> its implementation pattern was not). Drug lookup/interaction-check (§1.1-1.2) and reservation
+> consumption (§1.3) are exercised for real by Sprint 4's pharmacy module; invoice/payment-intent
+> creation (§2.1) is exercised for real by Sprint 5 core's `billing.CollectCharge`. **Still not
+> wired to any real flow**: the insurance eligibility/claim methods in §2.2 exist on the treasury
+> client and the S2S routes exist treasury-api-side, but no hospital-api handler calls them from an
+> actual dispense/billing flow yet — see the master plan's Known Gaps. Asset/blood-lot integrations
+> (§1.5-1.6) and everything in §2A/2B remain unimplemented (Sprint 6+).
 
 ---
 
@@ -20,7 +26,7 @@ never store its own copy of drug classification, lot/expiry, or interaction rule
 
 ### 1.1 Drug master lookup & classification
 
-**Client:** `internal/modules/inventory/client.go` (planned, via `shared/service-client`)
+**Client:** `internal/modules/inventory/client.go` (implemented 2026-08-29, via `shared-service-client`)
 **Calls:** `GET /v1/{tenant}/inventory/items/{sku}`, `GET /v1/{tenant}/inventory/items?type=DRUG`
 **Reads:** `generic_name`, `active_ingredient`, `dosage_form`, `strength`, `drug_class`,
 `controlled_substance_schedule`, `is_controlled_substance`, `requires_age_verification`.
@@ -32,6 +38,8 @@ never store its own copy of drug classification, lot/expiry, or interaction rule
 **Calls:** `POST /v1/{tenant}/inventory/items/check-interactions` (same contract pos-api's
 `CheckInteractions` already proves in production).
 **Trigger:** every time a prescriber adds a line to a `Prescription`.
+**Status (2026-08-29):** implemented — `pharmacy.CreatePrescription` calls this automatically and
+flags the prescription for review on any finding (requires an explicit override reason to approve).
 
 ### 1.3 Lot/expiry-aware dispensing
 
@@ -39,6 +47,9 @@ never store its own copy of drug classification, lot/expiry, or interaction rule
 `POST /v1/{tenant}/inventory/reservations` + `/{id}/consume` — same contract as pos-api's pharmacy
 checkout flow. `ConsumedLot` (lot number, expiry) is stored on `PrescriptionLine` as an audit
 snapshot, not re-modeled locally.
+**Status (2026-08-29):** implemented — `pharmacy.Dispense` calls the now-fixed FEFO-aware
+`ConsumeReservation` (see the inventory-api fix in the migration plan's Phase 0) and stamps the
+real lot/expiry it returns onto each dispensed line.
 
 ### 1.4 Stock/expiry alerts (consumed)
 
@@ -136,6 +147,12 @@ record for money and tax, exactly as it is for every other Codevertex service.
 5. Patient pays via M-Pesa/card/insurance — treasury-api owns the payment intent lifecycle
 ```
 
+**Status (2026-08-29):** implemented as the billing ledger's `collect` primitive rather than a
+single end-of-encounter aggregation — see `docs/sprints/sprint-5-billing-insurance.md` and
+`docs/architecture.md`'s "Distributed Billing & Patient Accounts". `billing.CollectCharge` creates
+a real treasury invoice + payment intent per collection event (one or several pending charges
+collected together), the same underlying S2S calls this flow describes.
+
 ### 2.2 SHA/SHIF/NHIF eligibility & claims (opt-in per tenant/service)
 
 **Calls:** treasury-api's existing DAWA insurance connector — `ListPatientCoverages`,
@@ -144,6 +161,11 @@ treasury-api) — same pattern as pos-api's `internal/modules/treasury/client.go
 encounter requires this** — many clinical services do not carry insurance coverage or a fiscal
 invoice; hospital-api gates the call on the service/tenant configuration, never fires it
 unconditionally.
+**Status (2026-08-29):** the client methods (`CheckEligibility`/`SubmitClaim`/`ListCoverages`/
+`CreateCoverage`/`PollClaimStatus`) exist on `internal/modules/treasury/client.go` and the
+treasury-api S2S routes exist (both shipped Phase 0), but **no hospital-api handler calls them from
+an actual dispense/billing flow yet** — this is Sprint 5's remaining work, tracked in the master
+migration plan's Known Gaps, not silently dropped.
 
 ### 2.3 KRA eTIMS transmission (opt-in per tenant/service)
 
@@ -323,9 +345,11 @@ RBAC tables (`internal/modules/rbac`, ent schemas `HospitalPermission`/`Hospital
 → JIT → `TenantV2` → `OutletContext` → route) are all wired in `internal/http/router/router.go`.
 auth-service registers `hospital-ui` as an OAuth client and a `"hospital"` outlet use_case
 (`ApplicableServices("hospital") -> ["hospital-api"]`) — outlet-sync events now actually reach
-this service. Still Sprint 4+ work: no clinical ent schemas yet (Patient/Prescription/etc., see
-`docs/migration-pos-pharmacy.md`), so there are no permission-gated domain routes beyond the
-placeholder `/ping` yet — only the plumbing those routes will sit behind.
+this service. **Update (2026-08-29):** the clinical ent schemas this section once described as
+future work now exist (Patient/PatientVisit/TriageRecord/Referral/ExaminationRecord/
+DiagnosisCatalog/LabOrder/Prescription/BillableCharge/etc., see `docs/migration-pos-pharmacy.md`
+and `docs/sprints/`), and every Sprint 1-5-core endpoint is a real, permission-gated domain route
+behind this plumbing — no longer just the placeholder `/ping`.
 
 ---
 
@@ -373,3 +397,8 @@ keeps no pharmacy logic at all, for any facility size** — a standalone chemist
 hospital-api's Pharmacy module used in isolation (see the migration doc § 6), not a separate
 pos-api "Dawa" product. This corrects the original 2026-07-31 draft of this ADR, which incorrectly
 proposed pos-api retain a standalone chemist product.
+
+**Progress (2026-08-29):** hospital-api's Sprints 1-5-core were built to feature parity this
+session (see `.claude/plans/pharmacy-to-hospital-service-migration-2026-08-29.md` for the full
+phase-by-phase log). pos-api has NOT been touched — its pharmacy module remains fully intact until
+the parity verification (Phase 8) and decisive removal (Phase 9) phases run, both still ahead.

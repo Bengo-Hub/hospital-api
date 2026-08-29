@@ -1,8 +1,10 @@
 # Hospital API — Architecture
 
-**Last updated:** 2026-07-31 — Initial scaffold audit note: this document describes the *target*
-layered architecture and data-authority boundaries for hospital-api. Only the platform-wiring layer
-(config/logging/db/redis/nats/health/auth) is implemented so far; the domain layers below are planned.
+**Last updated:** 2026-08-29 — Sprints 1, 2, 5-core, 3, 4 shipped real domain code (Patient/OPD/
+Triage, Consultation/Examination, the Billing ledger, Laboratory, Pharmacy/Dispensing) on top of
+the platform-wiring layer described below. This document's data-authority boundaries and the
+Distributed Billing design were written ahead of that code and are confirmed accurate against it;
+see the Layer Overview and Changelog for what is now real versus still planned (Sprints 6-13).
 
 ---
 
@@ -29,10 +31,10 @@ building blocks that already exist elsewhere in the ecosystem (see Data Authorit
 | Layer | Responsibility | Key paths |
 |---|---|---|
 | HTTP | Routing, middleware (tenant/outlet context, CORS, auth), request/response DTOs | `internal/http/{handlers,router}` |
-| Service/Module | Business logic per domain (patient, triage, lab, pharmacy, billing) | `internal/modules/<domain>/` (planned, none yet) |
-| Data | ent schemas + Atlas versioned migrations | `internal/ent/schema/` (empty — see its `README.md`) |
+| Service/Module | Business logic per domain (patient, triage, lab, pharmacy, billing) | `internal/modules/{patients,consultation,lab,pharmacy,billing,refdata,sequence,...}/` — real, shipped 2026-08-29 for Sprints 1/2/3/4/5-core; Sprints 6+ still planned |
+| Data | ent schemas + Atlas versioned migrations | `internal/ent/schema/` — real schemas + generated migrations for Sprints 1-5-core (Patient/PatientVisit/TriageRecord/Referral/ExaminationRecord/DiagnosisCatalog*/LabOrder*/LabTestCatalog*/Prescription*/ControlledSubstanceLog/DrugInteractionCheck/BillableItemCatalog/PatientAccount/BillableCharge/PatientNextOfKin/OutboxEvent/DocumentSequence); Sprints 6+ tables still planned |
 | Platform | Infra wiring: Postgres pool, Redis client, NATS connection, outbox | `internal/platform/{database,cache,events}` |
-| Event | Transactional outbox → NATS JetStream (`shared-events`) | planned: `internal/ent/schema/outboxevent.go` + `shared-events` publisher, mirroring `library-service/library-api` |
+| Event | Transactional outbox → NATS JetStream (`shared-events`) | shipped 2026-08-29: `internal/ent/schema/outbox_event.go` + `internal/events/publish.go` + `shared-events` `OutboxPoller` wired in `internal/app/app.go`, publishing `hospital.patient.created`/`hospital.visit.admitted`/`hospital.lab_order.resulted` |
 
 ## Data Authority (owns vs. references)
 
@@ -195,3 +197,17 @@ Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses t
   useful `EXEMPTED` charge-status value to add at Sprint 5. Specialized-care programme list expanded
   to include VMMC, an OTZ adolescent-ART cohort flag, PMTCT/EID follow-up, and cervical/prostate
   cancer screening, the real programmes Kenya's dominant clinical EMR tracks as distinct modules.
+- **2026-08-29 (later same day)** — Sprints 1, 2, 5-core, 3, 4 implemented in code, in that build
+  order (`hospital-api@05741fd`/`709b140`/`126adbf`/`878e0ce`/`4005c21`, on top of Phase-0 groundwork
+  `19ad7cb`/`024a297`): Patient/OPD/Triage/Referral, Consultation/Examination/Diagnosis-Catalogue
+  (confirmed ICD-11, seeded via the new `internal/modules/refdata` package), the Billing ledger
+  (`BillableItemCatalog`/`PatientAccount`/`BillableCharge`/`PatientNextOfKin` + collect/queue/settle/
+  override-settlement), Laboratory (`requires_prepayment` gating live against the ledger), and
+  Pharmacy/Dispensing (FEFO-aware dispense via the fixed `ConsumeReservation`, controlled-substance
+  dual-witness log, per-line `BillableCharge` posting). Also found+fixed two real infra gaps
+  (`cmd/migrate`/`cmd/seed` were both total no-op stubs) and one real RBAC seed idempotency bug
+  (`SeedRoles`'s fast-path meant permission codes added after first seed silently never landed in an
+  already-provisioned environment, including prod). Full detail:
+  `.claude/plans/pharmacy-to-hospital-service-migration-2026-08-29.md`. Not yet done: insurance
+  eligibility/claim wiring into an actual checkout flow, `BillableItemCatalog` seed data, hospital-ui,
+  and any live E2E run against a running server.

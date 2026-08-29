@@ -14,8 +14,11 @@
 
 ## Tasks
 
-- [ ] Register `service_tag: "hospital"` in subscriptions-api with plans `AFYA_CLINIC`,
-      `AFYA_FACILITY`, `AFYA_HOSPITAL`, plus the standalone-chemist configuration from Sprint 4.
+- [x] Register `service_tag: "hospital"` in subscriptions-api with plans `AFYA_CLINIC`,
+      `AFYA_FACILITY`, `AFYA_HOSPITAL` (shipped 2026-08-01), plus `AFYA_CHEMIST` as a genuine 4th,
+      cheaper tier (shipped 2026-08-29 alongside Sprint 4 — see `docs/integrations.md` §4 and
+      `docs/sprints/sprint-4-pharmacy-dispensing.md` Phase B; not a configuration-within-Clinic as
+      this line originally implied).
 - [ ] Feature gates: `inpatient_module`, `in_house_lab`, `insurance_claims`, `theatre_icu`,
       `blood_bank`, `ambulance_dispatch`, `multi_branch`, `specialized_programmes`, `khis_reporting`,
       `api_access`.

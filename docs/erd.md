@@ -1,13 +1,17 @@
 # Hospital API — Entity Relationship Diagram
 
-**Last updated:** 2026-08-29 — Initial ERD draft (2026-07-31) written alongside the Sprint-0
-scaffold, still not yet implemented (`internal/ent/schema/` is empty) — the tables below remain the
-planned model for Sprint 1 onward. 2026-08-29 update, based on a KenyaEMR technical audit
-(`docs/kenyaemr-technical-reference.md`): expanded the specialized-programmes table (VMMC, an OTZ
-flag on `art_record`, HIV-exposed-infant/PMTCT follow-up, cervical/prostate cancer screening), added
-`patient.identification_type`/`identification_number` (Maisha Number support), and added a
-`loinc_code` field to the lab-test catalogue — all additive metadata, no change to the tables already
-planned.
+**Last updated:** 2026-08-29 — Initial ERD draft written 2026-07-31 alongside the Sprint-0 scaffold.
+**As of 2026-08-29 (later the same day), the Patient & Visits, Clinical Workflow, Pharmacy &
+Dispensing, and Billing & Patient Accounts sections below are real, implemented `internal/ent/schema/`
+tables with generated Atlas migrations** (Sprints 1/2/3/4/5-core — see `docs/sprints/`); the
+Tenant & Outlet Structure / Global Reference Data tables were already implemented since 2026-08-01.
+Inpatient, Theatre & Critical Care, Blood Bank & Transfusion, Ambulance & Emergency Dispatch, and
+Specialized Care Programmes remain the **planned** model for Sprint 6 onward — not yet built. A
+KenyaEMR technical audit earlier the same day (`docs/kenyaemr-technical-reference.md`) expanded the
+specialized-programmes table (VMMC, an OTZ flag on `art_record`, HIV-exposed-infant/PMTCT follow-up,
+cervical/prostate cancer screening), added `patient.identification_type`/`identification_number`
+(Maisha Number support), and added a `loinc_code` field to the lab-test catalogue — all additive
+metadata, carried through into the real Sprint-1/3 schemas as built.
 
 ---
 
@@ -44,7 +48,7 @@ planned.
 
 ---
 
-## Patient & Visits
+## Patient & Visits (implemented — Sprint 1)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -54,7 +58,7 @@ planned.
 
 ---
 
-## Clinical Workflow
+## Clinical Workflow (implemented — Sprints 2/3)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -67,7 +71,7 @@ planned.
 
 ---
 
-## Pharmacy & Dispensing
+## Pharmacy & Dispensing (implemented — Sprint 4)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -78,7 +82,7 @@ planned.
 
 ---
 
-## Billing & Patient Accounts (Sprint 5 — see `docs/architecture.md` "Distributed Billing & Patient Accounts")
+## Billing & Patient Accounts (implemented — Sprint 5 core; see `docs/architecture.md` "Distributed Billing & Patient Accounts")
 
 The **billing ledger**, not the money itself — `invoice_id`/`payment_intent_id` on `billable_charge`
 reference treasury-api, which stays the sole owner of every financial document.
@@ -92,7 +96,7 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 ---
 
-## Inpatient
+## Inpatient (planned — Sprint 6)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -102,7 +106,7 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 ---
 
-## Theatre & Critical Care (Afya Hospital tier)
+## Theatre & Critical Care (planned — Sprint 7, Afya Hospital tier)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -111,7 +115,7 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 ---
 
-## Blood Bank & Transfusion (Afya Hospital tier)
+## Blood Bank & Transfusion (planned — Sprint 8, Afya Hospital tier)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -121,7 +125,7 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 ---
 
-## Ambulance & Emergency Dispatch (thin reference — Afya Hospital tier)
+## Ambulance & Emergency Dispatch (planned — Sprint 9, thin reference — Afya Hospital tier)
 
 | Table | Key Columns | Description |
 |---|---|---|
@@ -130,7 +134,7 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 ---
 
-## Specialized Care Programmes
+## Specialized Care Programmes (planned — Sprint 10)
 
 | Table | Key Columns | Description |
 |---|---|---|

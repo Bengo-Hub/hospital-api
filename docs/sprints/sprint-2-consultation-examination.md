@@ -1,6 +1,9 @@
 # Hospital API — Sprint 2: Consultation & Examination
 
-**Status:** ⏳ Planned
+**Status:** ✅ Shipped 2026-08-29 (`hospital-api@709b140`) — `ExaminationRecord`,
+`DiagnosisCatalogDefault` (global, confirmed ICD-11, a 20-code starter set)/`DiagnosisCatalogEntry`
+(tenant-custom), the new `internal/modules/refdata` seed package, and every endpoint below.
+Build/vet/test green; no live E2E walkthrough run yet (see the master migration plan's Known Gaps).
 **Depends on:** Sprint 1 (Patient/Visit/Triage)
 **Goal:** Doctor/dental/MCH/specialist consultation workflow with structured examination notes and diagnosis capture.
 
@@ -31,12 +34,14 @@ tenant-custom additions do.
 
 ## Definition of Done
 
-- [ ] Global diagnosis catalogue seeded idempotently at startup (mirror `library-api`'s
+- [x] Global diagnosis catalogue seeded idempotently at startup (mirror `library-api`'s
       `refdata.SeedGlobal*` pattern — a `modules/refdata` package, not ad-hoc seed code scattered
-      across handlers).
-- [ ] Consultation → diagnosis → referral-to-lab happy path works end to end.
-- [ ] Atlas migration generated and committed.
-- [ ] `go build`/`go vet` clean.
+      across handlers). Explicitly a 20-code starter set, not a full ICD-11 import — `cmd/seed/main.go`
+      was also found to be a no-op stub and fixed to actually run it.
+- [ ] Consultation → diagnosis → referral-to-lab happy path works end to end — **not yet run** against
+      a live server this session, see the master plan's Known Gaps.
+- [x] Atlas migration generated and committed.
+- [x] `go build`/`go vet` clean.
 
 ## Next Sprint
 

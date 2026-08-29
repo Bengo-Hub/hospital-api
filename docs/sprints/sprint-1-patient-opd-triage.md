@@ -1,6 +1,10 @@
 # Hospital API — Sprint 1: Patient Registry, OPD Reception & Queuing, Triage
 
-**Status:** ⏳ Planned
+**Status:** ✅ Shipped 2026-08-29 (`hospital-api@05741fd`) — `Patient`/`PatientVisit`/`TriageRecord`/
+`Referral` schemas, sequence-based MRN/visit-number allocation (ported `internal/modules/sequence`
+from library-api), the first real transactional-outbox wiring (`OutboxEvent` + `shared-events`
+`OutboxPoller`), and every endpoint below. Build/vet/test green; no live E2E walkthrough run yet
+(see the master migration plan's Known Gaps).
 **Depends on:** Sprint 0 (Foundations)
 **Goal:** Stand up the spine every other module hangs off — `Patient`, `PatientVisit`, `TriageRecord` — migrated in *meaning* from pos-api's existing schemas (not copy-pasted; fix known issues along the way, e.g. adopt `shared/service-client` instead of a hand-rolled HTTP client).
 
@@ -36,12 +40,12 @@ copy pos-api's data-ownership mistakes forward.
 
 ## Definition of Done
 
-- [ ] `go generate ./internal/ent/...` + Atlas versioned migration generated and committed.
-- [ ] `go build ./...` / `go vet ./...` clean.
-- [ ] Patient registration → visit check-in → triage happy path works end to end (manual curl or integration test).
-- [ ] `GET /{tenant}/hospital/auth/me` returns a JIT-provisioned default role.
-- [ ] Outbox events publish and are visible on the `hospital` NATS stream.
-- [ ] Docs updated: `erd.md`/`architecture.md` marked "implemented" for these tables.
+- [x] `go generate ./internal/ent/...` + Atlas versioned migration generated and committed.
+- [x] `go build ./...` / `go vet ./...` clean.
+- [ ] Patient registration → visit check-in → triage happy path works end to end (manual curl or integration test) — **not yet run**: no request has been fired against a running server this session, see the master plan's Known Gaps. This is Phase 8's job.
+- [x] `GET /{tenant}/hospital/auth/me` returns a JIT-provisioned default role (shipped as part of the 2026-08-01 Trinity wiring, exercised by every sprint since).
+- [ ] Outbox events publish and are visible on the `hospital` NATS stream — the publisher/poller is wired and unit-tested at the code level, but not yet observed against a live NATS stream this session.
+- [x] Docs updated: `erd.md`/`architecture.md` marked "implemented" for these tables.
 
 ## Next Sprint
 

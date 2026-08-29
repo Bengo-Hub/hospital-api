@@ -1,16 +1,18 @@
 # Hospital API — Sprint Plans
 
-**Last updated:** 2026-07-31 (Round 2 — full sprint-by-sprint roadmap written after the expanded
+**Last updated:** 2026-08-29 (Sprints 1, 2, 5-core, 3, 4 shipped this session, in that build order —
+see each sprint file's Status header and `.claude/plans/pharmacy-to-hospital-service-migration-2026-08-29.md`
+for the full progress log. Originally written 2026-07-31, Round 2, after the expanded
 department-catalog research; see `.claude/plans/hospital-service-codevertex-afya-2026-07-31.md`).
 
 | Sprint | Topic | File |
 |---|---|---|
 | 0 | Foundations | [sprint-0-foundations.md](sprint-0-foundations.md) ✅ shipped |
-| 1 | Patient registry, OPD reception/queuing, Triage | [sprint-1-patient-opd-triage.md](sprint-1-patient-opd-triage.md) |
-| 2 | Consultation & Examination, Diagnosis Catalogue | [sprint-2-consultation-examination.md](sprint-2-consultation-examination.md) |
-| 3 | Laboratory | [sprint-3-laboratory.md](sprint-3-laboratory.md) |
-| 4 | Pharmacy & Dispensing (migrated from pos-api) + standalone-chemist config | [sprint-4-pharmacy-dispensing.md](sprint-4-pharmacy-dispensing.md) |
-| 5 | Billing & Insurance | [sprint-5-billing-insurance.md](sprint-5-billing-insurance.md) |
+| 1 | Patient registry, OPD reception/queuing, Triage | [sprint-1-patient-opd-triage.md](sprint-1-patient-opd-triage.md) ✅ shipped 2026-08-29 |
+| 2 | Consultation & Examination, Diagnosis Catalogue | [sprint-2-consultation-examination.md](sprint-2-consultation-examination.md) ✅ shipped 2026-08-29 |
+| 3 | Laboratory | [sprint-3-laboratory.md](sprint-3-laboratory.md) ✅ shipped 2026-08-29 |
+| 4 | Pharmacy & Dispensing (migrated from pos-api) + standalone-chemist config | [sprint-4-pharmacy-dispensing.md](sprint-4-pharmacy-dispensing.md) ✅ core dispensing shipped 2026-08-29 (label-PDF endpoint + route-level module gating still open) |
+| 5 | Billing & Insurance | [sprint-5-billing-insurance.md](sprint-5-billing-insurance.md) ✅ core ledger shipped 2026-08-29 (insurance-flow wiring still open) |
 | 6 | Inpatient | [sprint-6-inpatient.md](sprint-6-inpatient.md) |
 | 7 | Theatre/OT + ICU | [sprint-7-theatre-icu.md](sprint-7-theatre-icu.md) |
 | 8 | Blood Bank & Transfusion | [sprint-8-blood-bank.md](sprint-8-blood-bank.md) |

@@ -5,7 +5,7 @@
 **Language:** Go 1.26
 **Production domain (planned):** `afyaapi.codevertexafrica.com`
 **Last updated:** 2026-08-29
-**Status:** Sprint-0 scaffold shipped (config/logging/db-pool/redis/nats/health/JWKS-auth wired, `go build`/`go vet` clean, health/readiness/protected-route smoke-tested). No domain ent schemas or business logic yet.
+**Status:** Sprints 0-4 + Sprint 5 core shipped (`go build`/`go vet`/`go test` green, Atlas migrations generated). Patient/OPD/Triage, Consultation/Examination, Laboratory, Pharmacy/Dispensing, and the Billing ledger's collect/queue endpoints are real, working Go code — see "Current State" below and `docs/sprints/` for what shipped in each. No live E2E walkthrough has been run yet (see the master plan's Known Gaps), and hospital-ui has not been touched.
 
 ---
 
@@ -23,16 +23,20 @@ A third research pass, the same day, went deeper: a direct technical audit of Ke
 
 ---
 
-## Current State (2026-07-31)
+## Current State (2026-08-29)
 
-**Sprint-0 scaffold only.** Implemented:
+**Sprint-0 scaffold (2026-07-31)**:
 - `internal/config` — env-var configuration (Postgres, Redis, NATS, Auth/JWKS, S2S service URLs).
 - `internal/platform/{database,cache,events}` — pgx pool, Redis client, NATS connection + `hospital` JetStream stream (`hospital.>` subjects).
 - `internal/http/{handlers,router}` — `/healthz`, `/readyz`, `/metrics`, and one JWKS-authenticated placeholder route (`GET /api/v1/{tenant}/hospital/ping`) proving the auth middleware chain works.
-- `internal/app` — wires all of the above; no ent client, no domain schemas, no outbox publisher yet (those need at least one ent schema to exist — see `internal/ent/schema/README.md`).
-- `cmd/{api,migrate,seed}` — `api` runs the server; `migrate`/`seed` are no-op placeholders until Sprint 0 lands real schemas.
+- `internal/app` — wires all of the above.
+- `cmd/{api,migrate,seed}` — `api` runs the server. **`migrate`/`seed` were later found to be total no-op stubs** (see below) — fixed 2026-08-29 while adding Sprint 1's first real schema.
 
-**Not yet implemented**: everything domain-specific (Patient, Visit, Consultation, Lab, Pharmacy, Inpatient, Billing integration, RBAC, events). See the phased roadmap below and `docs/sprints/`.
+**Phase 0 groundwork (2026-08-29)**: `Tenant.metadata JSON` field (caches `facility_type`/`enabled_modules`); `internal/modules/{inventory,treasury}/client.go` on `shared-service-client`; `cmd/migrate/main.go` rebuilt from a no-op stub to the fleet-standard advisory-lock pattern; `scripts/entrypoint.sh` fixed to fail loudly on migrate errors instead of swallowing them.
+
+**Sprints 1, 2, 5-core, 3, 4 (2026-08-29, same day, in that build order — see the master plan's build-order note)**: real Ent schemas, service-layer business logic, and RBAC-gated HTTP handlers now exist for Patient/OPD/Triage, Consultation/Examination/Diagnosis-Catalogue, the Billing ledger (`BillableItemCatalog`/`PatientAccount`/`BillableCharge`/`PatientNextOfKin`), Laboratory, and Pharmacy/Dispensing — the core pos-api migration target. `cmd/seed/main.go` was also found to be a no-op stub and fixed to actually run the new `internal/modules/refdata` global-catalogue seed. Full detail per sprint in `docs/sprints/sprint-{1,2,3,4,5}-*.md` and the progress log in `.claude/plans/pharmacy-to-hospital-service-migration-2026-08-29.md`.
+
+**Not yet implemented**: Sprint 5's insurance eligibility/claim wiring into an actual checkout flow, `BillableItemCatalog` seed data + admin CRUD, hospital-ui (no pages touched at all), Sprints 6-13 (Inpatient onward), and the pos-api decisive-removal phase. No live E2E request has been fired against a running server this session. See the phased roadmap below and `docs/sprints/`.
 
 ---
 
@@ -44,11 +48,11 @@ market research; see `.claude/plans/hospital-service-codevertex-afya-2026-07-31.
 | Sprint | Capability | Status |
 |---|---|---|
 | 0 | Foundations: repo scaffold, config/logging/db/redis/nats wiring, health checks, JWKS auth middleware | ✅ Scaffold shipped |
-| 1 | Patient registry, OPD reception/queuing, Triage — migrated from pos-api's `Patient`/`PatientVisit`/`TriageRecord` | ⏳ Planned |
-| 2 | Consultation & Examination — `ExaminationRecord`, `DiagnosisCatalog` (global reference + tenant custom) | ⏳ Planned |
-| 3 | Laboratory — `LabOrder`/`LabOrderLine`, `LabTest` catalogue (global reference data) | ⏳ Planned |
-| 4 | Pharmacy & Dispensing — migrated from pos-api's `Prescription`/`PrescriptionLine`/`ControlledSubstanceLog`; calls `inventory-api` for drug master/lot/interactions; includes the standalone-chemist module-toggle configuration (see `docs/migration-pos-pharmacy.md` § 6) | ⏳ Planned |
-| 5 | Billing & Insurance — calls `treasury-api` for invoices + SHA/SHIF/NHIF eligibility/claims (eTIMS opt-in per tenant/service) | ⏳ Planned |
+| 1 | Patient registry, OPD reception/queuing, Triage — migrated from pos-api's `Patient`/`PatientVisit`/`TriageRecord` | ✅ Shipped 2026-08-29 (`hospital-api@05741fd`) |
+| 2 | Consultation & Examination — `ExaminationRecord`, `DiagnosisCatalog` (global reference + tenant custom) | ✅ Shipped 2026-08-29 (`hospital-api@709b140`) |
+| 3 | Laboratory — `LabOrder`/`LabOrderLine`, `LabTest` catalogue (global reference data) | ✅ Shipped 2026-08-29 (`hospital-api@878e0ce`) |
+| 4 | Pharmacy & Dispensing — migrated from pos-api's `Prescription`/`PrescriptionLine`/`ControlledSubstanceLog`; calls `inventory-api` for drug master/lot/interactions; includes the standalone-chemist module-toggle configuration (see `docs/migration-pos-pharmacy.md` § 6) | ✅ Core dispensing lifecycle shipped 2026-08-29 (`hospital-api@4005c21`); dispensing-label PDF endpoint and the route-level `enabled_modules` 403 gate are NOT yet built — see Sprint 4's doc |
+| 5 | Billing & Insurance — calls `treasury-api` for invoices + SHA/SHIF/NHIF eligibility/claims (eTIMS opt-in per tenant/service) | ✅ Core ledger shipped 2026-08-29 (`hospital-api@126adbf`) — charge/collect/queue/settle/override-settlement; insurance eligibility/claim endpoints not yet wired into a checkout flow |
 | 6 | Inpatient — Ward/Bed/Admission, discharge summaries | ⏳ Planned |
 | 7 | Theatre/OT scheduling + ICU/Critical-care monitoring | ⏳ Planned |
 | 8 | Blood Bank & Transfusion — donor registry, cross-match, transfusion records (built on inventory-api's lot tracking for physical blood units) | ⏳ Planned |
