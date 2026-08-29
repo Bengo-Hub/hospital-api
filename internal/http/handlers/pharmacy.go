@@ -8,17 +8,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
 	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
+	"github.com/bengobox/hospital-service/internal/modules/rbac"
 )
 
 // PharmacyHandler implements Sprint 4's prescription lifecycle/dispensing HTTP surface.
 type PharmacyHandler struct {
-	svc *pharmacy.Service
+	svc     *pharmacy.Service
+	rbacSvc outletmw.PermissionChecker
 }
 
 // NewPharmacyHandler creates a new PharmacyHandler.
-func NewPharmacyHandler(svc *pharmacy.Service) *PharmacyHandler {
-	return &PharmacyHandler{svc: svc}
+func NewPharmacyHandler(svc *pharmacy.Service, rbacSvc outletmw.PermissionChecker) *PharmacyHandler {
+	return &PharmacyHandler{svc: svc, rbacSvc: rbacSvc}
 }
 
 type prescriptionLineRequest struct {
@@ -372,6 +375,18 @@ func (h *PharmacyHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "invalid prescription ID")
 		return
+	}
+	// Same per-charge-module gate CollectCharge enforces on the cash path (see billing.go's
+	// sourceModulePermission) — the route-level RequireServicePermission only checks collect_own
+	// OR collect_any, which would let a collect_own-only holder claim PHARMACY charges via
+	// insurance without holding pharmacy-dispensing permission. A prescription's charges are
+	// always source_module="pharmacy", so this is a single fixed check, not a charge-list scan.
+	if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectAny) {
+		if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectOwn) ||
+			!outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermPharmacyDispense) {
+			respondError(w, http.StatusForbidden, "you do not have permission to claim this prescription's charges")
+			return
+		}
 	}
 	var in pharmacyInsuranceClaimRequest
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {

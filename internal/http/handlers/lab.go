@@ -7,17 +7,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
 	"github.com/bengobox/hospital-service/internal/modules/lab"
+	"github.com/bengobox/hospital-service/internal/modules/rbac"
 )
 
 // LabHandler implements Sprint 3's lab ordering/worklist/result-capture HTTP surface.
 type LabHandler struct {
-	svc *lab.Service
+	svc     *lab.Service
+	rbacSvc outletmw.PermissionChecker
 }
 
 // NewLabHandler creates a new LabHandler.
-func NewLabHandler(svc *lab.Service) *LabHandler {
-	return &LabHandler{svc: svc}
+func NewLabHandler(svc *lab.Service, rbacSvc outletmw.PermissionChecker) *LabHandler {
+	return &LabHandler{svc: svc, rbacSvc: rbacSvc}
 }
 
 type createLabOrderRequest struct {
@@ -134,6 +137,18 @@ func (h *LabHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "invalid order ID")
 		return
+	}
+	// Same per-charge-module gate CollectCharge enforces on the cash path (see billing.go's
+	// sourceModulePermission) — the route-level RequireServicePermission only checks collect_own
+	// OR collect_any, which would let a collect_own-only holder (e.g. a nurse) claim LAB charges
+	// via insurance without actually holding lab permission. A lab order's charges are always
+	// source_module="lab", so this is a single fixed check rather than iterating a charge list.
+	if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectAny) {
+		if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectOwn) ||
+			!outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermLabAdd) {
+			respondError(w, http.StatusForbidden, "you do not have permission to claim this order's charges")
+			return
+		}
 	}
 	var in labInsuranceClaimRequest
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {

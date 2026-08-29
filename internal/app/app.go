@@ -198,7 +198,7 @@ func New(ctx context.Context) (*App, error) {
 
 	// ── Sprint 3: laboratory ───────────────────────────────────────────────
 	labSvc := lab.NewService(ormClient, billingSvc, log)
-	labHandler := handlers.NewLabHandler(labSvc)
+	labHandler := handlers.NewLabHandler(labSvc, rbacService)
 
 	// ── Sprint 4: pharmacy / dispensing ────────────────────────────────────
 	inventorySvc := inventoryclient.NewClient(cfg.Services.InventoryURL, cfg.Auth.APIKey, log)
@@ -215,7 +215,7 @@ func New(ctx context.Context) (*App, error) {
 		witnessTokenSecret = []byte(cfg.Auth.APIKey)
 	}
 	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log, authAPIClient, validator, rbacService, witnessTokenSecret)
-	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc)
+	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc, rbacService)
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
