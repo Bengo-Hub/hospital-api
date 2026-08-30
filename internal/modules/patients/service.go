@@ -213,17 +213,23 @@ func (s *Service) GetVisit(ctx context.Context, tenantID, visitID uuid.UUID) (*e
 
 // ListVisitsRequest filters the OPD queue.
 type ListVisitsRequest struct {
-	Status   string // empty = all open (not completed/cancelled)
-	OutletID *uuid.UUID
-	Limit    int
+	Status    string // empty = all open (not completed/cancelled), unless PatientID is set
+	OutletID  *uuid.UUID
+	PatientID *uuid.UUID // when set, returns the patient's FULL visit history (any status)
+	Limit     int
 }
 
-// ListVisits returns the OPD queue for a tenant, optionally filtered by status/outlet.
+// ListVisits returns the OPD queue for a tenant, optionally filtered by status/outlet — or, when
+// PatientID is set, a specific patient's full visit history (every status, newest first, for the
+// patient detail page) rather than just the open queue.
 func (s *Service) ListVisits(ctx context.Context, tenantID uuid.UUID, req ListVisitsRequest) ([]*ent.PatientVisit, error) {
 	q := s.client.PatientVisit.Query().Where(patientvisit.TenantID(tenantID))
+	if req.PatientID != nil {
+		q = q.Where(patientvisit.PatientID(*req.PatientID))
+	}
 	if req.Status != "" {
 		q = q.Where(patientvisit.StatusEQ(patientvisit.Status(req.Status)))
-	} else {
+	} else if req.PatientID == nil {
 		q = q.Where(patientvisit.StatusNotIn(patientvisit.StatusCompleted, patientvisit.StatusCancelled))
 	}
 	if req.OutletID != nil {
@@ -233,7 +239,69 @@ func (s *Service) ListVisits(ctx context.Context, tenantID uuid.UUID, req ListVi
 	if limit <= 0 || limit > 200 {
 		limit = 100
 	}
-	return q.Order(ent.Asc(patientvisit.FieldCreatedAt)).Limit(limit).All(ctx)
+	order := ent.Asc(patientvisit.FieldCreatedAt)
+	if req.PatientID != nil {
+		order = ent.Desc(patientvisit.FieldCreatedAt) // history: newest first
+	}
+	return q.Order(order).Limit(limit).All(ctx)
+}
+
+// UpdatePatientRequest is the input to UpdatePatient — every field is a pointer so only fields
+// the caller actually sent are changed. `mrn`/`outlet_id`/`status` are deliberately not editable
+// here: MRN is the sequence-generated business identifier, the registering outlet is historical,
+// and status (active/inactive/merged) needs its own audited action, not a plain field edit.
+type UpdatePatientRequest struct {
+	FullName  *string
+	DOB       *time.Time
+	Sex       *string
+	Phone     *string
+	IDNumber  *string
+	Address   *string
+	NextOfKin *string
+	Allergies *[]string
+}
+
+// UpdatePatient applies a partial update to a patient's demographic/chart fields.
+func (s *Service) UpdatePatient(ctx context.Context, tenantID, patientID uuid.UUID, req UpdatePatientRequest) (*ent.Patient, error) {
+	existing, err := s.client.Patient.Query().
+		Where(patient.ID(patientID), patient.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("patients: patient not found: %w", err)
+	}
+	upd := s.client.Patient.UpdateOneID(existing.ID)
+	if req.FullName != nil {
+		if *req.FullName == "" {
+			return nil, fmt.Errorf("patients: full_name cannot be empty")
+		}
+		upd = upd.SetFullName(*req.FullName)
+	}
+	if req.DOB != nil {
+		upd = upd.SetDob(*req.DOB)
+	}
+	if req.Sex != nil {
+		upd = upd.SetSex(*req.Sex)
+	}
+	if req.Phone != nil {
+		upd = upd.SetPhone(*req.Phone)
+	}
+	if req.IDNumber != nil {
+		upd = upd.SetIDNumber(*req.IDNumber)
+	}
+	if req.Address != nil {
+		upd = upd.SetAddress(*req.Address)
+	}
+	if req.NextOfKin != nil {
+		upd = upd.SetNextOfKin(*req.NextOfKin)
+	}
+	if req.Allergies != nil {
+		upd = upd.SetAllergyFlags(*req.Allergies)
+	}
+	updated, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("patients: update patient: %w", err)
+	}
+	return updated, nil
 }
 
 // RecordTriageRequest is the input to RecordTriage.

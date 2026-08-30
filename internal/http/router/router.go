@@ -156,6 +156,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
 					Get("/patients/{patientID}", d.Patients.GetPatient)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsChange)).
+					Put("/patients/{patientID}", d.Patients.UpdatePatient)
 
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureReceptionQueuing),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionAdd)).
@@ -207,6 +210,9 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc,
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/billing/charges/{chargeID}/collect", d.Billing.CollectCharge)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingManage)).
+					Post("/billing/charges/{chargeID}/waive", d.Billing.WaiveCharge)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc,
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
@@ -288,6 +294,9 @@ func New(d Deps) http.Handler {
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/lab-orders/{orderID}/activate", d.Lab.ActivateIfPaid)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabManage)).
+					Post("/lab-orders/{orderID}/cancel", d.Lab.CancelOrder)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabChange)).
 					Post("/lab-orders/lines/{lineID}/result", d.Lab.EnterResult)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
@@ -332,6 +341,12 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/approve", d.Pharmacy.ApprovePrescription)
+				// Re-check drug interactions on demand (2026-08-30) — e.g. a late-disclosed
+				// allergy after the initial creation-time check. Same permission as Approve: both
+				// are pharmacist clinical-safety decisions on the prescription.
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Post("/prescriptions/{prescriptionID}/recheck-interactions", d.Pharmacy.RecheckInteractions)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/lock", d.Pharmacy.LockPrescription)
@@ -344,6 +359,11 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyDispense)).
 					Post("/prescriptions/{prescriptionID}/dispense", d.Pharmacy.Dispense)
+				// Dispensing label PDF (2026-08-30) — view-only, same permission as viewing the
+				// prescription itself (nothing sensitive beyond what's already on the record).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).
+					Get("/prescriptions/{prescriptionID}/lines/{lineID}/label.pdf", d.Pharmacy.PrintLabel)
 				// Controlled-substance dual-witness step-up (2026-08-29 fix): re-authenticates a
 				// witness with THEIR OWN credentials before Dispense will accept them — gated the
 				// same as Dispense itself (only someone who could initiate a dispense should be

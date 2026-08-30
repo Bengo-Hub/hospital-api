@@ -116,6 +116,32 @@ func (h *LabHandler) ActivateIfPaid(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, order)
 }
 
+type cancelLabOrderRequest struct {
+	Reason string `json:"reason,omitempty"`
+}
+
+// CancelOrder handles POST /{tenant}/hospital/lab-orders/{orderID}/cancel
+func (h *LabHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	orderID, err := uuid.Parse(chi.URLParam(r, "orderID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid order ID")
+		return
+	}
+	var in cancelLabOrderRequest
+	_ = json.NewDecoder(r.Body).Decode(&in) // reason is optional — a malformed/empty body is fine
+	order, err := h.svc.CancelOrder(r.Context(), tenantID, orderID, in.Reason)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, order)
+}
+
 type labInsuranceClaimRequest struct {
 	ProviderID string `json:"provider_id"`
 	CoverageID string `json:"coverage_id,omitempty"`

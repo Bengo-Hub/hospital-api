@@ -193,6 +193,45 @@ func (s *Service) GetOrder(ctx context.Context, tenantID, orderID uuid.UUID) (*e
 	return order, lines, nil
 }
 
+// CancelOrder cancels a lab order before it reaches "resulted", waiving any still-pending
+// per-line charges — the tests are no longer happening, so the patient shouldn't be billed for
+// them. Mirrors pharmacy.Service.CancelPrescription's shape (this module had no cancellation
+// capability at all before 2026-08-30). Idempotent: cancelling an already-cancelled order is a
+// no-op, not an error.
+func (s *Service) CancelOrder(ctx context.Context, tenantID, orderID uuid.UUID, reason string) (*ent.LabOrder, error) {
+	order, lines, err := s.GetOrder(ctx, tenantID, orderID)
+	if err != nil {
+		return nil, err
+	}
+	if order.Status == laborder.StatusCancelled {
+		return order, nil
+	}
+	if order.Status == laborder.StatusResulted {
+		return nil, fmt.Errorf("lab: a fully resulted order cannot be cancelled")
+	}
+	for _, line := range lines {
+		charge, cerr := s.client.BillableCharge.Query().
+			Where(billablecharge.TenantID(tenantID), billablecharge.SourceReferenceID(line.ID), billablecharge.SourceModule("lab")).
+			Only(ctx)
+		if cerr != nil {
+			continue // no charge for this line (e.g. a zero-priced test) — nothing to waive
+		}
+		if charge.Status == billablecharge.StatusPending || charge.Status == billablecharge.StatusInvoiced {
+			if _, werr := s.billing.WaiveCharge(ctx, tenantID, charge.ID); werr != nil {
+				return nil, fmt.Errorf("lab: waive charge for cancelled order: %w", werr)
+			}
+		}
+	}
+	notes := order.Notes
+	if reason != "" {
+		if notes != "" {
+			notes += " | "
+		}
+		notes += "Cancelled: " + reason
+	}
+	return s.client.LabOrder.UpdateOneID(orderID).SetStatus(laborder.StatusCancelled).SetNotes(notes).Save(ctx)
+}
+
 // ListWorklist returns lab orders for a tenant, optionally filtered by status.
 func (s *Service) ListWorklist(ctx context.Context, tenantID uuid.UUID, status string) ([]*ent.LabOrder, error) {
 	q := s.client.LabOrder.Query().Where(laborder.TenantID(tenantID))

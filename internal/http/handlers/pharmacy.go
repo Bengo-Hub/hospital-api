@@ -3,13 +3,17 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
+	"github.com/Bengo-Hub/httpware"
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/bengobox/hospital-service/internal/ent"
 	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
 	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
+	"github.com/bengobox/hospital-service/internal/modules/printing"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 )
 
@@ -159,6 +163,32 @@ func (h *PharmacyHandler) ApprovePrescription(w http.ResponseWriter, r *http.Req
 	respondJSON(w, http.StatusOK, rx)
 }
 
+type recheckInteractionsRequest struct {
+	AllergyFlags []string `json:"allergy_flags,omitempty"`
+}
+
+// RecheckInteractions handles POST /{tenant}/hospital/prescriptions/{prescriptionID}/recheck-interactions
+func (h *PharmacyHandler) RecheckInteractions(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	id, err := uuid.Parse(chi.URLParam(r, "prescriptionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid prescription ID")
+		return
+	}
+	var in recheckInteractionsRequest
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	check, rx, err := h.svc.RecheckInteractions(r.Context(), tenantID, id, in.AllergyFlags)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"check": check, "prescription": rx})
+}
+
 // LockPrescription handles POST /{tenant}/hospital/prescriptions/{prescriptionID}/lock
 func (h *PharmacyHandler) LockPrescription(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)
@@ -296,6 +326,81 @@ func (h *PharmacyHandler) Dispense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, rx)
+}
+
+// PrintLabel handles GET /{tenant}/hospital/prescriptions/{prescriptionID}/lines/{lineID}/label.pdf
+// — a dispensing label for one dispensed line (2026-08-30, previously absent on both ends). See
+// internal/modules/printing/dispensing_label.go's doc comment for why this is a PDF rather than
+// pos-api's original ESC/POS print-agent job (hospital-api has no print-agent/printer-profile
+// infrastructure to reuse for that).
+func (h *PharmacyHandler) PrintLabel(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	rxID, err := uuid.Parse(chi.URLParam(r, "prescriptionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid prescription ID")
+		return
+	}
+	lineID, err := uuid.Parse(chi.URLParam(r, "lineID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid line ID")
+		return
+	}
+	rx, err := h.svc.GetPrescription(r.Context(), tenantID, rxID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "prescription not found")
+		return
+	}
+	var line *ent.PrescriptionLine
+	for _, l := range rx.Edges.Lines {
+		if l.ID == lineID {
+			line = l
+			break
+		}
+	}
+	if line == nil {
+		respondError(w, http.StatusNotFound, "prescription line not found")
+		return
+	}
+	if line.QuantityDispensed <= 0 {
+		respondError(w, http.StatusBadRequest, "this line has not been dispensed yet")
+		return
+	}
+
+	tenantName := httpware.GetTenantSlug(r.Context())
+	dispensedBy := ""
+	if claims, ok := authclient.ClaimsFromContext(r.Context()); ok {
+		dispensedBy = claims.Email
+	}
+	pdfBytes, err := printing.BuildDispensingLabelPDF(printing.DispensingLabelData{
+		TenantName:     tenantName,
+		DrugName:       line.DrugName,
+		Dosage:         line.Dosage,
+		Form:           line.Form,
+		Instructions:   line.Instructions,
+		Quantity:       line.QuantityDispensed,
+		PatientName:    rx.PatientName,
+		LotNumber:      line.LotNumber,
+		ExpiryDate:     line.ExpiryDate,
+		PrescriberName: rx.PrescriberName,
+		DispensedBy:    dispensedBy,
+		// PrescriptionLine has no created_at/dispensed_at timestamp of its own — this is the
+		// label's print time, not the exact dispense moment, which is close enough for a
+		// physical drug label (it's normally printed right at dispense).
+		DispensedAt:    time.Now(),
+		PrescriptionNo: rx.PrescriptionNumber,
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to render label")
+		return
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", "inline; filename=\"dispensing-label.pdf\"")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(pdfBytes)
 }
 
 type verifyWitnessRequest struct {

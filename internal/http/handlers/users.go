@@ -57,7 +57,10 @@ func (h *UsersHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]userDTO, 0, len(users))
 	for _, u := range users {
-		var roleCodes []string
+		// Initialized non-nil: a user with zero role assignments must serialize `"roles": []`,
+		// never `null` — a nil Go slice marshals to JSON null, which crashed the Users page's
+		// `u.roles[0]` access for any user JIT-provisioning hadn't yet mapped to a role.
+		roleCodes := []string{}
 		if h.rbacSvc != nil {
 			if roles, rerr := h.rbacSvc.GetUserRoles(r.Context(), tenantID, u.ID); rerr == nil {
 				for _, role := range roles {

@@ -205,6 +205,26 @@ func (h *BillingHandler) CreateNextOfKin(w http.ResponseWriter, r *http.Request)
 	respondJSON(w, http.StatusCreated, kin)
 }
 
+// WaiveCharge handles POST /{tenant}/hospital/billing/charges/{chargeID}/waive
+func (h *BillingHandler) WaiveCharge(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	chargeID, err := uuid.Parse(chi.URLParam(r, "chargeID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid charge ID")
+		return
+	}
+	charge, err := h.svc.WaiveCharge(r.Context(), tenantID, chargeID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, charge)
+}
+
 // SettleAccount handles POST /{tenant}/hospital/billing/accounts/{accountID}/settle
 func (h *BillingHandler) SettleAccount(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

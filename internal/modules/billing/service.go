@@ -244,6 +244,48 @@ func (s *Service) CollectCharge(ctx context.Context, tenantID, chargeID uuid.UUI
 	return updated, nil
 }
 
+// WaiveCharge writes off a pending/invoiced charge without collecting payment for it — the
+// facility chose not to charge (distinct from `exempted`, which means an insurance claim
+// covered it). Used directly (a manual write-off) and by CancelOrder-style flows that need to
+// void a charge whose originating clinical action was cancelled before it happened.
+func (s *Service) WaiveCharge(ctx context.Context, tenantID, chargeID uuid.UUID) (*ent.BillableCharge, error) {
+	charge, err := s.client.BillableCharge.Query().
+		Where(billablecharge.ID(chargeID), billablecharge.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: charge not found: %w", err)
+	}
+	if charge.Status != billablecharge.StatusPending && charge.Status != billablecharge.StatusInvoiced {
+		return nil, fmt.Errorf("billing: only a pending/invoiced charge can be waived (status=%s)", charge.Status)
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	updated, err := tx.BillableCharge.UpdateOneID(chargeID).SetStatus(billablecharge.StatusWaived).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: mark charge waived: %w", err)
+	}
+	// The patient never owes this amount going forward — reduce the outstanding balance, but
+	// (unlike CollectCharge) never touch total_paid: no money actually changed hands.
+	if _, err = tx.PatientAccount.UpdateOneID(charge.PatientAccountID).
+		AddBalance(-charge.Amount).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("billing: update account totals: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("billing: commit waive: %w", err)
+	}
+	return updated, nil
+}
+
 // SettleAccount pays off every remaining pending charge on an account in one call (the
 // discharge/body-release flow), optionally recording who settled it on the patient's behalf.
 func (s *Service) SettleAccount(ctx context.Context, tenantID, accountID uuid.UUID, req CollectChargeRequest, nextOfKinID *uuid.UUID) (*ent.PatientAccount, error) {

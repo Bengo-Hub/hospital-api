@@ -130,6 +130,45 @@ func (h *PatientsHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, p)
 }
 
+type updatePatientRequest struct {
+	FullName  *string    `json:"full_name,omitempty"`
+	DOB       *time.Time `json:"dob,omitempty"`
+	Sex       *string    `json:"sex,omitempty"`
+	Phone     *string    `json:"phone,omitempty"`
+	IDNumber  *string    `json:"id_number,omitempty"`
+	Address   *string    `json:"address,omitempty"`
+	NextOfKin *string    `json:"next_of_kin,omitempty"`
+	Allergies *[]string  `json:"allergy_flags,omitempty"`
+}
+
+// UpdatePatient handles PUT /{tenant}/hospital/patients/{patientID}
+func (h *PatientsHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	patientID, err := uuid.Parse(chi.URLParam(r, "patientID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid patient ID")
+		return
+	}
+	var in updatePatientRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	p, err := h.svc.UpdatePatient(r.Context(), tenantID, patientID, patients.UpdatePatientRequest{
+		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
+		IDNumber: in.IDNumber, Address: in.Address, NextOfKin: in.NextOfKin, Allergies: in.Allergies,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, p)
+}
+
 // ── Visits ───────────────────────────────────────────────────────────────────────────────
 
 type checkInVisitRequest struct {
@@ -181,9 +220,13 @@ func (h *PatientsHandler) ListVisits(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "tenant context required")
 		return
 	}
-	list, err := h.svc.ListVisits(r.Context(), tenantID, patients.ListVisitsRequest{
-		Status: r.URL.Query().Get("status"),
-	})
+	req := patients.ListVisitsRequest{Status: r.URL.Query().Get("status")}
+	if pid := r.URL.Query().Get("patient_id"); pid != "" {
+		if id, perr := uuid.Parse(pid); perr == nil {
+			req.PatientID = &id
+		}
+	}
+	list, err := h.svc.ListVisits(r.Context(), tenantID, req)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to list visits")
 		return

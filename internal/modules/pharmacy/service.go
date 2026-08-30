@@ -174,10 +174,22 @@ func (s *Service) CreatePrescription(ctx context.Context, tenantID uuid.UUID, re
 // combination surfaces as more serious than a routine flag, per hospital-ui's own (previously
 // unreachable) pharmacist_review messaging in pharmacy/[id]/page.tsx.
 func (s *Service) runInteractionCheck(ctx context.Context, tenantID, rxID uuid.UUID, skus, allergyFlags []string) {
+	if _, _, err := s.performInteractionCheck(ctx, tenantID, rxID, skus, allergyFlags, true); err != nil {
+		s.log.Warn("interaction check failed", zap.String("prescription_id", rxID.String()), zap.Error(err))
+	}
+}
+
+// performInteractionCheck is the shared core of both the fire-and-forget check at prescription
+// creation (runInteractionCheck) and the on-demand RecheckInteractions (2026-08-30, e.g. a
+// late-disclosed allergy after the initial check). Returns the saved check record and whether
+// this call flagged/re-flagged the prescription for review. allowStatusChange gates the
+// flagging side-effect: creation-time always allows it (nothing to protect yet); a re-check
+// after the prescription has moved past review (approved/locked/dispensed/etc.) still records
+// the check for audit but the caller decides whether re-flagging is appropriate for that status.
+func (s *Service) performInteractionCheck(ctx context.Context, tenantID, rxID uuid.UUID, skus, allergyFlags []string, allowStatusChange bool) (*ent.DrugInteractionCheck, bool, error) {
 	result, err := s.inventory.CheckInteractions(ctx, tenantID, skus, allergyFlags)
 	if err != nil {
-		s.log.Warn("interaction check failed", zap.String("prescription_id", rxID.String()), zap.Error(err))
-		return
+		return nil, false, fmt.Errorf("pharmacy: check interactions: %w", err)
 	}
 	outcome := "clear"
 	if len(result.Interactions) > 0 || len(result.AllergyMatches) > 0 {
@@ -204,10 +216,10 @@ func (s *Service) runInteractionCheck(ctx context.Context, tenantID, rxID uuid.U
 		}).
 		Save(ctx)
 	if cerr != nil {
-		s.log.Warn("save interaction check failed", zap.Error(cerr))
-		return
+		return nil, false, fmt.Errorf("pharmacy: save interaction check: %w", cerr)
 	}
-	if outcome != "clear" {
+	flagged := false
+	if outcome != "clear" && allowStatusChange {
 		rx, gerr := s.client.Prescription.Get(ctx, rxID)
 		if gerr == nil {
 			meta := rx.Metadata
@@ -219,12 +231,74 @@ func (s *Service) runInteractionCheck(ctx context.Context, tenantID, rxID uuid.U
 			if highSeverity {
 				status = prescription.StatusPharmacistReview
 			}
-			_, _ = s.client.Prescription.UpdateOneID(rxID).
+			if _, uerr := s.client.Prescription.UpdateOneID(rxID).
 				SetStatus(status).
 				SetMetadata(meta).
-				Save(ctx)
+				Save(ctx); uerr == nil {
+				flagged = true
+			}
 		}
 	}
+	return check, flagged, nil
+}
+
+// RecheckInteractions re-runs the drug-interaction/allergy check against a prescription's
+// CURRENT lines — for a late-disclosed allergy or any reason the pharmacist wants a fresh check
+// before dispensing (previously impossible: hospital-api only ever checked once, at creation).
+// extraAllergyFlags are merged with whatever was captured at creation time. Re-flags the
+// prescription for review (same severity tiering as the original check) ONLY if it is still in
+// a pre-dispense state (pending/flagged/pharmacist_review/approved/locked) — a dispensed,
+// rejected, or cancelled prescription can't be un-dispensed by a check result, so the finding is
+// still recorded for the audit trail but does not change the prescription's status.
+func (s *Service) RecheckInteractions(ctx context.Context, tenantID, rxID uuid.UUID, extraAllergyFlags []string) (*ent.DrugInteractionCheck, *ent.Prescription, error) {
+	rx, err := s.GetPrescription(ctx, tenantID, rxID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("pharmacy: prescription not found: %w", err)
+	}
+	skus := make([]string, 0, len(rx.Edges.Lines))
+	for _, l := range rx.Edges.Lines {
+		if l.InventoryItemSku != "" {
+			skus = append(skus, l.InventoryItemSku)
+		}
+	}
+	if len(skus) == 0 {
+		return nil, nil, fmt.Errorf("pharmacy: prescription has no inventory-linked lines to check")
+	}
+	if !s.inventory.Enabled() {
+		return nil, nil, fmt.Errorf("pharmacy: inventory client not configured")
+	}
+
+	allergyFlags := extraAllergyFlags
+	if existing, ok := rx.Metadata["allergy_flags"].([]any); ok {
+		seen := make(map[string]bool, len(existing)+len(extraAllergyFlags))
+		merged := make([]string, 0, len(existing)+len(extraAllergyFlags))
+		for _, a := range existing {
+			if s, ok := a.(string); ok && !seen[s] {
+				seen[s] = true
+				merged = append(merged, s)
+			}
+		}
+		for _, a := range extraAllergyFlags {
+			if !seen[a] {
+				seen[a] = true
+				merged = append(merged, a)
+			}
+		}
+		allergyFlags = merged
+	}
+
+	canReflag := rx.Status == prescription.StatusPending || rx.Status == prescription.StatusFlagged ||
+		rx.Status == prescription.StatusPharmacistReview || rx.Status == prescription.StatusApproved ||
+		rx.Status == prescription.StatusLocked
+	check, _, err := s.performInteractionCheck(ctx, tenantID, rxID, skus, allergyFlags, canReflag)
+	if err != nil {
+		return nil, nil, err
+	}
+	updated, err := s.GetPrescription(ctx, tenantID, rxID)
+	if err != nil {
+		return check, rx, nil // check succeeded; re-fetch is best-effort
+	}
+	return check, updated, nil
 }
 
 // GetPrescription fetches a prescription with its lines, tenant-scoped.
