@@ -381,6 +381,16 @@ was corrected: it's now unique per `(tenant_id, auth_service_user_id)` rather th
 unique per auth user, so the same person can correctly hold a row in more than one hospital
 tenant (see `docs/architecture.md`'s "User Management Module" section for the full writeup).
 
+**Update (2026-08-30, later the same day) — per-user outlet enforcement.** `HospitalUserOutlet`
+(new local junction table, same pattern already proven in pos-api/inventory-api/erp-api) now
+gates non-HQ, non-platform-owner staff to only their assigned outlet(s); `OutletContextMiddleware`
+enforces it and `auth.outlet.*`/`auth.user.*` events auto-reconcile assignments going forward.
+Zero-assignment users remain unrestricted (progressive rollout — no lockout for existing staff
+before an admin assigns anything). auth-api's own `TenantMembership.outlet_id` stays a single
+nullable "default outlet" field and is still not enforced at that layer; this enforcement lives
+entirely in hospital-api's own request path, same division of responsibility as the other
+domain services above.
+
 ---
 
 ## 4. Subscriptions Service Integration

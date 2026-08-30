@@ -226,14 +226,18 @@ Two opt-in live-verification test files (`internal/modules/rbac/role_customizati
 in CI) exercise all of the above against a real local Postgres — this service has no sqlite/CGO
 test harness, so this is the only pre-deploy check for a bad migration or query.
 
-**Not built, by deliberate scope decision, not oversight**: per-user outlet/branch membership
-enforcement (a distinct "outlet access control" initiative, see the outlet paragraph above) and a
-role-deletion endpoint (no `DeleteRole`/frontend delete action exists — a role can be created and
-edited but not removed; a small, low-risk follow-up if ever needed). `hospital.config.manage`'s
-existing "no handler" state was verified to be a deliberate, already-documented architectural
-decision (see `internal/http/handlers/config.go`'s own doc comment) — facility identity/branding
-is auth-api's, and `facility_type`/`enabled_modules` is a read-only subscriptions-api cache, so
-there is genuinely nothing hospital-api-specific for a tenant admin to write there today.
+**Follow-up (2026-08-30, later the same day) — all three built.** Per-user outlet/branch
+membership is now enforced: `HospitalUserOutlet` (mirrors inventory-api's proven `UserOutlet`
+pattern — audited first; pos-api/erp-api have the same real enforcement, treasury-api/
+logistics-api/auth-api itself do not, `outlet_id` there is a passive data tag or "default
+outlet"), validated in `OutletContextMiddleware` for any caller who cannot access all outlets,
+auto-reconciled from `auth.user.*` events, with admin CRUD at `GET/POST /users/{id}/outlets` and
+`DELETE /users/{id}/outlets/{outletID}`. `rbac.Service.DeleteRole` removes a tenant-owned role
+(refuses if any staff still holds it). `hospital.config.manage` now has a real, narrowly-scoped
+handler: `PUT /config` writes `Tenant.settings` (`auto_logout_minutes`, `default_landing_view`,
+`operating_hours`) — deliberately a separate field from `metadata`, which stays fully owned by
+the subscriptions-api sync. Full detail: `.claude/memory/hospital-user-management-rebuild-2026-08-30.md`'s
+follow-up section.
 
 ## Changelog
 
@@ -286,3 +290,9 @@ there is genuinely nothing hospital-api-specific for a tenant admin to write the
   flow via auth-api's S2S member endpoint. hospital-api commits
   `3d626ac`/`97f0614`/`dcbc3db`/`250cdf4`; matching hospital-ui pages in the same-day commit
   `5c4dead`.
+- **2026-08-30 (later the same day)** — the module's 3 originally-deferred items shipped: per-user
+  outlet enforcement (`HospitalUserOutlet`), role deletion, and real `hospital.config.manage`
+  settings (`hospital-api@5c27675`, `hospital-ui@7e795df`/`c2efe1a`). A real live-production data
+  leak (36 non-hospital demo users, pre-dating this file's own `isHospitalRelevant` fix) was found
+  via a user bug report and cleaned up the same session — see
+  `.claude/memory/hospital-demo-tenant-leak-and-fleet-backfill-cleanup-2026-08-30.md`.
