@@ -5,7 +5,7 @@
 **Language:** Go 1.26
 **Production domain (planned):** `afyaapi.codevertexafrica.com`
 **Last updated:** 2026-08-29
-**Status:** Sprints 0-4 + Sprint 5 core shipped (`go build`/`go vet`/`go test` green, Atlas migrations generated). Patient/OPD/Triage, Consultation/Examination, Laboratory, Pharmacy/Dispensing, and the Billing ledger's collect/queue endpoints are real, working Go code — see "Current State" below and `docs/sprints/` for what shipped in each. No live E2E walkthrough has been run yet (see the master plan's Known Gaps), and hospital-ui has not been touched.
+**Status:** Sprints 0-5 shipped (`go build`/`go vet`/`go test` green, Atlas migrations generated), live in production. Patient/OPD/Triage, Consultation/Examination, Laboratory, Pharmacy/Dispensing, and Billing/Insurance (ledger, collect/queue endpoints, insurance eligibility/claims, catalog CRUD) are real, working Go code — see "Current State" below and `docs/sprints/` for what shipped in each. hospital-ui has since been built to the same parity (Sprints 1-5 UI, RBAC-gated) — see `hospital-service/hospital-ui/docs/plan.md`.
 
 ---
 
@@ -36,7 +36,9 @@ A third research pass, the same day, went deeper: a direct technical audit of Ke
 
 **Sprints 1, 2, 5-core, 3, 4 (2026-08-29, same day, in that build order — see the master plan's build-order note)**: real Ent schemas, service-layer business logic, and RBAC-gated HTTP handlers now exist for Patient/OPD/Triage, Consultation/Examination/Diagnosis-Catalogue, the Billing ledger (`BillableItemCatalog`/`PatientAccount`/`BillableCharge`/`PatientNextOfKin`), Laboratory, and Pharmacy/Dispensing — the core pos-api migration target. `cmd/seed/main.go` was also found to be a no-op stub and fixed to actually run the new `internal/modules/refdata` global-catalogue seed. Full detail per sprint in `docs/sprints/sprint-{1,2,3,4,5}-*.md` and the progress log in `.claude/plans/pharmacy-to-hospital-service-migration-2026-08-29.md`.
 
-**Not yet implemented**: Sprint 5's insurance eligibility/claim wiring into an actual checkout flow, `BillableItemCatalog` seed data + admin CRUD, hospital-ui (no pages touched at all), Sprints 6-13 (Inpatient onward), and the pos-api decisive-removal phase. No live E2E request has been fired against a running server this session. See the phased roadmap below and `docs/sprints/`.
+**Since shipped (2026-08-29/30, not reflected in the section above at the time it was written)**: Sprint 5's insurance eligibility/claim wiring into the real checkout flow, `BillableItemCatalog` admin CRUD, hospital-ui built to full Sprint 1-5 parity (RBAC-gated sidebar, patient/billing/lab/pharmacy pages, Users/Config admin), and the pos-api decisive-removal phase (pos-api carries zero pharmacy/OPD-clinical code, `DAWA` subscription family retired) — see `.claude/plans/hospital-ui-rbac-and-feature-wiring-2026-08-30.md` and `project_pos_pharmacy_to_hospital_service_migration.md` in project memory.
+
+**Not yet implemented**: Sprints 6-13 (Inpatient onward). Per-user outlet/branch membership enforcement remains a known gap (`internal/http/middleware/outlet_context.go` — any authenticated tenant user can select any outlet via `X-Outlet-ID` today). No live E2E request has been fired against a running server this session. See the phased roadmap below and `docs/sprints/`.
 
 ---
 

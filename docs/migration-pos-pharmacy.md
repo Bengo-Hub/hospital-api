@@ -1,7 +1,11 @@
 # Migration Plan: pos-api Pharmacy/Clinical Logic → hospital-api
 
-**Status:** Planned — not yet executed
-**Last updated:** 2026-07-31
+**Status:** Executed — complete as of 2026-08-29. hospital-api's Sprint 1-5 build brought the
+pharmacy/clinical module to parity (see `docs/plan.md`'s Current State and `docs/sprints/`), and the
+pos-api decisive-removal phase (§ below) landed the same day: pos-api carries zero pharmacy/OPD-clinical
+code today, and the `DAWA` subscription family was retired from subscriptions-api. This document is
+kept as the historical migration record.
+**Last updated:** 2026-08-30 (status corrected — see `.claude/memory/project_pos_pharmacy_to_hospital_service_migration.md`)
 **Owner decision:** hospital-api absorbs **all** pharmacy/dispensing logic, for **every** facility size. pos-api carries **no pharmacy logic at all** after this migration — not even for a standalone chemist. A chemist/dispensary is simply a hospital-api tenant with only the Pharmacy module enabled (below even the Afya Clinic tier). This corrects an earlier draft of this plan that proposed pos-api keep a standalone "Codevertex Dawa" chemist product — that proposal is **superseded**.
 
 ---

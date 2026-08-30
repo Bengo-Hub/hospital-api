@@ -3,13 +3,17 @@
 Hospital & clinic management microservice for the Codevertex platform — consultation, laboratory,
 pharmacy/dispensing, inpatient, and billing/insurance workflows for one connected patient record.
 
-**Status:** Sprint-0 scaffold (2026-07-31). Config, logging, Postgres/Redis/NATS wiring, health
-endpoints, and JWKS auth middleware are live; there are no domain ent schemas or business logic yet.
+**Status:** Sprints 0-5 shipped and live in production (Codevertex Afya). Patient/OPD/Triage,
+Consultation/Examination, Laboratory, Pharmacy/Dispensing, and Billing/Insurance are real, working
+Go code with Trinity Authorization (JWT RBAC + subscription licensing + local resource RBAC) fully
+wired. The pos-api pharmacy migration this service absorbed is complete and decisively removed from
+pos-api. Sprints 6-13 (Inpatient onward) are still planned. See `docs/plan.md` for the current,
+authoritative status and roadmap — this file is a static entry point, not the source of truth.
 
 See `docs/plan.md` for the full product vision and roadmap, `docs/architecture.md` for the layer
 overview and data-ownership boundaries, `docs/integrations.md` for how this service talks to
 inventory-api/treasury-api/auth-api/subscriptions-api/notifications-api, and `docs/erd.md` for the
-planned entity model.
+current entity model.
 
 ## Local development
 
@@ -21,5 +25,5 @@ go run ./cmd/api
 
 ## Stack
 
-Go 1.26 · chi v5 · ent v0.14 + Atlas (once schemas land) · PostgreSQL (pgx) · Redis · NATS JetStream
+Go 1.26 · chi v5 · ent v0.14 + Atlas · PostgreSQL (pgx) · Redis · NATS JetStream
 (`shared-events` outbox, aggregate_type `hospital`) · `shared/{httpware,auth-client,cache,service-client,pagination}`.
