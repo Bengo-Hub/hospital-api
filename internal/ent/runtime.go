@@ -28,6 +28,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/rbacauditlog"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -263,23 +264,23 @@ func init() {
 	hospitalroleFields := schema.HospitalRole{}.Fields()
 	_ = hospitalroleFields
 	// hospitalroleDescRoleCode is the schema descriptor for role_code field.
-	hospitalroleDescRoleCode := hospitalroleFields[1].Descriptor()
+	hospitalroleDescRoleCode := hospitalroleFields[2].Descriptor()
 	// hospitalrole.RoleCodeValidator is a validator for the "role_code" field. It is called by the builders before save.
 	hospitalrole.RoleCodeValidator = hospitalroleDescRoleCode.Validators[0].(func(string) error)
 	// hospitalroleDescName is the schema descriptor for name field.
-	hospitalroleDescName := hospitalroleFields[2].Descriptor()
+	hospitalroleDescName := hospitalroleFields[3].Descriptor()
 	// hospitalrole.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	hospitalrole.NameValidator = hospitalroleDescName.Validators[0].(func(string) error)
 	// hospitalroleDescIsSystemRole is the schema descriptor for is_system_role field.
-	hospitalroleDescIsSystemRole := hospitalroleFields[4].Descriptor()
+	hospitalroleDescIsSystemRole := hospitalroleFields[5].Descriptor()
 	// hospitalrole.DefaultIsSystemRole holds the default value on creation for the is_system_role field.
 	hospitalrole.DefaultIsSystemRole = hospitalroleDescIsSystemRole.Default.(bool)
 	// hospitalroleDescCreatedAt is the schema descriptor for created_at field.
-	hospitalroleDescCreatedAt := hospitalroleFields[5].Descriptor()
+	hospitalroleDescCreatedAt := hospitalroleFields[7].Descriptor()
 	// hospitalrole.DefaultCreatedAt holds the default value on creation for the created_at field.
 	hospitalrole.DefaultCreatedAt = hospitalroleDescCreatedAt.Default.(func() time.Time)
 	// hospitalroleDescUpdatedAt is the schema descriptor for updated_at field.
-	hospitalroleDescUpdatedAt := hospitalroleFields[6].Descriptor()
+	hospitalroleDescUpdatedAt := hospitalroleFields[8].Descriptor()
 	// hospitalrole.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	hospitalrole.DefaultUpdatedAt = hospitalroleDescUpdatedAt.Default.(func() time.Time)
 	// hospitalrole.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -628,6 +629,24 @@ func init() {
 	prescriptionlineDescID := prescriptionlineFields[0].Descriptor()
 	// prescriptionline.DefaultID holds the default value on creation for the id field.
 	prescriptionline.DefaultID = prescriptionlineDescID.Default.(func() uuid.UUID)
+	rbacauditlogFields := schema.RbacAuditLog{}.Fields()
+	_ = rbacauditlogFields
+	// rbacauditlogDescAction is the schema descriptor for action field.
+	rbacauditlogDescAction := rbacauditlogFields[4].Descriptor()
+	// rbacauditlog.ActionValidator is a validator for the "action" field. It is called by the builders before save.
+	rbacauditlog.ActionValidator = rbacauditlogDescAction.Validators[0].(func(string) error)
+	// rbacauditlogDescTargetType is the schema descriptor for target_type field.
+	rbacauditlogDescTargetType := rbacauditlogFields[5].Descriptor()
+	// rbacauditlog.TargetTypeValidator is a validator for the "target_type" field. It is called by the builders before save.
+	rbacauditlog.TargetTypeValidator = rbacauditlogDescTargetType.Validators[0].(func(string) error)
+	// rbacauditlogDescCreatedAt is the schema descriptor for created_at field.
+	rbacauditlogDescCreatedAt := rbacauditlogFields[9].Descriptor()
+	// rbacauditlog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rbacauditlog.DefaultCreatedAt = rbacauditlogDescCreatedAt.Default.(func() time.Time)
+	// rbacauditlogDescID is the schema descriptor for id field.
+	rbacauditlogDescID := rbacauditlogFields[0].Descriptor()
+	// rbacauditlog.DefaultID holds the default value on creation for the id field.
+	rbacauditlog.DefaultID = rbacauditlogDescID.Default.(func() uuid.UUID)
 	referralFields := schema.Referral{}.Fields()
 	_ = referralFields
 	// referralDescReferredTo is the schema descriptor for referred_to field.

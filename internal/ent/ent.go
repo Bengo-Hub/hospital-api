@@ -35,6 +35,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/rbacauditlog"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -123,6 +124,7 @@ func checkColumn(t, c string) error {
 			patientvisit.Table:            patientvisit.ValidColumn,
 			prescription.Table:            prescription.ValidColumn,
 			prescriptionline.Table:        prescriptionline.ValidColumn,
+			rbacauditlog.Table:            rbacauditlog.ValidColumn,
 			referral.Table:                referral.ValidColumn,
 			rolepermission.Table:          rolepermission.ValidColumn,
 			tenant.Table:                  tenant.ValidColumn,

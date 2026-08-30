@@ -58,6 +58,8 @@ type Deps struct {
 	// Tenant staff role-management and a read-only config view (2026-08-30).
 	Users  *handlers.UsersHandler
 	Config *handlers.ConfigHandler
+	// RBAC/identity audit trail (2026-08-30).
+	AuditLog *handlers.AuditLogHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -434,8 +436,22 @@ func New(d Deps) http.Handler {
 					Get("/users", d.Users.ListUsers)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersView)).
 					Get("/roles", d.Users.ListRoles)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersView)).
+					Get("/permissions", d.Users.ListPermissions)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Put("/users/{userID}/role", d.Users.SetUserRole)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Put("/users/{userID}/status", d.Users.SetUserStatus)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Post("/users/{userID}/roles", d.Users.AssignExtraRole)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Delete("/users/{userID}/roles/{roleCode}", d.Users.RevokeExtraRole)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Post("/roles/customize", d.Users.CustomizeRole)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Post("/roles", d.Users.CreateRole)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Put("/roles/{roleID}/permissions", d.Users.UpdateRolePermissions)
 			}
 			if d.Config != nil {
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConfigView)).
@@ -444,6 +460,10 @@ func New(d Deps) http.Handler {
 				// to render the outlet switcher, not just config-viewing admins — mirrors
 				// /auth/me and /ping (authenticated-only, no fine-grained permission check).
 				prot.Get("/outlets", d.Config.ListOutlets)
+			}
+			if d.AuditLog != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Get("/audit-log", d.AuditLog.List)
 			}
 		})
 	})

@@ -75,6 +75,9 @@ type Prescription func(*sql.Selector)
 // PrescriptionLine is the predicate function for prescriptionline builders.
 type PrescriptionLine func(*sql.Selector)
 
+// RbacAuditLog is the predicate function for rbacauditlog builders.
+type RbacAuditLog func(*sql.Selector)
+
 // Referral is the predicate function for referral builders.
 type Referral func(*sql.Selector)
 

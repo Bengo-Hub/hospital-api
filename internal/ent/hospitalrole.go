@@ -18,14 +18,18 @@ type HospitalRole struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
-	// Role code: admin, doctor, nurse, pharmacist, records_clerk, manager
+	// NULL = global/platform role. Set = tenant-owned clone or from-scratch custom role.
+	TenantID *uuid.UUID `json:"tenant_id,omitempty"`
+	// Role code: admin, doctor, nurse, pharmacist, records_clerk, manager, or a tenant-defined custom code
 	RoleCode string `json:"role_code,omitempty"`
 	// Display name
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
-	// System roles cannot be deleted
+	// System roles are the seeded global catalog — never editable/deletable directly (see CustomizeRole)
 	IsSystemRole bool `json:"is_system_role,omitempty"`
+	// Set only on a tenant clone created by CustomizeRole — the global role it was cloned from
+	ClonedFromRoleID *uuid.UUID `json:"cloned_from_role_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -81,6 +85,8 @@ func (*HospitalRole) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case hospitalrole.FieldTenantID, hospitalrole.FieldClonedFromRoleID:
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case hospitalrole.FieldIsSystemRole:
 			values[i] = new(sql.NullBool)
 		case hospitalrole.FieldRoleCode, hospitalrole.FieldName, hospitalrole.FieldDescription:
@@ -110,6 +116,13 @@ func (_m *HospitalRole) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.ID = *value
 			}
+		case hospitalrole.FieldTenantID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field tenant_id", values[i])
+			} else if value.Valid {
+				_m.TenantID = new(uuid.UUID)
+				*_m.TenantID = *value.S.(*uuid.UUID)
+			}
 		case hospitalrole.FieldRoleCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field role_code", values[i])
@@ -133,6 +146,13 @@ func (_m *HospitalRole) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_system_role", values[i])
 			} else if value.Valid {
 				_m.IsSystemRole = value.Bool
+			}
+		case hospitalrole.FieldClonedFromRoleID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field cloned_from_role_id", values[i])
+			} else if value.Valid {
+				_m.ClonedFromRoleID = new(uuid.UUID)
+				*_m.ClonedFromRoleID = *value.S.(*uuid.UUID)
 			}
 		case hospitalrole.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -197,6 +217,11 @@ func (_m *HospitalRole) String() string {
 	var builder strings.Builder
 	builder.WriteString("HospitalRole(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	if v := _m.TenantID; v != nil {
+		builder.WriteString("tenant_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("role_code=")
 	builder.WriteString(_m.RoleCode)
 	builder.WriteString(", ")
@@ -208,6 +233,11 @@ func (_m *HospitalRole) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_system_role=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsSystemRole))
+	builder.WriteString(", ")
+	if v := _m.ClonedFromRoleID; v != nil {
+		builder.WriteString("cloned_from_role_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

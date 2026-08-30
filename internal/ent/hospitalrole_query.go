@@ -374,12 +374,12 @@ func (_q *HospitalRoleQuery) WithRolePermissions(opts ...func(*RolePermissionQue
 // Example:
 //
 //	var v []struct {
-//		RoleCode string `json:"role_code,omitempty"`
+//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.HospitalRole.Query().
-//		GroupBy(hospitalrole.FieldRoleCode).
+//		GroupBy(hospitalrole.FieldTenantID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (_q *HospitalRoleQuery) GroupBy(field string, fields ...string) *HospitalRoleGroupBy {
@@ -397,11 +397,11 @@ func (_q *HospitalRoleQuery) GroupBy(field string, fields ...string) *HospitalRo
 // Example:
 //
 //	var v []struct {
-//		RoleCode string `json:"role_code,omitempty"`
+//		TenantID uuid.UUID `json:"tenant_id,omitempty"`
 //	}
 //
 //	client.HospitalRole.Query().
-//		Select(hospitalrole.FieldRoleCode).
+//		Select(hospitalrole.FieldTenantID).
 //		Scan(ctx, &v)
 func (_q *HospitalRoleQuery) Select(fields ...string) *HospitalRoleSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

@@ -32,6 +32,26 @@ func (_u *HospitalRoleUpdate) Where(ps ...predicate.HospitalRole) *HospitalRoleU
 	return _u
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (_u *HospitalRoleUpdate) SetTenantID(v uuid.UUID) *HospitalRoleUpdate {
+	_u.mutation.SetTenantID(v)
+	return _u
+}
+
+// SetNillableTenantID sets the "tenant_id" field if the given value is not nil.
+func (_u *HospitalRoleUpdate) SetNillableTenantID(v *uuid.UUID) *HospitalRoleUpdate {
+	if v != nil {
+		_u.SetTenantID(*v)
+	}
+	return _u
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (_u *HospitalRoleUpdate) ClearTenantID() *HospitalRoleUpdate {
+	_u.mutation.ClearTenantID()
+	return _u
+}
+
 // SetRoleCode sets the "role_code" field.
 func (_u *HospitalRoleUpdate) SetRoleCode(v string) *HospitalRoleUpdate {
 	_u.mutation.SetRoleCode(v)
@@ -91,6 +111,26 @@ func (_u *HospitalRoleUpdate) SetNillableIsSystemRole(v *bool) *HospitalRoleUpda
 	if v != nil {
 		_u.SetIsSystemRole(*v)
 	}
+	return _u
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (_u *HospitalRoleUpdate) SetClonedFromRoleID(v uuid.UUID) *HospitalRoleUpdate {
+	_u.mutation.SetClonedFromRoleID(v)
+	return _u
+}
+
+// SetNillableClonedFromRoleID sets the "cloned_from_role_id" field if the given value is not nil.
+func (_u *HospitalRoleUpdate) SetNillableClonedFromRoleID(v *uuid.UUID) *HospitalRoleUpdate {
+	if v != nil {
+		_u.SetClonedFromRoleID(*v)
+	}
+	return _u
+}
+
+// ClearClonedFromRoleID clears the value of the "cloned_from_role_id" field.
+func (_u *HospitalRoleUpdate) ClearClonedFromRoleID() *HospitalRoleUpdate {
+	_u.mutation.ClearClonedFromRoleID()
 	return _u
 }
 
@@ -276,6 +316,12 @@ func (_u *HospitalRoleUpdate) sqlSave(ctx context.Context) (_node int, err error
 			}
 		}
 	}
+	if value, ok := _u.mutation.TenantID(); ok {
+		_spec.SetField(hospitalrole.FieldTenantID, field.TypeUUID, value)
+	}
+	if _u.mutation.TenantIDCleared() {
+		_spec.ClearField(hospitalrole.FieldTenantID, field.TypeUUID)
+	}
 	if value, ok := _u.mutation.RoleCode(); ok {
 		_spec.SetField(hospitalrole.FieldRoleCode, field.TypeString, value)
 	}
@@ -290,6 +336,12 @@ func (_u *HospitalRoleUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.IsSystemRole(); ok {
 		_spec.SetField(hospitalrole.FieldIsSystemRole, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ClonedFromRoleID(); ok {
+		_spec.SetField(hospitalrole.FieldClonedFromRoleID, field.TypeUUID, value)
+	}
+	if _u.mutation.ClonedFromRoleIDCleared() {
+		_spec.ClearField(hospitalrole.FieldClonedFromRoleID, field.TypeUUID)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(hospitalrole.FieldUpdatedAt, field.TypeTime, value)
@@ -449,6 +501,26 @@ type HospitalRoleUpdateOne struct {
 	mutation *HospitalRoleMutation
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (_u *HospitalRoleUpdateOne) SetTenantID(v uuid.UUID) *HospitalRoleUpdateOne {
+	_u.mutation.SetTenantID(v)
+	return _u
+}
+
+// SetNillableTenantID sets the "tenant_id" field if the given value is not nil.
+func (_u *HospitalRoleUpdateOne) SetNillableTenantID(v *uuid.UUID) *HospitalRoleUpdateOne {
+	if v != nil {
+		_u.SetTenantID(*v)
+	}
+	return _u
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (_u *HospitalRoleUpdateOne) ClearTenantID() *HospitalRoleUpdateOne {
+	_u.mutation.ClearTenantID()
+	return _u
+}
+
 // SetRoleCode sets the "role_code" field.
 func (_u *HospitalRoleUpdateOne) SetRoleCode(v string) *HospitalRoleUpdateOne {
 	_u.mutation.SetRoleCode(v)
@@ -508,6 +580,26 @@ func (_u *HospitalRoleUpdateOne) SetNillableIsSystemRole(v *bool) *HospitalRoleU
 	if v != nil {
 		_u.SetIsSystemRole(*v)
 	}
+	return _u
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (_u *HospitalRoleUpdateOne) SetClonedFromRoleID(v uuid.UUID) *HospitalRoleUpdateOne {
+	_u.mutation.SetClonedFromRoleID(v)
+	return _u
+}
+
+// SetNillableClonedFromRoleID sets the "cloned_from_role_id" field if the given value is not nil.
+func (_u *HospitalRoleUpdateOne) SetNillableClonedFromRoleID(v *uuid.UUID) *HospitalRoleUpdateOne {
+	if v != nil {
+		_u.SetClonedFromRoleID(*v)
+	}
+	return _u
+}
+
+// ClearClonedFromRoleID clears the value of the "cloned_from_role_id" field.
+func (_u *HospitalRoleUpdateOne) ClearClonedFromRoleID() *HospitalRoleUpdateOne {
+	_u.mutation.ClearClonedFromRoleID()
 	return _u
 }
 
@@ -723,6 +815,12 @@ func (_u *HospitalRoleUpdateOne) sqlSave(ctx context.Context) (_node *HospitalRo
 			}
 		}
 	}
+	if value, ok := _u.mutation.TenantID(); ok {
+		_spec.SetField(hospitalrole.FieldTenantID, field.TypeUUID, value)
+	}
+	if _u.mutation.TenantIDCleared() {
+		_spec.ClearField(hospitalrole.FieldTenantID, field.TypeUUID)
+	}
 	if value, ok := _u.mutation.RoleCode(); ok {
 		_spec.SetField(hospitalrole.FieldRoleCode, field.TypeString, value)
 	}
@@ -737,6 +835,12 @@ func (_u *HospitalRoleUpdateOne) sqlSave(ctx context.Context) (_node *HospitalRo
 	}
 	if value, ok := _u.mutation.IsSystemRole(); ok {
 		_spec.SetField(hospitalrole.FieldIsSystemRole, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ClonedFromRoleID(); ok {
+		_spec.SetField(hospitalrole.FieldClonedFromRoleID, field.TypeUUID, value)
+	}
+	if _u.mutation.ClonedFromRoleIDCleared() {
+		_spec.ClearField(hospitalrole.FieldClonedFromRoleID, field.TypeUUID)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(hospitalrole.FieldUpdatedAt, field.TypeTime, value)

@@ -36,6 +36,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/rbacauditlog"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -76,6 +77,7 @@ const (
 	TypePatientVisit            = "PatientVisit"
 	TypePrescription            = "Prescription"
 	TypePrescriptionLine        = "PrescriptionLine"
+	TypeRbacAuditLog            = "RbacAuditLog"
 	TypeReferral                = "Referral"
 	TypeRolePermission          = "RolePermission"
 	TypeTenant                  = "Tenant"
@@ -8378,10 +8380,12 @@ type HospitalRoleMutation struct {
 	op                      Op
 	typ                     string
 	id                      *uuid.UUID
+	tenant_id               *uuid.UUID
 	role_code               *string
 	name                    *string
 	description             *string
 	is_system_role          *bool
+	cloned_from_role_id     *uuid.UUID
 	created_at              *time.Time
 	updated_at              *time.Time
 	clearedFields           map[string]struct{}
@@ -8501,6 +8505,55 @@ func (m *HospitalRoleMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *HospitalRoleMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *HospitalRoleMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the HospitalRole entity.
+// If the HospitalRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalRoleMutation) OldTenantID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (m *HospitalRoleMutation) ClearTenantID() {
+	m.tenant_id = nil
+	m.clearedFields[hospitalrole.FieldTenantID] = struct{}{}
+}
+
+// TenantIDCleared returns if the "tenant_id" field was cleared in this mutation.
+func (m *HospitalRoleMutation) TenantIDCleared() bool {
+	_, ok := m.clearedFields[hospitalrole.FieldTenantID]
+	return ok
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *HospitalRoleMutation) ResetTenantID() {
+	m.tenant_id = nil
+	delete(m.clearedFields, hospitalrole.FieldTenantID)
 }
 
 // SetRoleCode sets the "role_code" field.
@@ -8658,6 +8711,55 @@ func (m *HospitalRoleMutation) OldIsSystemRole(ctx context.Context) (v bool, err
 // ResetIsSystemRole resets all changes to the "is_system_role" field.
 func (m *HospitalRoleMutation) ResetIsSystemRole() {
 	m.is_system_role = nil
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (m *HospitalRoleMutation) SetClonedFromRoleID(u uuid.UUID) {
+	m.cloned_from_role_id = &u
+}
+
+// ClonedFromRoleID returns the value of the "cloned_from_role_id" field in the mutation.
+func (m *HospitalRoleMutation) ClonedFromRoleID() (r uuid.UUID, exists bool) {
+	v := m.cloned_from_role_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClonedFromRoleID returns the old "cloned_from_role_id" field's value of the HospitalRole entity.
+// If the HospitalRole object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalRoleMutation) OldClonedFromRoleID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClonedFromRoleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClonedFromRoleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClonedFromRoleID: %w", err)
+	}
+	return oldValue.ClonedFromRoleID, nil
+}
+
+// ClearClonedFromRoleID clears the value of the "cloned_from_role_id" field.
+func (m *HospitalRoleMutation) ClearClonedFromRoleID() {
+	m.cloned_from_role_id = nil
+	m.clearedFields[hospitalrole.FieldClonedFromRoleID] = struct{}{}
+}
+
+// ClonedFromRoleIDCleared returns if the "cloned_from_role_id" field was cleared in this mutation.
+func (m *HospitalRoleMutation) ClonedFromRoleIDCleared() bool {
+	_, ok := m.clearedFields[hospitalrole.FieldClonedFromRoleID]
+	return ok
+}
+
+// ResetClonedFromRoleID resets all changes to the "cloned_from_role_id" field.
+func (m *HospitalRoleMutation) ResetClonedFromRoleID() {
+	m.cloned_from_role_id = nil
+	delete(m.clearedFields, hospitalrole.FieldClonedFromRoleID)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -8928,7 +9030,10 @@ func (m *HospitalRoleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *HospitalRoleMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
+	if m.tenant_id != nil {
+		fields = append(fields, hospitalrole.FieldTenantID)
+	}
 	if m.role_code != nil {
 		fields = append(fields, hospitalrole.FieldRoleCode)
 	}
@@ -8940,6 +9045,9 @@ func (m *HospitalRoleMutation) Fields() []string {
 	}
 	if m.is_system_role != nil {
 		fields = append(fields, hospitalrole.FieldIsSystemRole)
+	}
+	if m.cloned_from_role_id != nil {
+		fields = append(fields, hospitalrole.FieldClonedFromRoleID)
 	}
 	if m.created_at != nil {
 		fields = append(fields, hospitalrole.FieldCreatedAt)
@@ -8955,6 +9063,8 @@ func (m *HospitalRoleMutation) Fields() []string {
 // schema.
 func (m *HospitalRoleMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case hospitalrole.FieldTenantID:
+		return m.TenantID()
 	case hospitalrole.FieldRoleCode:
 		return m.RoleCode()
 	case hospitalrole.FieldName:
@@ -8963,6 +9073,8 @@ func (m *HospitalRoleMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case hospitalrole.FieldIsSystemRole:
 		return m.IsSystemRole()
+	case hospitalrole.FieldClonedFromRoleID:
+		return m.ClonedFromRoleID()
 	case hospitalrole.FieldCreatedAt:
 		return m.CreatedAt()
 	case hospitalrole.FieldUpdatedAt:
@@ -8976,6 +9088,8 @@ func (m *HospitalRoleMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *HospitalRoleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case hospitalrole.FieldTenantID:
+		return m.OldTenantID(ctx)
 	case hospitalrole.FieldRoleCode:
 		return m.OldRoleCode(ctx)
 	case hospitalrole.FieldName:
@@ -8984,6 +9098,8 @@ func (m *HospitalRoleMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDescription(ctx)
 	case hospitalrole.FieldIsSystemRole:
 		return m.OldIsSystemRole(ctx)
+	case hospitalrole.FieldClonedFromRoleID:
+		return m.OldClonedFromRoleID(ctx)
 	case hospitalrole.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case hospitalrole.FieldUpdatedAt:
@@ -8997,6 +9113,13 @@ func (m *HospitalRoleMutation) OldField(ctx context.Context, name string) (ent.V
 // type.
 func (m *HospitalRoleMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case hospitalrole.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
 	case hospitalrole.FieldRoleCode:
 		v, ok := value.(string)
 		if !ok {
@@ -9024,6 +9147,13 @@ func (m *HospitalRoleMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsSystemRole(v)
+		return nil
+	case hospitalrole.FieldClonedFromRoleID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClonedFromRoleID(v)
 		return nil
 	case hospitalrole.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -9069,8 +9199,14 @@ func (m *HospitalRoleMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *HospitalRoleMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(hospitalrole.FieldTenantID) {
+		fields = append(fields, hospitalrole.FieldTenantID)
+	}
 	if m.FieldCleared(hospitalrole.FieldDescription) {
 		fields = append(fields, hospitalrole.FieldDescription)
+	}
+	if m.FieldCleared(hospitalrole.FieldClonedFromRoleID) {
+		fields = append(fields, hospitalrole.FieldClonedFromRoleID)
 	}
 	return fields
 }
@@ -9086,8 +9222,14 @@ func (m *HospitalRoleMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *HospitalRoleMutation) ClearField(name string) error {
 	switch name {
+	case hospitalrole.FieldTenantID:
+		m.ClearTenantID()
+		return nil
 	case hospitalrole.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case hospitalrole.FieldClonedFromRoleID:
+		m.ClearClonedFromRoleID()
 		return nil
 	}
 	return fmt.Errorf("unknown HospitalRole nullable field %s", name)
@@ -9097,6 +9239,9 @@ func (m *HospitalRoleMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *HospitalRoleMutation) ResetField(name string) error {
 	switch name {
+	case hospitalrole.FieldTenantID:
+		m.ResetTenantID()
+		return nil
 	case hospitalrole.FieldRoleCode:
 		m.ResetRoleCode()
 		return nil
@@ -9108,6 +9253,9 @@ func (m *HospitalRoleMutation) ResetField(name string) error {
 		return nil
 	case hospitalrole.FieldIsSystemRole:
 		m.ResetIsSystemRole()
+		return nil
+	case hospitalrole.FieldClonedFromRoleID:
+		m.ResetClonedFromRoleID()
 		return nil
 	case hospitalrole.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -23956,6 +24104,830 @@ func (m *PrescriptionLineMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown PrescriptionLine edge %s", name)
+}
+
+// RbacAuditLogMutation represents an operation that mutates the RbacAuditLog nodes in the graph.
+type RbacAuditLogMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	tenant_id     *uuid.UUID
+	actor_user_id *uuid.UUID
+	actor_email   *string
+	action        *string
+	target_type   *string
+	target_id     *uuid.UUID
+	before        *map[string]interface{}
+	after         *map[string]interface{}
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*RbacAuditLog, error)
+	predicates    []predicate.RbacAuditLog
+}
+
+var _ ent.Mutation = (*RbacAuditLogMutation)(nil)
+
+// rbacauditlogOption allows management of the mutation configuration using functional options.
+type rbacauditlogOption func(*RbacAuditLogMutation)
+
+// newRbacAuditLogMutation creates new mutation for the RbacAuditLog entity.
+func newRbacAuditLogMutation(c config, op Op, opts ...rbacauditlogOption) *RbacAuditLogMutation {
+	m := &RbacAuditLogMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRbacAuditLog,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRbacAuditLogID sets the ID field of the mutation.
+func withRbacAuditLogID(id uuid.UUID) rbacauditlogOption {
+	return func(m *RbacAuditLogMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RbacAuditLog
+		)
+		m.oldValue = func(ctx context.Context) (*RbacAuditLog, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RbacAuditLog.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRbacAuditLog sets the old RbacAuditLog of the mutation.
+func withRbacAuditLog(node *RbacAuditLog) rbacauditlogOption {
+	return func(m *RbacAuditLogMutation) {
+		m.oldValue = func(context.Context) (*RbacAuditLog, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RbacAuditLogMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RbacAuditLogMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of RbacAuditLog entities.
+func (m *RbacAuditLogMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RbacAuditLogMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RbacAuditLogMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RbacAuditLog.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *RbacAuditLogMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *RbacAuditLogMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *RbacAuditLogMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetActorUserID sets the "actor_user_id" field.
+func (m *RbacAuditLogMutation) SetActorUserID(u uuid.UUID) {
+	m.actor_user_id = &u
+}
+
+// ActorUserID returns the value of the "actor_user_id" field in the mutation.
+func (m *RbacAuditLogMutation) ActorUserID() (r uuid.UUID, exists bool) {
+	v := m.actor_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserID returns the old "actor_user_id" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldActorUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserID: %w", err)
+	}
+	return oldValue.ActorUserID, nil
+}
+
+// ResetActorUserID resets all changes to the "actor_user_id" field.
+func (m *RbacAuditLogMutation) ResetActorUserID() {
+	m.actor_user_id = nil
+}
+
+// SetActorEmail sets the "actor_email" field.
+func (m *RbacAuditLogMutation) SetActorEmail(s string) {
+	m.actor_email = &s
+}
+
+// ActorEmail returns the value of the "actor_email" field in the mutation.
+func (m *RbacAuditLogMutation) ActorEmail() (r string, exists bool) {
+	v := m.actor_email
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorEmail returns the old "actor_email" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldActorEmail(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorEmail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorEmail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorEmail: %w", err)
+	}
+	return oldValue.ActorEmail, nil
+}
+
+// ClearActorEmail clears the value of the "actor_email" field.
+func (m *RbacAuditLogMutation) ClearActorEmail() {
+	m.actor_email = nil
+	m.clearedFields[rbacauditlog.FieldActorEmail] = struct{}{}
+}
+
+// ActorEmailCleared returns if the "actor_email" field was cleared in this mutation.
+func (m *RbacAuditLogMutation) ActorEmailCleared() bool {
+	_, ok := m.clearedFields[rbacauditlog.FieldActorEmail]
+	return ok
+}
+
+// ResetActorEmail resets all changes to the "actor_email" field.
+func (m *RbacAuditLogMutation) ResetActorEmail() {
+	m.actor_email = nil
+	delete(m.clearedFields, rbacauditlog.FieldActorEmail)
+}
+
+// SetAction sets the "action" field.
+func (m *RbacAuditLogMutation) SetAction(s string) {
+	m.action = &s
+}
+
+// Action returns the value of the "action" field in the mutation.
+func (m *RbacAuditLogMutation) Action() (r string, exists bool) {
+	v := m.action
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAction returns the old "action" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldAction(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAction is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAction requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAction: %w", err)
+	}
+	return oldValue.Action, nil
+}
+
+// ResetAction resets all changes to the "action" field.
+func (m *RbacAuditLogMutation) ResetAction() {
+	m.action = nil
+}
+
+// SetTargetType sets the "target_type" field.
+func (m *RbacAuditLogMutation) SetTargetType(s string) {
+	m.target_type = &s
+}
+
+// TargetType returns the value of the "target_type" field in the mutation.
+func (m *RbacAuditLogMutation) TargetType() (r string, exists bool) {
+	v := m.target_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetType returns the old "target_type" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldTargetType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetType: %w", err)
+	}
+	return oldValue.TargetType, nil
+}
+
+// ResetTargetType resets all changes to the "target_type" field.
+func (m *RbacAuditLogMutation) ResetTargetType() {
+	m.target_type = nil
+}
+
+// SetTargetID sets the "target_id" field.
+func (m *RbacAuditLogMutation) SetTargetID(u uuid.UUID) {
+	m.target_id = &u
+}
+
+// TargetID returns the value of the "target_id" field in the mutation.
+func (m *RbacAuditLogMutation) TargetID() (r uuid.UUID, exists bool) {
+	v := m.target_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetID returns the old "target_id" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldTargetID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetID: %w", err)
+	}
+	return oldValue.TargetID, nil
+}
+
+// ResetTargetID resets all changes to the "target_id" field.
+func (m *RbacAuditLogMutation) ResetTargetID() {
+	m.target_id = nil
+}
+
+// SetBefore sets the "before" field.
+func (m *RbacAuditLogMutation) SetBefore(value map[string]interface{}) {
+	m.before = &value
+}
+
+// Before returns the value of the "before" field in the mutation.
+func (m *RbacAuditLogMutation) Before() (r map[string]interface{}, exists bool) {
+	v := m.before
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBefore returns the old "before" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldBefore(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBefore is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBefore requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBefore: %w", err)
+	}
+	return oldValue.Before, nil
+}
+
+// ClearBefore clears the value of the "before" field.
+func (m *RbacAuditLogMutation) ClearBefore() {
+	m.before = nil
+	m.clearedFields[rbacauditlog.FieldBefore] = struct{}{}
+}
+
+// BeforeCleared returns if the "before" field was cleared in this mutation.
+func (m *RbacAuditLogMutation) BeforeCleared() bool {
+	_, ok := m.clearedFields[rbacauditlog.FieldBefore]
+	return ok
+}
+
+// ResetBefore resets all changes to the "before" field.
+func (m *RbacAuditLogMutation) ResetBefore() {
+	m.before = nil
+	delete(m.clearedFields, rbacauditlog.FieldBefore)
+}
+
+// SetAfter sets the "after" field.
+func (m *RbacAuditLogMutation) SetAfter(value map[string]interface{}) {
+	m.after = &value
+}
+
+// After returns the value of the "after" field in the mutation.
+func (m *RbacAuditLogMutation) After() (r map[string]interface{}, exists bool) {
+	v := m.after
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAfter returns the old "after" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldAfter(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAfter is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAfter requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAfter: %w", err)
+	}
+	return oldValue.After, nil
+}
+
+// ClearAfter clears the value of the "after" field.
+func (m *RbacAuditLogMutation) ClearAfter() {
+	m.after = nil
+	m.clearedFields[rbacauditlog.FieldAfter] = struct{}{}
+}
+
+// AfterCleared returns if the "after" field was cleared in this mutation.
+func (m *RbacAuditLogMutation) AfterCleared() bool {
+	_, ok := m.clearedFields[rbacauditlog.FieldAfter]
+	return ok
+}
+
+// ResetAfter resets all changes to the "after" field.
+func (m *RbacAuditLogMutation) ResetAfter() {
+	m.after = nil
+	delete(m.clearedFields, rbacauditlog.FieldAfter)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RbacAuditLogMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RbacAuditLogMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RbacAuditLog entity.
+// If the RbacAuditLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RbacAuditLogMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RbacAuditLogMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the RbacAuditLogMutation builder.
+func (m *RbacAuditLogMutation) Where(ps ...predicate.RbacAuditLog) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RbacAuditLogMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RbacAuditLogMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RbacAuditLog, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RbacAuditLogMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RbacAuditLogMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RbacAuditLog).
+func (m *RbacAuditLogMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RbacAuditLogMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.tenant_id != nil {
+		fields = append(fields, rbacauditlog.FieldTenantID)
+	}
+	if m.actor_user_id != nil {
+		fields = append(fields, rbacauditlog.FieldActorUserID)
+	}
+	if m.actor_email != nil {
+		fields = append(fields, rbacauditlog.FieldActorEmail)
+	}
+	if m.action != nil {
+		fields = append(fields, rbacauditlog.FieldAction)
+	}
+	if m.target_type != nil {
+		fields = append(fields, rbacauditlog.FieldTargetType)
+	}
+	if m.target_id != nil {
+		fields = append(fields, rbacauditlog.FieldTargetID)
+	}
+	if m.before != nil {
+		fields = append(fields, rbacauditlog.FieldBefore)
+	}
+	if m.after != nil {
+		fields = append(fields, rbacauditlog.FieldAfter)
+	}
+	if m.created_at != nil {
+		fields = append(fields, rbacauditlog.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RbacAuditLogMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rbacauditlog.FieldTenantID:
+		return m.TenantID()
+	case rbacauditlog.FieldActorUserID:
+		return m.ActorUserID()
+	case rbacauditlog.FieldActorEmail:
+		return m.ActorEmail()
+	case rbacauditlog.FieldAction:
+		return m.Action()
+	case rbacauditlog.FieldTargetType:
+		return m.TargetType()
+	case rbacauditlog.FieldTargetID:
+		return m.TargetID()
+	case rbacauditlog.FieldBefore:
+		return m.Before()
+	case rbacauditlog.FieldAfter:
+		return m.After()
+	case rbacauditlog.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RbacAuditLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rbacauditlog.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case rbacauditlog.FieldActorUserID:
+		return m.OldActorUserID(ctx)
+	case rbacauditlog.FieldActorEmail:
+		return m.OldActorEmail(ctx)
+	case rbacauditlog.FieldAction:
+		return m.OldAction(ctx)
+	case rbacauditlog.FieldTargetType:
+		return m.OldTargetType(ctx)
+	case rbacauditlog.FieldTargetID:
+		return m.OldTargetID(ctx)
+	case rbacauditlog.FieldBefore:
+		return m.OldBefore(ctx)
+	case rbacauditlog.FieldAfter:
+		return m.OldAfter(ctx)
+	case rbacauditlog.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RbacAuditLog field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacAuditLogMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rbacauditlog.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case rbacauditlog.FieldActorUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserID(v)
+		return nil
+	case rbacauditlog.FieldActorEmail:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorEmail(v)
+		return nil
+	case rbacauditlog.FieldAction:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAction(v)
+		return nil
+	case rbacauditlog.FieldTargetType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetType(v)
+		return nil
+	case rbacauditlog.FieldTargetID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetID(v)
+		return nil
+	case rbacauditlog.FieldBefore:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBefore(v)
+		return nil
+	case rbacauditlog.FieldAfter:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAfter(v)
+		return nil
+	case rbacauditlog.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAuditLog field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RbacAuditLogMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RbacAuditLogMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RbacAuditLogMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown RbacAuditLog numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RbacAuditLogMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rbacauditlog.FieldActorEmail) {
+		fields = append(fields, rbacauditlog.FieldActorEmail)
+	}
+	if m.FieldCleared(rbacauditlog.FieldBefore) {
+		fields = append(fields, rbacauditlog.FieldBefore)
+	}
+	if m.FieldCleared(rbacauditlog.FieldAfter) {
+		fields = append(fields, rbacauditlog.FieldAfter)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RbacAuditLogMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RbacAuditLogMutation) ClearField(name string) error {
+	switch name {
+	case rbacauditlog.FieldActorEmail:
+		m.ClearActorEmail()
+		return nil
+	case rbacauditlog.FieldBefore:
+		m.ClearBefore()
+		return nil
+	case rbacauditlog.FieldAfter:
+		m.ClearAfter()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAuditLog nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RbacAuditLogMutation) ResetField(name string) error {
+	switch name {
+	case rbacauditlog.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case rbacauditlog.FieldActorUserID:
+		m.ResetActorUserID()
+		return nil
+	case rbacauditlog.FieldActorEmail:
+		m.ResetActorEmail()
+		return nil
+	case rbacauditlog.FieldAction:
+		m.ResetAction()
+		return nil
+	case rbacauditlog.FieldTargetType:
+		m.ResetTargetType()
+		return nil
+	case rbacauditlog.FieldTargetID:
+		m.ResetTargetID()
+		return nil
+	case rbacauditlog.FieldBefore:
+		m.ResetBefore()
+		return nil
+	case rbacauditlog.FieldAfter:
+		m.ResetAfter()
+		return nil
+	case rbacauditlog.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RbacAuditLog field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RbacAuditLogMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RbacAuditLogMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RbacAuditLogMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RbacAuditLogMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RbacAuditLogMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RbacAuditLogMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RbacAuditLogMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RbacAuditLog unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RbacAuditLogMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RbacAuditLog edge %s", name)
 }
 
 // ReferralMutation represents an operation that mutates the Referral nodes in the graph.

@@ -15,6 +15,8 @@ const (
 	Label = "hospital_role"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldTenantID holds the string denoting the tenant_id field in the database.
+	FieldTenantID = "tenant_id"
 	// FieldRoleCode holds the string denoting the role_code field in the database.
 	FieldRoleCode = "role_code"
 	// FieldName holds the string denoting the name field in the database.
@@ -23,6 +25,8 @@ const (
 	FieldDescription = "description"
 	// FieldIsSystemRole holds the string denoting the is_system_role field in the database.
 	FieldIsSystemRole = "is_system_role"
+	// FieldClonedFromRoleID holds the string denoting the cloned_from_role_id field in the database.
+	FieldClonedFromRoleID = "cloned_from_role_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -59,10 +63,12 @@ const (
 // Columns holds all SQL columns for hospitalrole fields.
 var Columns = []string{
 	FieldID,
+	FieldTenantID,
 	FieldRoleCode,
 	FieldName,
 	FieldDescription,
 	FieldIsSystemRole,
+	FieldClonedFromRoleID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -108,6 +114,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
+// ByTenantID orders the results by the tenant_id field.
+func ByTenantID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTenantID, opts...).ToFunc()
+}
+
 // ByRoleCode orders the results by the role_code field.
 func ByRoleCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRoleCode, opts...).ToFunc()
@@ -126,6 +137,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByIsSystemRole orders the results by the is_system_role field.
 func ByIsSystemRole(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsSystemRole, opts...).ToFunc()
+}
+
+// ByClonedFromRoleID orders the results by the cloned_from_role_id field.
+func ByClonedFromRoleID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldClonedFromRoleID, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

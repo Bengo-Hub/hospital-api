@@ -24,6 +24,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/migrate"
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
+	"github.com/bengobox/hospital-service/internal/modules/auditlog"
 	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
@@ -161,6 +162,10 @@ func New(ctx context.Context) (*App, error) {
 	identitySvc.SetRBACService(rbacService)
 	rbacService.SetUserResolver(identitySvc)
 
+	auditWriter := auditlog.NewWriter(ormClient, log)
+	rbacService.SetAuditWriter(auditWriter)
+	identitySvc.SetAuditWriter(auditWriter)
+
 	authMeHandler := handlers.NewAuthMeHandler(rbacService)
 
 	// ── auth-service JWT validator (JWKS) + optional S2S API key ──────────────
@@ -226,6 +231,7 @@ func New(ctx context.Context) (*App, error) {
 	// ── Users / Config admin (2026-08-30) ─────────────────────────────────
 	usersHandler := handlers.NewUsersHandler(identitySvc, rbacService)
 	configHandler := handlers.NewConfigHandler(identitySvc)
+	auditLogHandler := handlers.NewAuditLogHandler(auditWriter)
 
 	deps := router.Deps{
 		Log:            log,
@@ -243,6 +249,7 @@ func New(ctx context.Context) (*App, error) {
 		Pharmacy:       pharmacyHandler,
 		Users:          usersHandler,
 		Config:         configHandler,
+		AuditLog:       auditLogHandler,
 		TenantSyncer:   tenantSyncer,
 	}
 	chiRouter := router.New(deps)

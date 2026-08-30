@@ -39,6 +39,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/rbacauditlog"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
@@ -97,6 +98,8 @@ type Client struct {
 	Prescription *PrescriptionClient
 	// PrescriptionLine is the client for interacting with the PrescriptionLine builders.
 	PrescriptionLine *PrescriptionLineClient
+	// RbacAuditLog is the client for interacting with the RbacAuditLog builders.
+	RbacAuditLog *RbacAuditLogClient
 	// Referral is the client for interacting with the Referral builders.
 	Referral *ReferralClient
 	// RolePermission is the client for interacting with the RolePermission builders.
@@ -141,6 +144,7 @@ func (c *Client) init() {
 	c.PatientVisit = NewPatientVisitClient(c.config)
 	c.Prescription = NewPrescriptionClient(c.config)
 	c.PrescriptionLine = NewPrescriptionLineClient(c.config)
+	c.RbacAuditLog = NewRbacAuditLogClient(c.config)
 	c.Referral = NewReferralClient(c.config)
 	c.RolePermission = NewRolePermissionClient(c.config)
 	c.Tenant = NewTenantClient(c.config)
@@ -261,6 +265,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PatientVisit:            NewPatientVisitClient(cfg),
 		Prescription:            NewPrescriptionClient(cfg),
 		PrescriptionLine:        NewPrescriptionLineClient(cfg),
+		RbacAuditLog:            NewRbacAuditLogClient(cfg),
 		Referral:                NewReferralClient(cfg),
 		RolePermission:          NewRolePermissionClient(cfg),
 		Tenant:                  NewTenantClient(cfg),
@@ -308,6 +313,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PatientVisit:            NewPatientVisitClient(cfg),
 		Prescription:            NewPrescriptionClient(cfg),
 		PrescriptionLine:        NewPrescriptionLineClient(cfg),
+		RbacAuditLog:            NewRbacAuditLogClient(cfg),
 		Referral:                NewReferralClient(cfg),
 		RolePermission:          NewRolePermissionClient(cfg),
 		Tenant:                  NewTenantClient(cfg),
@@ -348,8 +354,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.HospitalRole, c.HospitalUser, c.LabOrder, c.LabOrderLine,
 		c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet,
 		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
-		c.Prescription, c.PrescriptionLine, c.Referral, c.RolePermission, c.Tenant,
-		c.TriageRecord, c.UserRoleAssignment,
+		c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
+		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
 		n.Use(hooks...)
 	}
@@ -365,8 +371,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.HospitalRole, c.HospitalUser, c.LabOrder, c.LabOrderLine,
 		c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet,
 		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
-		c.Prescription, c.PrescriptionLine, c.Referral, c.RolePermission, c.Tenant,
-		c.TriageRecord, c.UserRoleAssignment,
+		c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
+		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -421,6 +427,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Prescription.mutate(ctx, m)
 	case *PrescriptionLineMutation:
 		return c.PrescriptionLine.mutate(ctx, m)
+	case *RbacAuditLogMutation:
+		return c.RbacAuditLog.mutate(ctx, m)
 	case *ReferralMutation:
 		return c.Referral.mutate(ctx, m)
 	case *RolePermissionMutation:
@@ -3847,6 +3855,139 @@ func (c *PrescriptionLineClient) mutate(ctx context.Context, m *PrescriptionLine
 	}
 }
 
+// RbacAuditLogClient is a client for the RbacAuditLog schema.
+type RbacAuditLogClient struct {
+	config
+}
+
+// NewRbacAuditLogClient returns a client for the RbacAuditLog from the given config.
+func NewRbacAuditLogClient(c config) *RbacAuditLogClient {
+	return &RbacAuditLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `rbacauditlog.Hooks(f(g(h())))`.
+func (c *RbacAuditLogClient) Use(hooks ...Hook) {
+	c.hooks.RbacAuditLog = append(c.hooks.RbacAuditLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `rbacauditlog.Intercept(f(g(h())))`.
+func (c *RbacAuditLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RbacAuditLog = append(c.inters.RbacAuditLog, interceptors...)
+}
+
+// Create returns a builder for creating a RbacAuditLog entity.
+func (c *RbacAuditLogClient) Create() *RbacAuditLogCreate {
+	mutation := newRbacAuditLogMutation(c.config, OpCreate)
+	return &RbacAuditLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RbacAuditLog entities.
+func (c *RbacAuditLogClient) CreateBulk(builders ...*RbacAuditLogCreate) *RbacAuditLogCreateBulk {
+	return &RbacAuditLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RbacAuditLogClient) MapCreateBulk(slice any, setFunc func(*RbacAuditLogCreate, int)) *RbacAuditLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RbacAuditLogCreateBulk{err: fmt.Errorf("calling to RbacAuditLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RbacAuditLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RbacAuditLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RbacAuditLog.
+func (c *RbacAuditLogClient) Update() *RbacAuditLogUpdate {
+	mutation := newRbacAuditLogMutation(c.config, OpUpdate)
+	return &RbacAuditLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RbacAuditLogClient) UpdateOne(_m *RbacAuditLog) *RbacAuditLogUpdateOne {
+	mutation := newRbacAuditLogMutation(c.config, OpUpdateOne, withRbacAuditLog(_m))
+	return &RbacAuditLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RbacAuditLogClient) UpdateOneID(id uuid.UUID) *RbacAuditLogUpdateOne {
+	mutation := newRbacAuditLogMutation(c.config, OpUpdateOne, withRbacAuditLogID(id))
+	return &RbacAuditLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RbacAuditLog.
+func (c *RbacAuditLogClient) Delete() *RbacAuditLogDelete {
+	mutation := newRbacAuditLogMutation(c.config, OpDelete)
+	return &RbacAuditLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RbacAuditLogClient) DeleteOne(_m *RbacAuditLog) *RbacAuditLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RbacAuditLogClient) DeleteOneID(id uuid.UUID) *RbacAuditLogDeleteOne {
+	builder := c.Delete().Where(rbacauditlog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RbacAuditLogDeleteOne{builder}
+}
+
+// Query returns a query builder for RbacAuditLog.
+func (c *RbacAuditLogClient) Query() *RbacAuditLogQuery {
+	return &RbacAuditLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRbacAuditLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RbacAuditLog entity by its id.
+func (c *RbacAuditLogClient) Get(ctx context.Context, id uuid.UUID) (*RbacAuditLog, error) {
+	return c.Query().Where(rbacauditlog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RbacAuditLogClient) GetX(ctx context.Context, id uuid.UUID) *RbacAuditLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RbacAuditLogClient) Hooks() []Hook {
+	return c.hooks.RbacAuditLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *RbacAuditLogClient) Interceptors() []Interceptor {
+	return c.inters.RbacAuditLog
+}
+
+func (c *RbacAuditLogClient) mutate(ctx context.Context, m *RbacAuditLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RbacAuditLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RbacAuditLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RbacAuditLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RbacAuditLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RbacAuditLog mutation op: %q", m.Op())
+	}
+}
+
 // ReferralClient is a client for the Referral schema.
 type ReferralClient struct {
 	config
@@ -4648,8 +4789,8 @@ type (
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
 		HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
 		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
-		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, Referral,
-		RolePermission, Tenant, TriageRecord, UserRoleAssignment []ent.Hook
+		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
+		Referral, RolePermission, Tenant, TriageRecord, UserRoleAssignment []ent.Hook
 	}
 	inters struct {
 		BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
@@ -4657,7 +4798,8 @@ type (
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
 		HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
 		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
-		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, Referral,
-		RolePermission, Tenant, TriageRecord, UserRoleAssignment []ent.Interceptor
+		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
+		Referral, RolePermission, Tenant, TriageRecord,
+		UserRoleAssignment []ent.Interceptor
 	}
 )

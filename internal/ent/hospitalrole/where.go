@@ -56,6 +56,11 @@ func IDLTE(id uuid.UUID) predicate.HospitalRole {
 	return predicate.HospitalRole(sql.FieldLTE(FieldID, id))
 }
 
+// TenantID applies equality check predicate on the "tenant_id" field. It's identical to TenantIDEQ.
+func TenantID(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldEQ(FieldTenantID, v))
+}
+
 // RoleCode applies equality check predicate on the "role_code" field. It's identical to RoleCodeEQ.
 func RoleCode(v string) predicate.HospitalRole {
 	return predicate.HospitalRole(sql.FieldEQ(FieldRoleCode, v))
@@ -76,6 +81,11 @@ func IsSystemRole(v bool) predicate.HospitalRole {
 	return predicate.HospitalRole(sql.FieldEQ(FieldIsSystemRole, v))
 }
 
+// ClonedFromRoleID applies equality check predicate on the "cloned_from_role_id" field. It's identical to ClonedFromRoleIDEQ.
+func ClonedFromRoleID(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldEQ(FieldClonedFromRoleID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.HospitalRole {
 	return predicate.HospitalRole(sql.FieldEQ(FieldCreatedAt, v))
@@ -84,6 +94,56 @@ func CreatedAt(v time.Time) predicate.HospitalRole {
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.HospitalRole {
 	return predicate.HospitalRole(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// TenantIDEQ applies the EQ predicate on the "tenant_id" field.
+func TenantIDEQ(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldEQ(FieldTenantID, v))
+}
+
+// TenantIDNEQ applies the NEQ predicate on the "tenant_id" field.
+func TenantIDNEQ(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldNEQ(FieldTenantID, v))
+}
+
+// TenantIDIn applies the In predicate on the "tenant_id" field.
+func TenantIDIn(vs ...uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldIn(FieldTenantID, vs...))
+}
+
+// TenantIDNotIn applies the NotIn predicate on the "tenant_id" field.
+func TenantIDNotIn(vs ...uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldNotIn(FieldTenantID, vs...))
+}
+
+// TenantIDGT applies the GT predicate on the "tenant_id" field.
+func TenantIDGT(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldGT(FieldTenantID, v))
+}
+
+// TenantIDGTE applies the GTE predicate on the "tenant_id" field.
+func TenantIDGTE(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldGTE(FieldTenantID, v))
+}
+
+// TenantIDLT applies the LT predicate on the "tenant_id" field.
+func TenantIDLT(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldLT(FieldTenantID, v))
+}
+
+// TenantIDLTE applies the LTE predicate on the "tenant_id" field.
+func TenantIDLTE(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldLTE(FieldTenantID, v))
+}
+
+// TenantIDIsNil applies the IsNil predicate on the "tenant_id" field.
+func TenantIDIsNil() predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldIsNull(FieldTenantID))
+}
+
+// TenantIDNotNil applies the NotNil predicate on the "tenant_id" field.
+func TenantIDNotNil() predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldNotNull(FieldTenantID))
 }
 
 // RoleCodeEQ applies the EQ predicate on the "role_code" field.
@@ -299,6 +359,56 @@ func IsSystemRoleEQ(v bool) predicate.HospitalRole {
 // IsSystemRoleNEQ applies the NEQ predicate on the "is_system_role" field.
 func IsSystemRoleNEQ(v bool) predicate.HospitalRole {
 	return predicate.HospitalRole(sql.FieldNEQ(FieldIsSystemRole, v))
+}
+
+// ClonedFromRoleIDEQ applies the EQ predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDEQ(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldEQ(FieldClonedFromRoleID, v))
+}
+
+// ClonedFromRoleIDNEQ applies the NEQ predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDNEQ(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldNEQ(FieldClonedFromRoleID, v))
+}
+
+// ClonedFromRoleIDIn applies the In predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDIn(vs ...uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldIn(FieldClonedFromRoleID, vs...))
+}
+
+// ClonedFromRoleIDNotIn applies the NotIn predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDNotIn(vs ...uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldNotIn(FieldClonedFromRoleID, vs...))
+}
+
+// ClonedFromRoleIDGT applies the GT predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDGT(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldGT(FieldClonedFromRoleID, v))
+}
+
+// ClonedFromRoleIDGTE applies the GTE predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDGTE(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldGTE(FieldClonedFromRoleID, v))
+}
+
+// ClonedFromRoleIDLT applies the LT predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDLT(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldLT(FieldClonedFromRoleID, v))
+}
+
+// ClonedFromRoleIDLTE applies the LTE predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDLTE(v uuid.UUID) predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldLTE(FieldClonedFromRoleID, v))
+}
+
+// ClonedFromRoleIDIsNil applies the IsNil predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDIsNil() predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldIsNull(FieldClonedFromRoleID))
+}
+
+// ClonedFromRoleIDNotNil applies the NotNil predicate on the "cloned_from_role_id" field.
+func ClonedFromRoleIDNotNil() predicate.HospitalRole {
+	return predicate.HospitalRole(sql.FieldNotNull(FieldClonedFromRoleID))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

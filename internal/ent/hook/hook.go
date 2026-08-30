@@ -285,6 +285,18 @@ func (f PrescriptionLineFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PrescriptionLineMutation", m)
 }
 
+// The RbacAuditLogFunc type is an adapter to allow the use of ordinary
+// function as RbacAuditLog mutator.
+type RbacAuditLogFunc func(context.Context, *ent.RbacAuditLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RbacAuditLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RbacAuditLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RbacAuditLogMutation", m)
+}
+
 // The ReferralFunc type is an adapter to allow the use of ordinary
 // function as Referral mutator.
 type ReferralFunc func(context.Context, *ent.ReferralMutation) (ent.Value, error)

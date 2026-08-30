@@ -12,15 +12,21 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
+	"github.com/bengobox/hospital-service/internal/modules/auditlog"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
 )
+
+// validUserStatuses are the only values SetUserStatus accepts — matches HospitalUser.status's
+// own doc comment ("Status: active, inactive, suspended").
+var validUserStatuses = map[string]bool{"active": true, "inactive": true, "suspended": true}
 
 // Service handles identity-related operations (JIT user/tenant provisioning) using Ent.
 type Service struct {
 	client       *ent.Client
 	tenantSyncer *tenant.Syncer
 	rbacService  *rbac.Service
+	audit        *auditlog.Writer
 }
 
 // NewService creates a new Identity Service.
@@ -34,6 +40,12 @@ func NewService(client *ent.Client, tenantSyncer *tenant.Syncer) *Service {
 // SetRBACService sets the RBAC service for JIT role assignment.
 func (s *Service) SetRBACService(svc *rbac.Service) {
 	s.rbacService = svc
+}
+
+// SetAuditWriter wires the audit log writer (see rbac.Service.SetAuditWriter for the same
+// optional, always-safe contract).
+func (s *Service) SetAuditWriter(w *auditlog.Writer) {
+	s.audit = w
 }
 
 // EnsureUserFromToken performs JIT (Just-In-Time) provisioning of users and tenants.
@@ -172,6 +184,11 @@ func (s *Service) assignDefaultRoleFromJWT(ctx context.Context, tenantID uuid.UU
 // (tenant_id, auth_service_user_id) rather than globally keyed by the auth ID, every permission
 // check that only has the raw JWT subject must resolve through here before querying
 // UserRoleAssignment (which is keyed on the local ID).
+//
+// Also the single enforcement choke point for deactivation: a non-"active" user resolves to an
+// error here, which every caller (HasAnyPermissionForAuthUser, GetUserRolesForAuthUser,
+// GetUserPermissionsForAuthUser) already treats as "no local row" and falls through accordingly
+// — without this, SetUserStatus would be purely cosmetic.
 func (s *Service) ResolveLocalUserID(ctx context.Context, tenantID, authUserID uuid.UUID) (uuid.UUID, error) {
 	u, err := s.client.HospitalUser.Query().
 		Where(hospitaluser.TenantIDEQ(tenantID), hospitaluser.AuthServiceUserIDEQ(authUserID)).
@@ -179,7 +196,38 @@ func (s *Service) ResolveLocalUserID(ctx context.Context, tenantID, authUserID u
 	if err != nil {
 		return uuid.Nil, err
 	}
+	if u.Status != "active" {
+		return uuid.Nil, fmt.Errorf("user %s is not active (status=%s)", u.ID, u.Status)
+	}
 	return u.ID, nil
+}
+
+// SetUserStatus updates userID's lifecycle status (active/inactive/suspended) — the
+// deactivate/reactivate/suspend action on the Users admin page. userID is the LOCAL
+// HospitalUser.ID (as returned by ListUsers), not the auth-service user ID.
+func (s *Service) SetUserStatus(ctx context.Context, tenantID, actorID, userID uuid.UUID, status string) (*ent.HospitalUser, error) {
+	if !validUserStatuses[status] {
+		return nil, fmt.Errorf("invalid status %q: must be one of active, inactive, suspended", status)
+	}
+	existing, err := s.client.HospitalUser.Query().
+		Where(hospitaluser.IDEQ(userID), hospitaluser.TenantIDEQ(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	before := existing.Status
+	updated, err := s.client.HospitalUser.UpdateOne(existing).SetStatus(status).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("update user status: %w", err)
+	}
+	if s.audit != nil {
+		s.audit.Record(ctx, auditlog.Entry{
+			TenantID: tenantID, ActorID: actorID, Action: "user.status_changed",
+			TargetType: "user", TargetID: userID,
+			Before: map[string]any{"status": before}, After: map[string]any{"status": status},
+		})
+	}
+	return updated, nil
 }
 
 // GetTenant returns the tenant row — used by the read-only Config admin page to display the

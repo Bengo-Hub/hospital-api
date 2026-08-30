@@ -27,6 +27,20 @@ type HospitalRoleCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (_c *HospitalRoleCreate) SetTenantID(v uuid.UUID) *HospitalRoleCreate {
+	_c.mutation.SetTenantID(v)
+	return _c
+}
+
+// SetNillableTenantID sets the "tenant_id" field if the given value is not nil.
+func (_c *HospitalRoleCreate) SetNillableTenantID(v *uuid.UUID) *HospitalRoleCreate {
+	if v != nil {
+		_c.SetTenantID(*v)
+	}
+	return _c
+}
+
 // SetRoleCode sets the "role_code" field.
 func (_c *HospitalRoleCreate) SetRoleCode(v string) *HospitalRoleCreate {
 	_c.mutation.SetRoleCode(v)
@@ -63,6 +77,20 @@ func (_c *HospitalRoleCreate) SetIsSystemRole(v bool) *HospitalRoleCreate {
 func (_c *HospitalRoleCreate) SetNillableIsSystemRole(v *bool) *HospitalRoleCreate {
 	if v != nil {
 		_c.SetIsSystemRole(*v)
+	}
+	return _c
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (_c *HospitalRoleCreate) SetClonedFromRoleID(v uuid.UUID) *HospitalRoleCreate {
+	_c.mutation.SetClonedFromRoleID(v)
+	return _c
+}
+
+// SetNillableClonedFromRoleID sets the "cloned_from_role_id" field if the given value is not nil.
+func (_c *HospitalRoleCreate) SetNillableClonedFromRoleID(v *uuid.UUID) *HospitalRoleCreate {
+	if v != nil {
+		_c.SetClonedFromRoleID(*v)
 	}
 	return _c
 }
@@ -270,6 +298,10 @@ func (_c *HospitalRoleCreate) createSpec() (*HospitalRole, *sqlgraph.CreateSpec)
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
+	if value, ok := _c.mutation.TenantID(); ok {
+		_spec.SetField(hospitalrole.FieldTenantID, field.TypeUUID, value)
+		_node.TenantID = &value
+	}
 	if value, ok := _c.mutation.RoleCode(); ok {
 		_spec.SetField(hospitalrole.FieldRoleCode, field.TypeString, value)
 		_node.RoleCode = value
@@ -285,6 +317,10 @@ func (_c *HospitalRoleCreate) createSpec() (*HospitalRole, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.IsSystemRole(); ok {
 		_spec.SetField(hospitalrole.FieldIsSystemRole, field.TypeBool, value)
 		_node.IsSystemRole = value
+	}
+	if value, ok := _c.mutation.ClonedFromRoleID(); ok {
+		_spec.SetField(hospitalrole.FieldClonedFromRoleID, field.TypeUUID, value)
+		_node.ClonedFromRoleID = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(hospitalrole.FieldCreatedAt, field.TypeTime, value)
@@ -349,7 +385,7 @@ func (_c *HospitalRoleCreate) createSpec() (*HospitalRole, *sqlgraph.CreateSpec)
 // of the `INSERT` statement. For example:
 //
 //	client.HospitalRole.Create().
-//		SetRoleCode(v).
+//		SetTenantID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -358,7 +394,7 @@ func (_c *HospitalRoleCreate) createSpec() (*HospitalRole, *sqlgraph.CreateSpec)
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.HospitalRoleUpsert) {
-//			SetRoleCode(v+v).
+//			SetTenantID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *HospitalRoleCreate) OnConflict(opts ...sql.ConflictOption) *HospitalRoleUpsertOne {
@@ -393,6 +429,24 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetTenantID sets the "tenant_id" field.
+func (u *HospitalRoleUpsert) SetTenantID(v uuid.UUID) *HospitalRoleUpsert {
+	u.Set(hospitalrole.FieldTenantID, v)
+	return u
+}
+
+// UpdateTenantID sets the "tenant_id" field to the value that was provided on create.
+func (u *HospitalRoleUpsert) UpdateTenantID() *HospitalRoleUpsert {
+	u.SetExcluded(hospitalrole.FieldTenantID)
+	return u
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (u *HospitalRoleUpsert) ClearTenantID() *HospitalRoleUpsert {
+	u.SetNull(hospitalrole.FieldTenantID)
+	return u
+}
 
 // SetRoleCode sets the "role_code" field.
 func (u *HospitalRoleUpsert) SetRoleCode(v string) *HospitalRoleUpsert {
@@ -445,6 +499,24 @@ func (u *HospitalRoleUpsert) SetIsSystemRole(v bool) *HospitalRoleUpsert {
 // UpdateIsSystemRole sets the "is_system_role" field to the value that was provided on create.
 func (u *HospitalRoleUpsert) UpdateIsSystemRole() *HospitalRoleUpsert {
 	u.SetExcluded(hospitalrole.FieldIsSystemRole)
+	return u
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (u *HospitalRoleUpsert) SetClonedFromRoleID(v uuid.UUID) *HospitalRoleUpsert {
+	u.Set(hospitalrole.FieldClonedFromRoleID, v)
+	return u
+}
+
+// UpdateClonedFromRoleID sets the "cloned_from_role_id" field to the value that was provided on create.
+func (u *HospitalRoleUpsert) UpdateClonedFromRoleID() *HospitalRoleUpsert {
+	u.SetExcluded(hospitalrole.FieldClonedFromRoleID)
+	return u
+}
+
+// ClearClonedFromRoleID clears the value of the "cloned_from_role_id" field.
+func (u *HospitalRoleUpsert) ClearClonedFromRoleID() *HospitalRoleUpsert {
+	u.SetNull(hospitalrole.FieldClonedFromRoleID)
 	return u
 }
 
@@ -511,6 +583,27 @@ func (u *HospitalRoleUpsertOne) Update(set func(*HospitalRoleUpsert)) *HospitalR
 	return u
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (u *HospitalRoleUpsertOne) SetTenantID(v uuid.UUID) *HospitalRoleUpsertOne {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.SetTenantID(v)
+	})
+}
+
+// UpdateTenantID sets the "tenant_id" field to the value that was provided on create.
+func (u *HospitalRoleUpsertOne) UpdateTenantID() *HospitalRoleUpsertOne {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.UpdateTenantID()
+	})
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (u *HospitalRoleUpsertOne) ClearTenantID() *HospitalRoleUpsertOne {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.ClearTenantID()
+	})
+}
+
 // SetRoleCode sets the "role_code" field.
 func (u *HospitalRoleUpsertOne) SetRoleCode(v string) *HospitalRoleUpsertOne {
 	return u.Update(func(s *HospitalRoleUpsert) {
@@ -571,6 +664,27 @@ func (u *HospitalRoleUpsertOne) SetIsSystemRole(v bool) *HospitalRoleUpsertOne {
 func (u *HospitalRoleUpsertOne) UpdateIsSystemRole() *HospitalRoleUpsertOne {
 	return u.Update(func(s *HospitalRoleUpsert) {
 		s.UpdateIsSystemRole()
+	})
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (u *HospitalRoleUpsertOne) SetClonedFromRoleID(v uuid.UUID) *HospitalRoleUpsertOne {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.SetClonedFromRoleID(v)
+	})
+}
+
+// UpdateClonedFromRoleID sets the "cloned_from_role_id" field to the value that was provided on create.
+func (u *HospitalRoleUpsertOne) UpdateClonedFromRoleID() *HospitalRoleUpsertOne {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.UpdateClonedFromRoleID()
+	})
+}
+
+// ClearClonedFromRoleID clears the value of the "cloned_from_role_id" field.
+func (u *HospitalRoleUpsertOne) ClearClonedFromRoleID() *HospitalRoleUpsertOne {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.ClearClonedFromRoleID()
 	})
 }
 
@@ -724,7 +838,7 @@ func (_c *HospitalRoleCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.HospitalRoleUpsert) {
-//			SetRoleCode(v+v).
+//			SetTenantID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *HospitalRoleCreateBulk) OnConflict(opts ...sql.ConflictOption) *HospitalRoleUpsertBulk {
@@ -806,6 +920,27 @@ func (u *HospitalRoleUpsertBulk) Update(set func(*HospitalRoleUpsert)) *Hospital
 	return u
 }
 
+// SetTenantID sets the "tenant_id" field.
+func (u *HospitalRoleUpsertBulk) SetTenantID(v uuid.UUID) *HospitalRoleUpsertBulk {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.SetTenantID(v)
+	})
+}
+
+// UpdateTenantID sets the "tenant_id" field to the value that was provided on create.
+func (u *HospitalRoleUpsertBulk) UpdateTenantID() *HospitalRoleUpsertBulk {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.UpdateTenantID()
+	})
+}
+
+// ClearTenantID clears the value of the "tenant_id" field.
+func (u *HospitalRoleUpsertBulk) ClearTenantID() *HospitalRoleUpsertBulk {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.ClearTenantID()
+	})
+}
+
 // SetRoleCode sets the "role_code" field.
 func (u *HospitalRoleUpsertBulk) SetRoleCode(v string) *HospitalRoleUpsertBulk {
 	return u.Update(func(s *HospitalRoleUpsert) {
@@ -866,6 +1001,27 @@ func (u *HospitalRoleUpsertBulk) SetIsSystemRole(v bool) *HospitalRoleUpsertBulk
 func (u *HospitalRoleUpsertBulk) UpdateIsSystemRole() *HospitalRoleUpsertBulk {
 	return u.Update(func(s *HospitalRoleUpsert) {
 		s.UpdateIsSystemRole()
+	})
+}
+
+// SetClonedFromRoleID sets the "cloned_from_role_id" field.
+func (u *HospitalRoleUpsertBulk) SetClonedFromRoleID(v uuid.UUID) *HospitalRoleUpsertBulk {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.SetClonedFromRoleID(v)
+	})
+}
+
+// UpdateClonedFromRoleID sets the "cloned_from_role_id" field to the value that was provided on create.
+func (u *HospitalRoleUpsertBulk) UpdateClonedFromRoleID() *HospitalRoleUpsertBulk {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.UpdateClonedFromRoleID()
+	})
+}
+
+// ClearClonedFromRoleID clears the value of the "cloned_from_role_id" field.
+func (u *HospitalRoleUpsertBulk) ClearClonedFromRoleID() *HospitalRoleUpsertBulk {
+	return u.Update(func(s *HospitalRoleUpsert) {
+		s.ClearClonedFromRoleID()
 	})
 }
 

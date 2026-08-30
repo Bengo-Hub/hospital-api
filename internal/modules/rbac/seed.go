@@ -231,7 +231,7 @@ func (s *Service) SeedRoles(ctx context.Context) error {
 
 	// Step 2: create each role and assign its resolved permissions.
 	for _, roleDef := range defaultRoles {
-		role, err := s.repo.GetRoleByCode(ctx, roleDef.Code)
+		role, err := s.repo.GetGlobalRoleByCode(ctx, roleDef.Code)
 		if err != nil {
 			desc := roleDef.Description
 			role = &HospitalRole{
@@ -242,7 +242,7 @@ func (s *Service) SeedRoles(ctx context.Context) error {
 				IsSystemRole: true,
 			}
 			if createErr := s.repo.CreateRole(ctx, role); createErr != nil {
-				if existing2, err2 := s.repo.GetRoleByCode(ctx, roleDef.Code); err2 == nil && existing2 != nil {
+				if existing2, err2 := s.repo.GetGlobalRoleByCode(ctx, roleDef.Code); err2 == nil && existing2 != nil {
 					role = existing2
 				} else {
 					s.logger.Warn("seed: create role failed", zap.String("role", roleDef.Code), zap.Error(createErr))

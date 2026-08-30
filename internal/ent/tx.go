@@ -58,6 +58,8 @@ type Tx struct {
 	Prescription *PrescriptionClient
 	// PrescriptionLine is the client for interacting with the PrescriptionLine builders.
 	PrescriptionLine *PrescriptionLineClient
+	// RbacAuditLog is the client for interacting with the RbacAuditLog builders.
+	RbacAuditLog *RbacAuditLogClient
 	// Referral is the client for interacting with the Referral builders.
 	Referral *ReferralClient
 	// RolePermission is the client for interacting with the RolePermission builders.
@@ -222,6 +224,7 @@ func (tx *Tx) init() {
 	tx.PatientVisit = NewPatientVisitClient(tx.config)
 	tx.Prescription = NewPrescriptionClient(tx.config)
 	tx.PrescriptionLine = NewPrescriptionLineClient(tx.config)
+	tx.RbacAuditLog = NewRbacAuditLogClient(tx.config)
 	tx.Referral = NewReferralClient(tx.config)
 	tx.RolePermission = NewRolePermissionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)

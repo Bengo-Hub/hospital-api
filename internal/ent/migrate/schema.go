@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -312,10 +313,12 @@ var (
 	// HospitalRolesColumns holds the columns for the "hospital_roles" table.
 	HospitalRolesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "role_code", Type: field.TypeString, Unique: true},
+		{Name: "tenant_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "role_code", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "is_system_role", Type: field.TypeBool, Default: false},
+		{Name: "cloned_from_role_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -326,14 +329,35 @@ var (
 		PrimaryKey: []*schema.Column{HospitalRolesColumns[0]},
 		Indexes: []*schema.Index{
 			{
+				Name:    "hospitalrole_tenant_id",
+				Unique:  false,
+				Columns: []*schema.Column{HospitalRolesColumns[1]},
+			},
+			{
+				Name:    "hospitalrole_cloned_from_role_id",
+				Unique:  false,
+				Columns: []*schema.Column{HospitalRolesColumns[6]},
+			},
+			{
 				Name:    "hospitalrole_role_code",
 				Unique:  true,
-				Columns: []*schema.Column{HospitalRolesColumns[1]},
+				Columns: []*schema.Column{HospitalRolesColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "tenant_id IS NULL",
+				},
+			},
+			{
+				Name:    "hospitalrole_tenant_id_role_code",
+				Unique:  true,
+				Columns: []*schema.Column{HospitalRolesColumns[1], HospitalRolesColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "tenant_id IS NOT NULL",
+				},
 			},
 			{
 				Name:    "hospitalrole_is_system_role",
 				Unique:  false,
-				Columns: []*schema.Column{HospitalRolesColumns[4]},
+				Columns: []*schema.Column{HospitalRolesColumns[5]},
 			},
 		},
 	}
@@ -855,6 +879,42 @@ var (
 			},
 		},
 	}
+	// RbacAuditLogsColumns holds the columns for the "rbac_audit_logs" table.
+	RbacAuditLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "actor_user_id", Type: field.TypeUUID},
+		{Name: "actor_email", Type: field.TypeString, Nullable: true},
+		{Name: "action", Type: field.TypeString},
+		{Name: "target_type", Type: field.TypeString},
+		{Name: "target_id", Type: field.TypeUUID},
+		{Name: "before", Type: field.TypeJSON, Nullable: true},
+		{Name: "after", Type: field.TypeJSON, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// RbacAuditLogsTable holds the schema information for the "rbac_audit_logs" table.
+	RbacAuditLogsTable = &schema.Table{
+		Name:       "rbac_audit_logs",
+		Columns:    RbacAuditLogsColumns,
+		PrimaryKey: []*schema.Column{RbacAuditLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rbacauditlog_tenant_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{RbacAuditLogsColumns[1], RbacAuditLogsColumns[9]},
+			},
+			{
+				Name:    "rbacauditlog_target_type_target_id",
+				Unique:  false,
+				Columns: []*schema.Column{RbacAuditLogsColumns[5], RbacAuditLogsColumns[6]},
+			},
+			{
+				Name:    "rbacauditlog_actor_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{RbacAuditLogsColumns[2]},
+			},
+		},
+	}
 	// ReferralsColumns holds the columns for the "referrals" table.
 	ReferralsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1087,6 +1147,7 @@ var (
 		PatientVisitsTable,
 		PrescriptionsTable,
 		PrescriptionLinesTable,
+		RbacAuditLogsTable,
 		ReferralsTable,
 		RolePermissionsTable,
 		TenantsTable,

@@ -3,9 +3,12 @@ package rbac
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+
+	"github.com/bengobox/hospital-service/internal/modules/auditlog"
 )
 
 // UserResolver resolves an auth-service user ID (the JWT `sub` claim) to this tenant's local
@@ -20,6 +23,7 @@ type Service struct {
 	repo         Repository
 	logger       *zap.Logger
 	userResolver UserResolver
+	audit        *auditlog.Writer
 }
 
 // NewService creates a new RBAC service.
@@ -32,6 +36,25 @@ func NewService(repo Repository, logger *zap.Logger) *Service {
 // used — every caller holding only the raw JWT subject (middleware, /auth/me) needs it.
 func (s *Service) SetUserResolver(r UserResolver) {
 	s.userResolver = r
+}
+
+// SetAuditWriter wires the audit log writer. Optional — every recordAudit call is a no-op if
+// unset, so this can be omitted in tests without any behavior change to the mutations it
+// records.
+func (s *Service) SetAuditWriter(w *auditlog.Writer) {
+	s.audit = w
+}
+
+// recordAudit is a thin, always-safe wrapper: never blocks or fails the caller (the writer
+// itself is fire-and-forget/log-and-continue; this just no-ops when unwired).
+func (s *Service) recordAudit(ctx context.Context, tenantID, actorID uuid.UUID, action, targetType string, targetID uuid.UUID, before, after map[string]any) {
+	if s.audit == nil {
+		return
+	}
+	s.audit.Record(ctx, auditlog.Entry{
+		TenantID: tenantID, ActorID: actorID, Action: action, TargetType: targetType, TargetID: targetID,
+		Before: before, After: after,
+	})
 }
 
 // MapGlobalRolesToServiceRole maps global SSO roles to a hospital-api service role code.
@@ -64,12 +87,12 @@ func (s *Service) AssignRoleByCode(ctx context.Context, tenantID uuid.UUID, loca
 	if roleCode == "" {
 		return nil
 	}
-	role, err := s.repo.GetRoleByCode(ctx, roleCode)
+	role, err := s.repo.GetRoleByCode(ctx, tenantID, roleCode)
 	if err != nil {
 		if seedErr := s.SeedRoles(ctx); seedErr != nil {
 			s.logger.Warn("AssignRoleByCode: seed retry failed", zap.String("role_code", roleCode), zap.Error(seedErr))
 		}
-		role, err = s.repo.GetRoleByCode(ctx, roleCode)
+		role, err = s.repo.GetRoleByCode(ctx, tenantID, roleCode)
 		if err != nil {
 			return fmt.Errorf("role %q not found (even after seed retry): %w", roleCode, err)
 		}
@@ -232,7 +255,7 @@ func (s *Service) HasAnyPermissionViaGlobalRoles(ctx context.Context, tenantID u
 			continue
 		}
 		seen[code] = struct{}{}
-		role, err := s.repo.GetRoleByCode(ctx, code)
+		role, err := s.repo.GetRoleByCode(ctx, tenantID, code)
 		if err != nil {
 			continue
 		}
@@ -308,24 +331,58 @@ func (s *Service) RevokeRole(ctx context.Context, tenantID, userID, roleID uuid.
 	return nil
 }
 
+// AssignExtraRole idempotently ADDS roleCode to userID's assignments without touching any
+// existing assignment — unlike SetUserRole (which always revokes every other role first), this
+// never revokes anything. Re-granting an already-held role is a no-op success. Note: userID's
+// PRIMARY role (set via SetUserRole) still fully overwrites every assignment including any
+// extras granted here — that is SetUserRole's existing, unchanged, intentional contract.
+func (s *Service) AssignExtraRole(ctx context.Context, tenantID, userID, actorID uuid.UUID, roleCode string) error {
+	role, err := s.repo.GetRoleByCode(ctx, tenantID, roleCode)
+	if err != nil {
+		return fmt.Errorf("role %q not found: %w", roleCode, err)
+	}
+	if err := s.AssignRole(ctx, tenantID, userID, role.ID, actorID); err != nil {
+		if strings.Contains(err.Error(), "already assigned") {
+			return nil
+		}
+		return err
+	}
+	s.recordAudit(ctx, tenantID, actorID, "role.granted_extra", "user", userID, nil, map[string]any{"role_code": roleCode})
+	return nil
+}
+
+// RevokeExtraRole removes exactly one role assignment (by code), leaving all others untouched.
+func (s *Service) RevokeExtraRole(ctx context.Context, tenantID, userID, actorID uuid.UUID, roleCode string) error {
+	role, err := s.repo.GetRoleByCode(ctx, tenantID, roleCode)
+	if err != nil {
+		return fmt.Errorf("role %q not found: %w", roleCode, err)
+	}
+	if err := s.RevokeRole(ctx, tenantID, userID, role.ID); err != nil {
+		return err
+	}
+	s.recordAudit(ctx, tenantID, actorID, "role.revoked_extra", "user", userID, map[string]any{"role_code": roleCode}, nil)
+	return nil
+}
+
 // GetUserRoles retrieves all roles for a user.
 func (s *Service) GetUserRoles(ctx context.Context, tenantID, userID uuid.UUID) ([]*HospitalRole, error) {
 	return s.repo.GetUserRoles(ctx, tenantID, userID)
 }
 
-// ListRoles returns every seeded hospital role (global catalog — the picker source for the
-// Users admin page's "change role" action).
-func (s *Service) ListRoles(ctx context.Context) ([]*HospitalRole, error) {
-	return s.repo.ListRoles(ctx)
+// ListRoles returns every role visible to tenantID — the global catalog plus this tenant's own
+// clones/custom roles — the picker source for the Users admin page's "change role" action and
+// the Roles & Permissions admin page.
+func (s *Service) ListRoles(ctx context.Context, tenantID uuid.UUID) ([]*HospitalRole, error) {
+	return s.repo.ListRoles(ctx, tenantID)
 }
 
 // SetUserRole replaces a user's current role assignment(s) with the single named role — the
 // "change role" operation the Users admin page needs. Unlike AssignRole (additive, errors if
-// already assigned) this is idempotent and always leaves the user with exactly one role:
-// revokes every currently-assigned role first, then assigns the new one. Roles are global
-// (no tenant-specific variants), so this only ever needs the role code.
+// already assigned) this is idempotent and always leaves the user with exactly one PRIMARY role:
+// revokes every currently-assigned role first, then assigns the new one. roleCode is resolved
+// preferring this tenant's own clone/custom role over the global one of the same code.
 func (s *Service) SetUserRole(ctx context.Context, tenantID, userID, assignedBy uuid.UUID, roleCode string) error {
-	role, err := s.repo.GetRoleByCode(ctx, roleCode)
+	role, err := s.repo.GetRoleByCode(ctx, tenantID, roleCode)
 	if err != nil {
 		return fmt.Errorf("role %q not found: %w", roleCode, err)
 	}
@@ -360,10 +417,171 @@ func (s *Service) SetUserRole(ctx context.Context, tenantID, userID, assignedBy 
 		zap.String("tenant_id", tenantID.String()),
 		zap.String("user_id", userID.String()),
 		zap.String("role_code", roleCode))
+	s.recordAudit(ctx, tenantID, assignedBy, "role.assigned", "user", userID, nil, map[string]any{"role_code": roleCode})
 	return nil
 }
 
 // GetUserPermissions retrieves all permissions for a user.
 func (s *Service) GetUserPermissions(ctx context.Context, tenantID, userID uuid.UUID) ([]*HospitalPermission, error) {
 	return s.repo.GetUserPermissions(ctx, tenantID, userID)
+}
+
+// ListPermissions returns the full global permission catalog — the checkbox source for the
+// Roles & Permissions matrix editor.
+func (s *Service) ListPermissions(ctx context.Context) ([]*HospitalPermission, error) {
+	return s.repo.ListPermissions(ctx, PermissionFilters{})
+}
+
+// CustomizeRole idempotently clones the global role roleCode into a tenant-scoped copy on
+// first edit (returns the existing clone unchanged if one already exists), copies its current
+// permission set, and re-points every existing UserRoleAssignment in this tenant from the
+// global role's ID to the new clone's ID — a customization takes effect for already-assigned
+// staff immediately, not just future assignments. Rejects an attempt to customize a role that
+// isn't global (roleCode must resolve to a tenant_id-nil row) or that doesn't exist.
+func (s *Service) CustomizeRole(ctx context.Context, tenantID, actorID uuid.UUID, roleCode string) (*HospitalRole, error) {
+	global, err := s.repo.GetGlobalRoleByCode(ctx, roleCode)
+	if err != nil {
+		return nil, fmt.Errorf("role %q is not a global role: %w", roleCode, err)
+	}
+
+	// Idempotent: if this tenant already cloned it, return the existing clone.
+	if existing, err := s.repo.GetRoleByCode(ctx, tenantID, roleCode); err == nil && existing.TenantID != nil && *existing.TenantID == tenantID {
+		return existing, nil
+	}
+
+	globalPerms, err := s.repo.GetRolePermissions(ctx, global.ID)
+	if err != nil {
+		return nil, fmt.Errorf("read global role permissions: %w", err)
+	}
+
+	clone := &HospitalRole{
+		ID:               uuid.New(),
+		TenantID:         &tenantID,
+		RoleCode:         global.RoleCode,
+		Name:             global.Name,
+		Description:      global.Description,
+		IsSystemRole:     false,
+		ClonedFromRoleID: &global.ID,
+	}
+	if err := s.repo.CreateRole(ctx, clone); err != nil {
+		return nil, fmt.Errorf("clone role: %w", err)
+	}
+	permIDs := make([]uuid.UUID, len(globalPerms))
+	for i, p := range globalPerms {
+		permIDs[i] = p.ID
+	}
+	if err := s.repo.ReplaceRolePermissions(ctx, clone.ID, permIDs); err != nil {
+		return nil, fmt.Errorf("copy permissions to clone: %w", err)
+	}
+	if err := s.repo.RepointRoleAssignments(ctx, tenantID, global.ID, clone.ID); err != nil {
+		return nil, fmt.Errorf("repoint existing assignments to clone: %w", err)
+	}
+
+	s.logger.Info("role customized (cloned for tenant)",
+		zap.String("tenant_id", tenantID.String()), zap.String("role_code", roleCode))
+	s.recordAudit(ctx, tenantID, actorID, "role.customized", "role", clone.ID, nil, map[string]any{
+		"role_code": roleCode, "cloned_from_role_id": global.ID.String(),
+	})
+	return clone, nil
+}
+
+// CreateCustomRole creates a brand-new tenant-only role (never global). Rejects roleCode if it
+// collides with any EXISTING GLOBAL role_code — a tenant role silently shadowing a real global
+// one (e.g. re-using "admin") is a scope-confusion footgun the DB's partial indexes alone
+// wouldn't catch (they only enforce uniqueness WITHIN each scope, not across them).
+func (s *Service) CreateCustomRole(ctx context.Context, tenantID, actorID uuid.UUID, roleCode, name, description string, permissionCodes []string) (*HospitalRole, error) {
+	if roleCode == "" || name == "" {
+		return nil, fmt.Errorf("role_code and name are required")
+	}
+	if _, err := s.repo.GetGlobalRoleByCode(ctx, roleCode); err == nil {
+		return nil, fmt.Errorf("role_code %q collides with an existing global role", roleCode)
+	}
+	if existing, err := s.repo.GetRoleByCode(ctx, tenantID, roleCode); err == nil && existing.TenantID != nil {
+		return nil, fmt.Errorf("role_code %q already exists for this tenant", roleCode)
+	}
+
+	role := &HospitalRole{
+		ID:           uuid.New(),
+		TenantID:     &tenantID,
+		RoleCode:     roleCode,
+		Name:         name,
+		IsSystemRole: false,
+	}
+	if description != "" {
+		role.Description = &description
+	}
+	if err := s.repo.CreateRole(ctx, role); err != nil {
+		return nil, fmt.Errorf("create custom role: %w", err)
+	}
+
+	permIDs, err := s.permissionIDsForCodes(ctx, permissionCodes)
+	if err != nil {
+		return nil, err
+	}
+	if len(permIDs) > 0 {
+		if err := s.repo.ReplaceRolePermissions(ctx, role.ID, permIDs); err != nil {
+			return nil, fmt.Errorf("assign permissions to new role: %w", err)
+		}
+	}
+
+	s.logger.Info("custom role created",
+		zap.String("tenant_id", tenantID.String()), zap.String("role_code", roleCode))
+	s.recordAudit(ctx, tenantID, actorID, "role.created", "role", role.ID, nil, map[string]any{
+		"role_code": roleCode, "name": name, "permission_codes": permissionCodes,
+	})
+	return role, nil
+}
+
+// UpdateRolePermissions replaces a TENANT-scoped role's (clone or from-scratch) permission set.
+// Hard-rejects any role whose TenantID is nil — global rows are never mutable through this path;
+// customize it first via CustomizeRole.
+func (s *Service) UpdateRolePermissions(ctx context.Context, tenantID, actorID, roleID uuid.UUID, permissionCodes []string) error {
+	role, err := s.repo.GetRole(ctx, roleID)
+	if err != nil {
+		return fmt.Errorf("role not found: %w", err)
+	}
+	if role.TenantID == nil {
+		return fmt.Errorf("cannot edit a global role directly — customize it for this tenant first")
+	}
+	if *role.TenantID != tenantID {
+		return fmt.Errorf("role does not belong to this tenant")
+	}
+
+	before, err := s.repo.GetRolePermissions(ctx, roleID)
+	if err != nil {
+		return fmt.Errorf("read current permissions: %w", err)
+	}
+	beforeCodes := make([]string, len(before))
+	for i, p := range before {
+		beforeCodes[i] = p.PermissionCode
+	}
+
+	permIDs, err := s.permissionIDsForCodes(ctx, permissionCodes)
+	if err != nil {
+		return err
+	}
+	if err := s.repo.ReplaceRolePermissions(ctx, roleID, permIDs); err != nil {
+		return fmt.Errorf("replace role permissions: %w", err)
+	}
+
+	s.logger.Info("role permissions updated",
+		zap.String("tenant_id", tenantID.String()), zap.String("role_id", roleID.String()))
+	s.recordAudit(ctx, tenantID, actorID, "role.permissions_updated", "role", roleID,
+		map[string]any{"permission_codes": beforeCodes},
+		map[string]any{"permission_codes": permissionCodes})
+	return nil
+}
+
+// permissionIDsForCodes resolves permission codes to their catalog IDs, skipping any code that
+// doesn't exist in the seeded catalog (rather than failing the whole operation on one typo).
+func (s *Service) permissionIDsForCodes(ctx context.Context, codes []string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(codes))
+	for _, code := range codes {
+		perm, err := s.repo.GetPermissionByCode(ctx, code)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, perm.ID)
+	}
+	return ids, nil
 }

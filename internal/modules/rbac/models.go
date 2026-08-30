@@ -6,16 +6,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// HospitalRole represents a hospital service role. Roles are GLOBAL (no tenant scoping) —
-// the same role code carries the same permission grants on every tenant.
+// HospitalRole represents a hospital service role. Roles are GLOBAL by default (TenantID nil)
+// — the same role code carries the same permission grants on every tenant. TenantID is set only
+// on a tenant's own clone (copy-on-write customization of a global role) or a from-scratch
+// custom role — see rbac.Service.CustomizeRole/CreateCustomRole.
 type HospitalRole struct {
-	ID           uuid.UUID
-	RoleCode     string
-	Name         string
-	Description  *string
-	IsSystemRole bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID               uuid.UUID
+	TenantID         *uuid.UUID
+	RoleCode         string
+	Name             string
+	Description      *string
+	IsSystemRole     bool
+	ClonedFromRoleID *uuid.UUID
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // HospitalPermission represents a hospital service permission. Also global.
