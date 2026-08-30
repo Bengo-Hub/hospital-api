@@ -242,6 +242,7 @@ func New(ctx context.Context) (*App, error) {
 		Pharmacy:       pharmacyHandler,
 		Users:          usersHandler,
 		Config:         configHandler,
+		TenantSyncer:   tenantSyncer,
 	}
 	chiRouter := router.New(deps)
 

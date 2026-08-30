@@ -49,8 +49,17 @@ func OutletContextMiddleware(client *ent.Client, log *zap.Logger) func(http.Hand
 			ctx := r.Context()
 			claims, hasClaims := authclient.ClaimsFromContext(ctx)
 
+			// Prefer the request's RESOLVED tenant (TenantV2 + the JIT tenant-sync middleware in
+			// router.go) over the caller's own JWT-embedded tenant — those differ for a platform
+			// owner visiting a tenant other than their own, and using claims.TenantID directly
+			// here would silently resolve outlets for the WRONG tenant in that case.
 			var tenantID uuid.UUID
-			if hasClaims && claims.TenantID != "" {
+			if raw := httpware.GetTenantID(ctx); raw != "" {
+				if id, err := uuid.Parse(raw); err == nil {
+					tenantID = id
+				}
+			}
+			if tenantID == uuid.Nil && hasClaims && claims.TenantID != "" {
 				if id, err := uuid.Parse(claims.TenantID); err == nil {
 					tenantID = id
 				}

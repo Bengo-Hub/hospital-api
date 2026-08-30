@@ -19,6 +19,7 @@ import (
 	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
 	rbacmodule "github.com/bengobox/hospital-service/internal/modules/rbac"
+	"github.com/bengobox/hospital-service/internal/modules/tenant"
 	"github.com/bengobox/hospital-service/internal/platform/subscriptions"
 )
 
@@ -36,6 +37,13 @@ type Deps struct {
 	IdentitySvc *identity.Service
 	RBACSvc     *rbacmodule.Service
 	AuthMe      *handlers.AuthMeHandler
+	// TenantSyncer backfills a real tenant UUID into context for a request that only carries a
+	// slug (see the JIT tenant-sync middleware below) — required for platform-owner cross-tenant
+	// access to work at all: TenantV2 deliberately clears the resolved tenant ID whenever a
+	// platform owner's JWT-embedded tenant differs from the URL's target tenant slug, on the
+	// documented expectation that something downstream re-resolves it (mirrors treasury-api's
+	// own identical middleware, see ResolveTenantForRequest's doc comment there).
+	TenantSyncer *tenant.Syncer
 
 	// Sprint 1: patient registration, OPD visit check-in/queue, triage.
 	Patients *handlers.PatientsHandler
@@ -126,6 +134,35 @@ func New(d Deps) http.Handler {
 				URLParamName: "tenant",
 				Required:     true,
 			}))
+
+			// JIT tenant sync (2026-08-30): resolves slug -> real UUID whenever TenantV2 left the
+			// context tenant ID empty. This is the case for EVERY platform-owner request scoped
+			// to a tenant slug (not their own home tenant) — TenantV2 intentionally clears the ID
+			// there "so a syncer re-resolves it from the slug," but nothing did until now. Without
+			// this, tenantFromRequest()/ResolveTenantForRequest-equivalents across every handler
+			// resolved uuid.Nil for a platform owner visiting any tenant other than their own,
+			// which is a hard 400 "tenant context required" on every mutation/read that needs it —
+			// platform-owner cross-tenant access was effectively broken. Mirrors treasury-api's
+			// own identical fix (see its router.go's "JIT tenant sync" middleware).
+			if d.TenantSyncer != nil {
+				prot.Use(func(next http.Handler) http.Handler {
+					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						ctx := r.Context()
+						if httpware.GetTenantID(ctx) == "" {
+							if slug := httpware.GetTenantSlug(ctx); slug != "" {
+								if tenantUUID, err := d.TenantSyncer.SyncTenant(ctx, slug); err != nil {
+									d.Log.Warn("tenant sync failed", zap.String("slug", slug), zap.Error(err))
+								} else if tenantUUID != uuid.Nil {
+									ctx = context.WithValue(ctx, httpware.TenantIDKey, tenantUUID.String())
+									r = r.WithContext(ctx)
+								}
+							}
+						}
+						next.ServeHTTP(w, r)
+					})
+				})
+			}
+
 			if d.EntClient != nil {
 				prot.Use(outletmw.OutletContextMiddleware(d.EntClient, d.Log))
 			}

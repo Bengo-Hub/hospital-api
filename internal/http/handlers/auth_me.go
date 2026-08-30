@@ -44,6 +44,15 @@ func (h *AuthMeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	if tenantID == "" {
 		tenantID = claims.TenantID
 	}
+	// Report the RESOLVED tenant (this request's URL-scoped target), never the caller's raw JWT
+	// claims directly — for a platform owner visiting a tenant other than their own, those
+	// differ, and reporting claims.TenantID/claims.GetTenantSlug() here silently told the
+	// frontend it was looking at the platform owner's OWN tenant regardless of which tenant's
+	// URL slug it actually asked for (apiClient.setTenantInfo then stored the wrong tenant).
+	tenantSlug := httpware.GetTenantSlug(ctx)
+	if tenantSlug == "" {
+		tenantSlug = claims.GetTenantSlug()
+	}
 	if tenantID != "" && h.rbacService != nil {
 		if tenantUUID, err := uuid.Parse(tenantID); err == nil {
 			userUUID, _ := uuid.Parse(claims.Subject)
@@ -63,8 +72,8 @@ func (h *AuthMeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	out := map[string]interface{}{
 		"id":                claims.Subject,
 		"email":             claims.Email,
-		"tenant_id":         claims.TenantID,
-		"tenant_slug":       claims.GetTenantSlug(),
+		"tenant_id":         tenantID,
+		"tenant_slug":       tenantSlug,
 		"is_platform_owner": claims.IsPlatformOwner,
 		"roles":             roles,
 		"permissions":       permissions,
