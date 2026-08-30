@@ -18,7 +18,7 @@ metadata, carried through into the real Sprint-1/3 schemas as built.
 ## Conventions
 
 - **Primary keys:** UUID (`gen_random_uuid()` at the DB or ent default `uuid.New()`), matching every sibling service.
-- **Tenant scoping:** business-data tables carry `tenant_id` (UUID, FK to the auth-api tenant, referenced not duplicated). **Reference/catalogue tables do not** — see the Global vs. Tenant-scoped split below (`feedback_shared_core_reference_data.md`).
+- **Tenant scoping:** business-data tables carry `tenant_id` (UUID, FK to the auth-api tenant, referenced not duplicated). **Reference/catalogue tables do not** — see the Global vs. Tenant-scoped split below (`feedback_shared_core_reference_data.md`). One documented exception (2026-08-30): `hospital_role`'s `tenant_id` is nullable and NULL by default (global), set only on a tenant's own copy-on-write clone or from-scratch custom role — the sanctioned hybrid pattern for genuine per-tenant customization of otherwise-global reference data.
 - **Timestamps:** `TIMESTAMPTZ` `created_at`/`updated_at` on every table.
 - **Money:** `NUMERIC(18,4)` (never `float`), mirroring `library-api`/`erp-api`.
 - **Outlet scoping:** tables that vary per physical location carry a nullable `outlet_id` (branch), following the standard `X-Outlet-ID` optional-filter pattern — absent means tenant-wide.
@@ -30,9 +30,10 @@ metadata, carried through into the real Sprint-1/3 schemas as built.
 
 | Table | Key Columns | Description |
 |---|---|---|
-| `hospital_permission` | `permission_code` (unique), `module`, `action` | Trinity Layer 3 fine-grained permission catalogue (`hospital.{module}.{action}`) |
-| `hospital_role` | `role_code` (unique), `is_system_role` | Global roles (`hospital_admin`, `doctor`, `lab_technician`, `pharmacist`, `cashier`, `receptionist`) — same permissions for every tenant |
+| `hospital_permission` | `permission_code` (unique), `module`, `action` | Trinity Layer 3 fine-grained permission catalogue (`hospital.{module}.{action}`, ~40 codes) |
+| `hospital_role` | `role_code`, `tenant_id` (nullable), `is_system_role`, `cloned_from_role_id` (nullable) | Global roles (`admin`, `doctor`, `nurse`, `pharmacist`, `records_clerk`, `cashier`, `manager`) by default — `tenant_id NULL`. `role_code` is unique per SCOPE, not platform-wide: two partial unique indexes keep global codes (`tenant_id IS NULL`) and per-tenant codes (`tenant_id IS NOT NULL`) in disjoint spaces, so a tenant's copy-on-write clone (2026-08-30, see `rbac.Service.CustomizeRole`) or from-scratch custom role can reuse a global code with no suffix. `cloned_from_role_id` is set only on a clone. |
 | `role_permission` | `role_id`, `permission_id` | Role → permission junction |
+| `rbac_audit_log` | `tenant_id`, `actor_user_id`, `action`, `target_type`, `target_id`, `before`/`after` (jsonb) | Added 2026-08-30 — minimal audit trail for RBAC mutations only (role assigned/created/customized/permissions-updated, extra role granted/revoked, user status changed). No FK edges (survives its target being hard-deleted). Deliberately narrower than Sprint 12's future platform-wide `audit_log` — see `docs/sprints/sprint-12-compliance-hardening.md`. |
 | `diagnosis_catalog_default` | `code` (ICD-11), `name`, `category` | Default diagnosis catalogue seeded once, tenants may add custom entries (those carry `tenant_id`). Confirmed ICD-11 (not ICD-10) by the official DHA claim-submission spec's sample payload, see `docs/sha-taifacare-api-specs/` |
 | `lab_test_catalog_default` | `code`, `name`, `specimen_type`, `reference_range`, `loinc_code` (nullable) | Default lab-test catalogue seeded once, tenants may add custom entries. `loinc_code` added 2026-08-29 as an additive metadata field, not a schema overhaul, since Kenya's own national Diagnostics/Patient-Summary FHIR Implementation Guides use LOINC for lab terminology (`docs/kenyaemr-technical-reference.md` §10) |
 
@@ -43,8 +44,8 @@ metadata, carried through into the real Sprint-1/3 schemas as built.
 | Table | Key Columns | Description |
 |---|---|---|
 | `hospital_tenant` | `id`, `slug`, `name`, `status` | Minimal synced tenant reference (no branding — fetched from auth-api cache per platform convention) |
-| `hospital_user` | `id`, `auth_service_user_id`, `role_id`, `sync_status` | JIT-provisioned local user reference |
-| `user_role_assignment` | `tenant_id`, `user_id`, `role_id`, `expires_at` | Tenant-scoped grant of a global role |
+| `hospital_user` | `id`, `tenant_id`, `auth_service_user_id`, `status`, `sync_status` | JIT-provisioned local user reference. `id` is a LOCALLY generated UUID, unique only per `(tenant_id, auth_service_user_id)` — fixed 2026-08-30; a prior version used the auth-service user's own UUID as `id` with a platform-wide-unique `auth_service_user_id`, so the same person could only ever hold one row across the entire platform (data corruption for anyone in >1 hospital tenant). Role assignment is via `user_role_assignment` below, not a direct column here. `status` (`active`/`inactive`/`suspended`) is now a real, enforced deactivate/reactivate lifecycle, not write-only. |
+| `user_role_assignment` | `tenant_id`, `user_id`, `role_id`, `expires_at` | Tenant-scoped grant of a role (global or a tenant's own clone/custom row). `expires_at` is enforced (2026-08-30, query-time filter) — was previously stored but never checked. A user may hold more than one row (2026-08-30: one "primary" via `SetUserRole`, plus additive "extra" roles via `AssignExtraRole`/`RevokeExtraRole`). |
 
 ---
 

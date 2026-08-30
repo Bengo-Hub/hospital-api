@@ -368,6 +368,19 @@ request-authorization time: `rbac.HasAnyPermissionViaGlobalRoles` (the `/auth/me
 permission-check fallback) now also takes the caller's `outlet_use_case` JWT claim and blocks
 immediately on a confirmed non-hospital value, independent of whatever rows exist locally.
 
+**Update (2026-08-30) — real invite-staff flow + tenant-scoped identity fix.**
+`identity.Service.InviteMember` (via the new `authapi.Client.InviteTenantMember`) calls auth-api's
+S2S `POST /api/v1/s2s/tenants/{tenant_id}/members` — the SAME mechanism every other Codevertex
+frontend's own staff-invite flow already uses (e.g. pos-api's `staff.go`), not a new identity
+path. It finds-or-creates the auth-api account (returning a one-time temp password for a
+brand-new one) and fires `auth.user.created`, which this service's own `identity/auth_events.go`
+already consumes — inviting with the right hospital role name (or an `outlet_id` resolving to a
+hospital outlet) is enough for the invitee's role to apply the moment they first log in; no
+separate "pending role assignment" table was needed. Separately, `HospitalUser`'s identity model
+was corrected: it's now unique per `(tenant_id, auth_service_user_id)` rather than globally
+unique per auth user, so the same person can correctly hold a row in more than one hospital
+tenant (see `docs/architecture.md`'s "User Management Module" section for the full writeup).
+
 ---
 
 ## 4. Subscriptions Service Integration

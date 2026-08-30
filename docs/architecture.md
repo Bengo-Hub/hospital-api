@@ -182,9 +182,58 @@ hospital-api follows the platform's three-layer authorization model (`shared-doc
 
 1. **RBAC (auth-api)** — global roles/permissions in the JWT (`superuser`, `admin`, `manager`, `staff`, `doctor`, `nurse`, `pharmacist`, `records_clerk`, ...). Implemented via `shared-auth-client`'s JWKS validator + `AuthMiddleware.RequireAuth` (see `internal/http/router/router.go`).
 2. **Licensing (subscriptions-api)** — `service_tag: "hospital"` plan/tier entitlements (`AFYA_CLINIC`/`AFYA_FACILITY`/`AFYA_HOSPITAL`) embedded as `sub_*` JWT claims. **Shipped 2026-08-01**: `internal/platform/subscriptions/{client,gate,features}.go`, `SubscriptionGate()` wired in the router chain, mutations-only, fails open on lookup failure.
-3. **Resources (hospital-api itself)** — fine-grained `hospital.{module}.{action}` permission codes in a local RBAC module (`internal/modules/rbac`), JIT-provisioned from JWT claims via `internal/modules/identity` (self-heals role assignment on every authenticated request, not just first login), global role catalogue (no `tenant_id` on the role tables — see `erd.md` Conventions). **Shipped 2026-08-01** as plumbing; no domain permission codes exist yet beyond the seed set, since there are no domain modules to gate (Sprint 4+).
+3. **Resources (hospital-api itself)** — fine-grained `hospital.{module}.{action}` permission codes (~40, spanning every shipped module) in a local RBAC module (`internal/modules/rbac`), JIT-provisioned from JWT claims via `internal/modules/identity` (self-heals role assignment on every authenticated request, not just first login). `HospitalUser` identity is scoped per `(tenant_id, auth_service_user_id)` — fixed 2026-08-30, see the Changelog and the User Management Module section below; a prior version made the same auth-service user's row platform-wide-unique, corrupting data for anyone belonging to more than one hospital tenant. `HospitalRole` is global by default (no `tenant_id`) with a documented copy-on-write exception for tenant customization — see below and `erd.md` Conventions.
 
-Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses the standard `X-Outlet-ID` header + `httpware.WithOutletID` context pattern, optional and additive — absent means tenant-wide data.
+Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses the standard `X-Outlet-ID` header + `httpware.WithOutletID` context pattern, optional and additive — absent means tenant-wide data. No per-user outlet-membership restriction exists yet — any authenticated tenant user may select any of the tenant's outlets via this header (`internal/http/middleware/outlet_context.go`'s own doc comment flags this as a known, deliberately deferred gap, out of scope for the user-management work below since it's a different axis — outlet access, not role/permission management).
+
+## User Management Module (2026-08-30)
+
+A full audit of the original 3-endpoint Users surface (list users, list global roles, set one
+primary role) found real gaps and one live-prod-risk bug; all closed the same day:
+
+- **Tenant-scoped identity fix** — `HospitalUser` no longer reuses the auth-service user's own
+  UUID as its primary key with a platform-wide-unique `auth_service_user_id`; it's now a locally
+  generated UUID unique only per `(tenant_id, auth_service_user_id)`, so the same person can
+  correctly hold a row in more than one hospital tenant. Every JWT-`sub`-to-local-ID resolution
+  point (`middleware/permission.go`, `auth_me.go`) now goes through a `rbac.UserResolver`
+  (`identity.Service.ResolveLocalUserID`) instead of assuming ID equality.
+- **Copy-on-write role customization** — `HospitalRole` gained a nullable `tenant_id` (NULL =
+  global) and `cloned_from_role_id`. `rbac.Service.CustomizeRole` idempotently clones a global
+  role into a tenant-scoped copy on first edit (re-pointing existing assignments so it applies
+  immediately); `CreateCustomRole` builds a from-scratch tenant-only role; `UpdateRolePermissions`
+  edits a tenant-owned role (global rows are never directly mutable).
+- **`RbacAuditLog`** — a minimal, additive audit trail (actor, action, before/after) for every
+  RBAC mutation, deliberately named/scoped apart from Sprint 12's future compliance-grade
+  `audit_log`. No FK edges, so entries survive their target being hard-deleted.
+- **Deactivate/reactivate** — `identity.Service.SetUserStatus`, enforced at the same
+  `ResolveLocalUserID` choke point (a non-active user resolves to "no local access").
+- **Additive multi-role** — `AssignExtraRole`/`RevokeExtraRole` grant/revoke a supplemental role
+  without disturbing the primary one (`SetUserRole`'s existing "exactly one primary role"
+  contract is unchanged and still wipes extras on a primary-role change — documented, not fixed).
+- **`expires_at` enforcement** — was stored on `UserRoleAssignment` but never checked; now
+  filtered at the two read choke points (`GetUserRoles`/`ListUserAssignments`), no background
+  sweep needed.
+- **Real invite-staff flow** — `identity.Service.InviteMember` relays to auth-api's own S2S
+  `POST /api/v1/s2s/tenants/{tenant_id}/members` (the same mechanism every other service's own
+  staff-invite flow uses — see `docs/integrations.md` §3), rather than inventing a new identity
+  path.
+- Full HTTP surface: `GET /permissions`, `GET/PUT /roles/{id}/permissions`, `POST /roles`,
+  `POST /roles/customize`, `PUT /users/{id}/status`, `POST/DELETE /users/{id}/roles[/{code}]`,
+  `POST /users/invite`, `GET /audit-log` (paginated via `github.com/Bengo-Hub/pagination`).
+
+Two opt-in live-verification test files (`internal/modules/rbac/role_customization_live_test.go`,
+`internal/modules/identity/rbac_lifecycle_live_test.go`, gated on `VERIFY_POSTGRES_URL`, skipped
+in CI) exercise all of the above against a real local Postgres — this service has no sqlite/CGO
+test harness, so this is the only pre-deploy check for a bad migration or query.
+
+**Not built, by deliberate scope decision, not oversight**: per-user outlet/branch membership
+enforcement (a distinct "outlet access control" initiative, see the outlet paragraph above) and a
+role-deletion endpoint (no `DeleteRole`/frontend delete action exists — a role can be created and
+edited but not removed; a small, low-risk follow-up if ever needed). `hospital.config.manage`'s
+existing "no handler" state was verified to be a deliberate, already-documented architectural
+decision (see `internal/http/handlers/config.go`'s own doc comment) — facility identity/branding
+is auth-api's, and `facility_type`/`enabled_modules` is a read-only subscriptions-api cache, so
+there is genuinely nothing hospital-api-specific for a tenant admin to write there today.
 
 ## Changelog
 
@@ -230,3 +279,10 @@ Multi-outlet/branch support (for Afya Hospital tier multi-branch tenants) uses t
   `subscriptions.Client.GetEntitlements` lookup; plus a tenant admin CRUD surface gated on the new
   `hospital.billing.manage_catalog` permission. Full detail:
   `docs/sprints/sprint-5-billing-insurance.md`.
+- **2026-08-30** — User Management Module rebuild (see the new section above): tenant-scoped
+  `HospitalUser` identity fix (a real prod-data-integrity bug, live-verified against a local
+  Postgres sandbox before shipping), copy-on-write role customization, `RbacAuditLog`,
+  deactivate/reactivate, additive multi-role, `expires_at` enforcement, and a real invite-staff
+  flow via auth-api's S2S member endpoint. hospital-api commits
+  `3d626ac`/`97f0614`/`dcbc3db`/`250cdf4`; matching hospital-ui pages in the same-day commit
+  `5c4dead`.

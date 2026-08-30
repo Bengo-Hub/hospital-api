@@ -4,8 +4,8 @@
 **Product:** Codevertex Afya
 **Language:** Go 1.26
 **Production domain (planned):** `afyaapi.codevertexafrica.com`
-**Last updated:** 2026-08-29
-**Status:** Sprints 0-5 shipped (`go build`/`go vet`/`go test` green, Atlas migrations generated), live in production. Patient/OPD/Triage, Consultation/Examination, Laboratory, Pharmacy/Dispensing, and Billing/Insurance (ledger, collect/queue endpoints, insurance eligibility/claims, catalog CRUD) are real, working Go code — see "Current State" below and `docs/sprints/` for what shipped in each. hospital-ui has since been built to the same parity (Sprints 1-5 UI, RBAC-gated) — see `hospital-service/hospital-ui/docs/plan.md`.
+**Last updated:** 2026-08-30
+**Status:** Sprints 0-5 shipped (`go build`/`go vet`/`go test` green, Atlas migrations generated), live in production. Patient/OPD/Triage, Consultation/Examination, Laboratory, Pharmacy/Dispensing, and Billing/Insurance (ledger, collect/queue endpoints, insurance eligibility/claims, catalog CRUD) are real, working Go code — see "Current State" below and `docs/sprints/` for what shipped in each. hospital-ui has since been built to the same parity (Sprints 1-5 UI, RBAC-gated) — see `hospital-service/hospital-ui/docs/plan.md`. **2026-08-30:** the User Management Module (auth/roles/permissions) was fully rebuilt — see `docs/architecture.md`'s "User Management Module" section for the complete writeup; this is new capability beyond the original Sprint 0-13 roadmap below, not part of any numbered sprint.
 
 ---
 
