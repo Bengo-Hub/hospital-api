@@ -3,7 +3,7 @@ module github.com/bengobox/hospital-service
 go 1.26.0
 
 // Use online tagged auth-client (same as inventory-service / library-service)
-replace github.com/Bengo-Hub/shared-auth-client => github.com/Bengo-Hub/auth-client v0.12.0
+replace github.com/Bengo-Hub/shared-auth-client => github.com/Bengo-Hub/auth-client v0.13.0
 
 require (
 	ariga.io/atlas v1.1.0
