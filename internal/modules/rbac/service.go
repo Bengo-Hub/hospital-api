@@ -29,6 +29,7 @@ func MapGlobalRolesToServiceRole(roles []string) string {
 		{"nurse", RoleNurse},
 		{"pharmacist", RolePharmacist},
 		{"records_clerk", RoleRecordsClerk}, {"receptionist", RoleRecordsClerk},
+		{"cashier", RoleCashier},
 	}
 	for _, m := range order {
 		for _, r := range roles {

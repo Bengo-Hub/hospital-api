@@ -17,25 +17,13 @@ import (
 )
 
 // mapSSORoleToHospital converts SSO-level global roles to a hospital-api role code.
-// Returns "" for roles that are not hospital-relevant.
+// Returns "" for roles that are not hospital-relevant. Delegates to
+// rbac.MapGlobalRolesToServiceRole — the SINGLE source of truth for this mapping. This used
+// to be an independently-maintained duplicate of that switch, and the two silently drifted
+// apart: this copy was missing a "cashier" case that the other had, so a cashier-role SSO
+// login got zero hospital permissions with no error anywhere. Never re-duplicate this table.
 func mapSSORoleToHospital(roles []string) string {
-	for _, r := range roles {
-		switch r {
-		case "admin", "superuser":
-			return rbac.RoleAdmin // wildcard — unrestricted tenant access
-		case "manager":
-			return rbac.RoleManager
-		case "doctor", "clinician", "physician":
-			return rbac.RoleDoctor
-		case "nurse":
-			return rbac.RoleNurse
-		case "pharmacist":
-			return rbac.RolePharmacist
-		case "records_clerk", "receptionist":
-			return rbac.RoleRecordsClerk
-		}
-	}
-	return ""
+	return rbac.MapGlobalRolesToServiceRole(roles)
 }
 
 // AuthEventHandler handles auth-service user events for proactive user sync.

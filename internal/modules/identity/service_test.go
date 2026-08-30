@@ -18,6 +18,7 @@ func TestMapSSORoleToHospital(t *testing.T) {
 		{"pharmacist", []string{"pharmacist"}, "pharmacist"},
 		{"records_clerk", []string{"records_clerk"}, "records_clerk"},
 		{"receptionist alias maps to records_clerk", []string{"receptionist"}, "records_clerk"},
+		{"cashier", []string{"cashier"}, "cashier"},
 		{"first recognised role wins when multiple present", []string{"customer", "doctor"}, "doctor"},
 		{"unrecognised role maps to empty (no-op)", []string{"customer"}, ""},
 		{"empty roles maps to empty (no-op)", nil, ""},
