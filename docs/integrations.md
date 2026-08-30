@@ -351,6 +351,23 @@ DiagnosisCatalog/LabOrder/Prescription/BillableCharge/etc., see `docs/migration-
 and `docs/sprints/`), and every Sprint 1-5-core endpoint is a real, permission-gated domain route
 behind this plumbing — no longer just the placeholder `/ping`.
 
+**Update (2026-08-30) — use-case-scoped provisioning.** `codevertex-demo` (and any tenant with
+staff spanning several verticals) hosts every vertical's outlets and staff under ONE auth-api
+tenant, and global SSO role names like `admin`/`superuser`/`manager`/`cashier`/`receptionist` are
+reused verbatim by every vertical. The `auth.user.*` NATS consumers and the synchronous
+`EnsureUserFromToken` JIT path both now gate provisioning through `identity.isHospitalRelevant`
+before creating a `HospitalUser` row or assigning a role: trust a resolved outlet's `use_case`
+exclusively when available (the local `Outlet` mirror only ever holds `hospital`-use-case
+outlets — see `tenant.HospitalAcceptedUseCases`, the single definition both outlet-sync paths
+share); otherwise trust only a role name unique to the hospital vertical
+(`rbac.HasUnambiguousHospitalRole` — `doctor`/`clinician`/`physician`/`nurse`/`pharmacist`/
+`records_clerk`) or a tenant whose own primary `use_case` is `"hospital"` (a genuine
+single-vertical hospital tenant's founding admin, before any outlet exists). Platform owners
+always bypass this gate. The same ambiguous-role problem existed one layer deeper, at
+request-authorization time: `rbac.HasAnyPermissionViaGlobalRoles` (the `/auth/me`-style 3rd-tier
+permission-check fallback) now also takes the caller's `outlet_use_case` JWT claim and blocks
+immediately on a confirmed non-hospital value, independent of whatever rows exist locally.
+
 ---
 
 ## 4. Subscriptions Service Integration

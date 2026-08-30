@@ -210,7 +210,7 @@ func (s *Service) VerifyWitness(ctx context.Context, tenantID uuid.UUID, tenantS
 		s.log.Warn("witness permission check failed", zap.Error(aerr))
 	}
 	if !allowed && len(claims.Roles) > 0 {
-		allowed, aerr = s.rbac.HasAnyPermissionViaGlobalRoles(ctx, tenantID, claims.Roles, rbac.PermPharmacyDispense, rbac.PermPharmacyManage)
+		allowed, aerr = s.rbac.HasAnyPermissionViaGlobalRoles(ctx, tenantID, claims.Roles, claims.OutletUseCase, rbac.PermPharmacyDispense, rbac.PermPharmacyManage)
 		if aerr != nil {
 			s.log.Warn("witness global-role permission check failed", zap.Error(aerr))
 		}

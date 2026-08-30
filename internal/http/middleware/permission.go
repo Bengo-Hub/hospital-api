@@ -17,7 +17,7 @@ type permissionChecker interface {
 	// HasAnyPermissionViaGlobalRoles resolves through the hospital service role mapped off
 	// the caller's GLOBAL JWT roles (the /auth/me resolution) — SSO principals often have no
 	// per-user assignment rows and no hospital.* codes in their JWT.
-	HasAnyPermissionViaGlobalRoles(ctx context.Context, tenantID uuid.UUID, globalRoles []string, permissionCodes ...string) (bool, error)
+	HasAnyPermissionViaGlobalRoles(ctx context.Context, tenantID uuid.UUID, globalRoles []string, outletUseCase string, permissionCodes ...string) (bool, error)
 }
 
 // RequireServicePermission returns middleware that allows the request only when the
@@ -72,7 +72,7 @@ func HasServicePermission(r *http.Request, rbac permissionChecker, permissions .
 			}
 		}
 		if terr == nil && tenantID != uuid.Nil && len(claims.Roles) > 0 {
-			if has, err := rbac.HasAnyPermissionViaGlobalRoles(r.Context(), tenantID, claims.Roles, permissions...); err == nil && has {
+			if has, err := rbac.HasAnyPermissionViaGlobalRoles(r.Context(), tenantID, claims.Roles, claims.OutletUseCase, permissions...); err == nil && has {
 				return true
 			}
 		}

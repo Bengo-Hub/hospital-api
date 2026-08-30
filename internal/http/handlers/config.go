@@ -57,3 +57,32 @@ func (h *ConfigHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		"synced_at":       t.LastSyncAt,
 	})
 }
+
+type outletDTO struct {
+	ID     string `json:"id"`
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	IsHQ   bool   `json:"is_hq"`
+	Status string `json:"status"`
+}
+
+// ListOutlets handles GET /{tenant}/hospital/outlets — the source list for hospital-ui's outlet
+// switcher (2026-08-30). Single-outlet tenants (the overwhelming majority today — Chemist/Clinic
+// tier) get back exactly one row and the frontend skips rendering a switcher at all.
+func (h *ConfigHandler) ListOutlets(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	outlets, err := h.identitySvc.ListOutlets(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list outlets")
+		return
+	}
+	out := make([]outletDTO, 0, len(outlets))
+	for _, o := range outlets {
+		out = append(out, outletDTO{ID: o.ID.String(), Code: o.Code, Name: o.Name, IsHQ: o.IsHq, Status: o.Status})
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": out})
+}

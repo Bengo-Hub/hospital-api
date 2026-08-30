@@ -31,6 +31,7 @@ type AuthEventHandler struct {
 	client       *ent.Client
 	tenantSyncer interface {
 		SyncTenant(ctx context.Context, slug string) (uuid.UUID, error)
+		SyncOutlets(ctx context.Context, tenantID uuid.UUID, tenantSlug string) error
 	}
 	rbacService *rbac.Service
 	logger      *zap.Logger
@@ -159,6 +160,90 @@ func eventRoles(payload map[string]interface{}) []string {
 	return roles
 }
 
+// eventOutletID extracts the primary outlet_id from an event payload, falling back to the
+// first entry of outlet_ids for callers that only populate the plural field.
+func eventOutletID(payload map[string]interface{}) string {
+	if id, ok := payload["outlet_id"].(string); ok && id != "" {
+		return id
+	}
+	if raw, ok := payload["outlet_ids"].([]interface{}); ok && len(raw) > 0 {
+		if id, ok := raw[0].(string); ok {
+			return id
+		}
+	}
+	return ""
+}
+
+// resolveOutletUseCase reports the use_case of outletIDStr and whether it could be resolved
+// at all. The local Outlet mirror only ever holds outlets accepted by
+// tenant.HospitalAcceptedUseCases (auth_outlet_events.go's handleUpsert filters everything
+// else before it's synced), so a local hit is authoritative. A miss is backfilled once via
+// SyncOutlets to rule out the startup race where a user-created event for a genuine hospital
+// outlet arrives before that outlet's own auth.outlet.created event — only after that retry
+// still misses is the outlet trusted as confirmed non-hospital (or simply unknown/deleted).
+func (h *AuthEventHandler) resolveOutletUseCase(ctx context.Context, tenantID uuid.UUID, tenantSlug, outletIDStr string) (useCase string, resolved bool) {
+	outletID, err := uuid.Parse(outletIDStr)
+	if err != nil {
+		return "", false
+	}
+	if o, err := h.client.Outlet.Get(ctx, outletID); err == nil {
+		if o.UseCase != nil {
+			return *o.UseCase, true
+		}
+		return "", true
+	}
+	if h.tenantSyncer != nil {
+		_ = h.tenantSyncer.SyncOutlets(ctx, tenantID, tenantSlug)
+	}
+	if o, err := h.client.Outlet.Get(ctx, outletID); err == nil {
+		if o.UseCase != nil {
+			return *o.UseCase, true
+		}
+		return "", true
+	}
+	return "", false
+}
+
+// isHospitalRelevant decides whether a JIT-provisioning event should create/update a
+// HospitalUser row and assign a hospital role. codevertex-demo (and any other tenant with
+// staff across several verticals) hosts every use case under ONE auth-api tenant, and role
+// names like admin/manager/cashier/receptionist are reused verbatim by every vertical, so
+// neither the tenant nor the role name alone can prove hospital relevance — outlet evidence
+// is checked first because it is the only signal specific enough to separate "this tenant's
+// hospital outlet" from "this tenant's retail/hospitality/pharmacy/... outlet".
+//
+//   - outlet resolved -> trust it exclusively (use_case == "hospital").
+//   - outlet unresolvable (no outlet_id in the event, or the outlet is unknown/deleted) ->
+//     fall back to the role name, trusting only names unique to the hospital vertical
+//     (rbac.HasUnambiguousHospitalRole) or a tenant whose own primary use_case is "hospital"
+//     (a genuinely single-vertical hospital tenant's founding admin, before any outlet exists).
+func isHospitalRelevant(outletUseCase string, outletResolved bool, tenantUseCase *string, roles []string) bool {
+	if outletResolved {
+		return outletUseCase == "hospital"
+	}
+	if rbac.HasUnambiguousHospitalRole(roles) {
+		return true
+	}
+	return tenantUseCase != nil && *tenantUseCase == "hospital"
+}
+
+// shouldProvisionForHospital wires isHospitalRelevant up to this handler's outlet/tenant
+// lookups for one event payload. See isHospitalRelevant for the decision policy.
+func (h *AuthEventHandler) shouldProvisionForHospital(ctx context.Context, tenantID uuid.UUID, tenantSlug string, payload map[string]interface{}) bool {
+	var (
+		outletUseCase string
+		resolved      bool
+	)
+	if outletIDStr := eventOutletID(payload); outletIDStr != "" {
+		outletUseCase, resolved = h.resolveOutletUseCase(ctx, tenantID, tenantSlug, outletIDStr)
+	}
+	var tenantUseCase *string
+	if t, err := h.client.Tenant.Get(ctx, tenantID); err == nil {
+		tenantUseCase = t.UseCase
+	}
+	return isHospitalRelevant(outletUseCase, resolved, tenantUseCase, eventRoles(payload))
+}
+
 func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedevents.Event) error {
 	userIDStr, _ := evt.Payload["user_id"].(string)
 	email, _ := evt.Payload["email"].(string)
@@ -192,6 +277,12 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 	}
 	if tenantID == uuid.Nil {
 		return fmt.Errorf("no tenant_id available for user %s", userIDStr)
+	}
+
+	if !h.shouldProvisionForHospital(ctx, tenantID, tenantSlug, evt.Payload) {
+		h.logger.Info("skipping user: not hospital-relevant",
+			zap.String("user_id", userIDStr), zap.String("tenant_slug", tenantSlug))
+		return nil
 	}
 
 	created, err := h.client.HospitalUser.Create().
@@ -256,6 +347,11 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 				zap.String("user_id", userIDStr))
 			return nil
 		}
+		if !h.shouldProvisionForHospital(ctx, tenantID, tenantSlug, evt.Payload) {
+			h.logger.Info("skipping backfill-create: not hospital-relevant",
+				zap.String("user_id", userIDStr), zap.String("tenant_slug", tenantSlug))
+			return nil
+		}
 		created, createErr := h.client.HospitalUser.Create().
 			SetID(authServiceUserID).
 			SetAuthServiceUserID(authServiceUserID).
@@ -292,7 +388,11 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 	}
 
 	// Re-sync role — corrects stale role mappings (e.g. a promotion from nurse to manager).
-	if h.rbacService != nil {
+	// Gated the same as creation: an existing row (e.g. provisioned before this hardening
+	// shipped) is never deleted here, but it must stop accruing hospital permissions once its
+	// outlet/role evidence no longer supports them.
+	tenantSlug, _ := evt.Payload["tenant_slug"].(string)
+	if h.rbacService != nil && h.shouldProvisionForHospital(ctx, u.TenantID, tenantSlug, evt.Payload) {
 		if roleCode := mapSSORoleToHospital(eventRoles(evt.Payload)); roleCode != "" {
 			if err := h.rbacService.AssignRoleByCode(ctx, u.TenantID, u.ID, authServiceUserID, roleCode); err != nil {
 				h.logger.Warn("JIT role re-sync failed on user.updated",

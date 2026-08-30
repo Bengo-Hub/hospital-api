@@ -73,6 +73,46 @@ func TestExtractRoles(t *testing.T) {
 	})
 }
 
+func TestIsHospitalRelevant(t *testing.T) {
+	hospital := "hospital"
+	hospitality := "hospitality"
+	cases := []struct {
+		name           string
+		outletUseCase  string
+		outletResolved bool
+		tenantUseCase  *string
+		roles          []string
+		want           bool
+	}{
+		{"outlet resolved hospital -> allow regardless of role", "hospital", true, nil, []string{"manager"}, true},
+		{
+			name: "outlet resolved non-hospital -> block even for an otherwise-unambiguous role " +
+				"(demo cashier/manager/admin assigned to a POS outlet, never demo-hospital)",
+			outletUseCase: "hospitality", outletResolved: true, tenantUseCase: nil,
+			roles: []string{"manager"}, want: false,
+		},
+		{"outlet resolved non-hospital blocks doctor too (shouldn't happen in practice, but the outlet wins)",
+			"retail", true, nil, []string{"doctor"}, false},
+		{"no outlet + unambiguous hospital role -> allow", "", false, nil, []string{"doctor"}, true},
+		{"no outlet + nurse -> allow", "", false, nil, []string{"nurse"}, true},
+		{"no outlet + pharmacist -> allow", "", false, nil, []string{"pharmacist"}, true},
+		{"no outlet + records_clerk -> allow", "", false, nil, []string{"records_clerk"}, true},
+		{"no outlet + ambiguous admin role + non-hospital tenant -> block", "", false, &hospitality, []string{"admin"}, false},
+		{"no outlet + ambiguous manager role + no tenant use_case known -> block", "", false, nil, []string{"manager"}, false},
+		{"no outlet + ambiguous admin role + single-vertical hospital tenant -> allow (founding admin)", "", false, &hospital, []string{"admin"}, true},
+		{"no outlet, no role, no tenant use_case -> block", "", false, nil, nil, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isHospitalRelevant(tc.outletUseCase, tc.outletResolved, tc.tenantUseCase, tc.roles)
+			if got != tc.want {
+				t.Errorf("isHospitalRelevant(%q, %v, %v, %v) = %v, want %v",
+					tc.outletUseCase, tc.outletResolved, tc.tenantUseCase, tc.roles, got, tc.want)
+			}
+		})
+	}
+}
+
 // NOTE: EnsureUserFromToken's full JIT-provisioning + role-healing flow (the "user already
 // exists -> still re-run role assignment" contract documented on that function) touches the
 // ent client and is not covered by an automated test in this pass — hospital-api has no

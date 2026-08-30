@@ -117,11 +117,44 @@ func (s *Service) HasAnyPermission(ctx context.Context, tenantID, userID uuid.UU
 	return false, nil
 }
 
+// unambiguousHospitalRoles are SSO role names used ONLY by the hospital vertical. Unlike
+// admin/manager/cashier/receptionist/superuser — reused verbatim by every other vertical
+// (POS, hospitality, ERP, TruLoad, ...) sharing the same auth-api tenant — these cannot be
+// held by a non-hospital user, so they're trusted even with no outlet context at all.
+var unambiguousHospitalRoles = map[string]bool{
+	"doctor": true, "clinician": true, "physician": true,
+	"nurse": true, "pharmacist": true, "records_clerk": true,
+}
+
+// HasUnambiguousHospitalRole reports whether any of the given global SSO roles is
+// hospital-exclusive (see unambiguousHospitalRoles). Used to decide whether a caller with no
+// outlet context (HQ users, pre-outlet-selection tokens, self-registration) can still be
+// trusted as hospital-relevant purely from their role name.
+func HasUnambiguousHospitalRole(roles []string) bool {
+	for _, r := range roles {
+		if unambiguousHospitalRoles[r] {
+			return true
+		}
+	}
+	return false
+}
+
 // HasAnyPermissionViaGlobalRoles resolves permissions the way /auth/me does — from the
 // hospital service role(s) matching the caller's GLOBAL JWT roles — for SSO principals
 // that have no UserRoleAssignment rows yet. Third leg of the middleware resolution chain:
 // JWT canonical perms -> per-user assignments -> role-mapped service role.
-func (s *Service) HasAnyPermissionViaGlobalRoles(ctx context.Context, tenantID uuid.UUID, globalRoles []string, permissionCodes ...string) (bool, error) {
+//
+// outletUseCase is the caller's JWT outlet_use_case claim (empty for HQ/admin users or a
+// pre-outlet-selection token). codevertex-demo hosts every vertical under one tenant, and
+// role names like "manager"/"cashier"/"admin" are reused verbatim across all of them, so a
+// non-empty, confirmed-non-hospital outlet use case is trusted immediately: a demo retail
+// manager must never be granted hospital.* permissions just because "manager" also maps to
+// a hospital role. An empty outlet_use_case is not proof of anything either way, so it falls
+// through to the existing role-mapped resolution unchanged.
+func (s *Service) HasAnyPermissionViaGlobalRoles(ctx context.Context, tenantID uuid.UUID, globalRoles []string, outletUseCase string, permissionCodes ...string) (bool, error) {
+	if outletUseCase != "" && outletUseCase != "hospital" {
+		return false, nil
+	}
 	if len(permissionCodes) == 0 || len(globalRoles) == 0 {
 		return false, nil
 	}

@@ -109,6 +109,7 @@ func New(d Deps) http.Handler {
 									"permissions":       claims.Permissions,
 									"is_platform_owner": claims.IsPlatformOwner,
 									"outlet_id":         claims.GetOutletID(),
+									"outlet_use_case":   claims.OutletUseCase,
 								})
 								if err != nil {
 									d.Log.Warn("jit provisioning failed", zap.Error(err))
@@ -439,6 +440,10 @@ func New(d Deps) http.Handler {
 			if d.Config != nil {
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConfigView)).
 					Get("/config", d.Config.GetConfig)
+				// No permission gate: every authenticated user needs their tenant's outlet list
+				// to render the outlet switcher, not just config-viewing admins — mirrors
+				// /auth/me and /ping (authenticated-only, no fine-grained permission check).
+				prot.Get("/outlets", d.Config.ListOutlets)
 			}
 		})
 	})

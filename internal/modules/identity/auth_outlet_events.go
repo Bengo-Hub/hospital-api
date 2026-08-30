@@ -11,13 +11,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/modules/tenant"
 )
-
-// hospitalAcceptedUseCases is the set of outlet use_cases that hospital-api supports.
-// Outlets with other use_cases (retail, warehouse, logistics, ...) are ACKed and skipped.
-var hospitalAcceptedUseCases = map[string]bool{
-	"hospital": true,
-}
 
 // authStream is the NATS JetStream stream name that auth-api publishes to.
 const authStream = "auth"
@@ -156,7 +151,7 @@ func (h *AuthOutletEventHandler) handleUpsert(ctx context.Context, evt *sharedev
 	}
 
 	// Skip outlets that don't apply to hospital-api (retail branches, warehouses, ...).
-	if useCase != "" && !hospitalAcceptedUseCases[useCase] {
+	if useCase != "" && !tenant.HospitalAcceptedUseCases[useCase] {
 		h.logger.Info("skipping outlet: use_case not applicable to hospital-api",
 			zap.String("outlet_id", outletIDStr),
 			zap.String("use_case", useCase))

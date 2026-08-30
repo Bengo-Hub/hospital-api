@@ -11,6 +11,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
 )
@@ -55,8 +56,10 @@ func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UU
 
 	if err == nil {
 		// User exists — STILL (idempotently) re-run role assignment so a role added or
-		// corrected after first login is never silently missed.
-		if s.rbacService != nil {
+		// corrected after first login is never silently missed. Gated: an existing row (e.g.
+		// provisioned before this hardening shipped) is never deleted here, but it must stop
+		// accruing hospital permissions once its outlet/role evidence no longer supports them.
+		if s.rbacService != nil && s.shouldProvisionForHospital(ctx, u.TenantID, claims) {
 			s.assignDefaultRoleFromJWT(ctx, u.TenantID, u.ID, authServiceID, claims)
 		}
 		return u, nil
@@ -70,6 +73,11 @@ func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UU
 	tenantID, err := s.tenantSyncer.SyncTenant(ctx, tenantSlug)
 	if err != nil {
 		return nil, fmt.Errorf("identity.Service: sync tenant %q: %w", tenantSlug, err)
+	}
+
+	if !s.shouldProvisionForHospital(ctx, tenantID, claims) {
+		log.Printf("  [jit-provisioning] skipping user (not hospital-relevant) for tenant %s", tenantSlug)
+		return nil, nil
 	}
 
 	// 3. Create user.
@@ -107,6 +115,43 @@ func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UU
 	return newUsr, nil
 }
 
+// shouldProvisionForHospital applies the same use-case gate as
+// AuthEventHandler.shouldProvisionForHospital (see isHospitalRelevant's doc comment in
+// auth_events.go for the full policy) to the synchronous HTTP JIT path. Prefers the JWT's
+// outlet_use_case claim — free, no DB round trip — and falls back to resolving outlet_id
+// against the local Outlet mirror for callers that only pass the ID.
+//
+// Platform owners always pass: they're never outlet-scoped and must be able to reach every
+// tenant's every service (the whole point of the role), which is exactly the property this
+// gate would otherwise mistake for "not hospital-relevant" — see reference_tenant_uuid_drift
+// and this service's own platform-owner cross-tenant fix.
+func (s *Service) shouldProvisionForHospital(ctx context.Context, tenantID uuid.UUID, claims map[string]any) bool {
+	if isPlatformOwner, _ := claims["is_platform_owner"].(bool); isPlatformOwner {
+		return true
+	}
+	var (
+		outletUseCase string
+		resolved      bool
+	)
+	if uc, ok := claims["outlet_use_case"].(string); ok && uc != "" {
+		outletUseCase, resolved = uc, true
+	} else if outletIDStr, ok := claims["outlet_id"].(string); ok && outletIDStr != "" {
+		if outletID, err := uuid.Parse(outletIDStr); err == nil {
+			if o, err := s.client.Outlet.Get(ctx, outletID); err == nil {
+				resolved = true
+				if o.UseCase != nil {
+					outletUseCase = *o.UseCase
+				}
+			}
+		}
+	}
+	var tenantUseCase *string
+	if t, err := s.client.Tenant.Get(ctx, tenantID); err == nil {
+		tenantUseCase = t.UseCase
+	}
+	return isHospitalRelevant(outletUseCase, resolved, tenantUseCase, extractRoles(claims))
+}
+
 // assignDefaultRoleFromJWT maps global JWT roles to a hospital-api service role and
 // idempotently assigns it. No-op when no claims["roles"] maps to a recognised role.
 func (s *Service) assignDefaultRoleFromJWT(ctx context.Context, tenantID uuid.UUID, localUserID, authUserID uuid.UUID, claims map[string]any) {
@@ -124,6 +169,19 @@ func (s *Service) assignDefaultRoleFromJWT(ctx context.Context, tenantID uuid.UU
 // facility_type/enabled_modules resolved from subscriptions-api (Tenant.metadata cache).
 func (s *Service) GetTenant(ctx context.Context, tenantID uuid.UUID) (*ent.Tenant, error) {
 	return s.client.Tenant.Get(ctx, tenantID)
+}
+
+// ListOutlets returns every outlet synced for a tenant — the source list for hospital-ui's
+// outlet switcher (2026-08-30). Outlets are synced in via auth-service NATS events
+// (auth_outlet_events.go); this is the first place they're ever exposed over HTTP. No
+// per-user outlet-membership restriction exists yet (see outlet_context.go's own doc comment —
+// "Any authenticated user in the tenant may currently select any of the tenant's outlets"), so
+// this deliberately returns the full tenant list rather than a scoped subset.
+func (s *Service) ListOutlets(ctx context.Context, tenantID uuid.UUID) ([]*ent.Outlet, error) {
+	return s.client.Outlet.Query().
+		Where(outlet.TenantID(tenantID), outlet.StatusEQ("active")).
+		Order(ent.Desc(outlet.FieldIsHq), ent.Asc(outlet.FieldName)).
+		All(ctx)
 }
 
 // ListUsers returns every HospitalUser provisioned for a tenant — the Users admin page's

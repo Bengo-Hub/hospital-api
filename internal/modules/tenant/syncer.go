@@ -36,9 +36,13 @@ var driftProbeClient = &http.Client{Timeout: 5 * time.Second}
 // upstream, so checking a given slug a few times an hour catches it soon enough.
 const driftCheckInterval = 10 * time.Minute
 
-// hospitalAcceptedUseCases is the set of outlet use_cases hospital-api supports. Outlets
-// with other use_cases (retail, warehouse, ...) are skipped during REST cold-start sync.
-var hospitalAcceptedUseCases = map[string]bool{
+// HospitalAcceptedUseCases is the set of outlet use_cases hospital-api supports. Outlets
+// with other use_cases (retail, warehouse, ...) are skipped during REST cold-start sync
+// (SyncOutlets) and NATS-driven sync (identity.AuthOutletEventHandler.handleUpsert) alike —
+// this is the single source of truth for both; it used to be independently duplicated in
+// both places and had already drifted once before being caught, the same failure mode
+// documented on identity.mapSSORoleToHospital. Never re-duplicate this table.
+var HospitalAcceptedUseCases = map[string]bool{
 	"hospital": true,
 }
 
@@ -442,7 +446,7 @@ func (s *Syncer) SyncOutlets(ctx context.Context, tenantID uuid.UUID, tenantSlug
 	synced := 0
 	for _, item := range items {
 		// Skip outlets that hospital-api doesn't serve.
-		if item.UseCase != "" && !hospitalAcceptedUseCases[item.UseCase] {
+		if item.UseCase != "" && !HospitalAcceptedUseCases[item.UseCase] {
 			continue
 		}
 		if item.Status == "archived" {
