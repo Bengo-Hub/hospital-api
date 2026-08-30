@@ -440,3 +440,33 @@ func (c *Client) PollClaimStatus(ctx context.Context, tenantID, claimID uuid.UUI
 	}
 	return &out, nil
 }
+
+// Provider mirrors treasury-api's InsuranceProvider (the fields hospital-api's picker needs).
+type Provider struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	IsActive bool      `json:"is_active"`
+}
+
+// ListProviders lists a tenant's configured insurance providers — the picker source for the
+// eligibility-check/claim-submission UI. Uses the S2S route added 2026-08-30 (previously
+// admin-JWT-only, same reasoning as PollClaimStatus's 2026-08-29 fix above).
+func (c *Client) ListProviders(ctx context.Context, tenantID uuid.UUID) ([]Provider, error) {
+	if !c.enabled {
+		return nil, fmt.Errorf("treasury client not configured")
+	}
+	resp, err := c.sc.Get(ctx, c.s2s(tenantID, "/insurance/providers"), c.headers())
+	if err != nil {
+		return nil, fmt.Errorf("treasury: list providers: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("treasury: list providers: status %d: %s", resp.StatusCode, string(resp.Body))
+	}
+	var out struct {
+		Data []Provider `json:"data"`
+	}
+	if err := resp.DecodeJSON(&out); err != nil {
+		return nil, fmt.Errorf("treasury: decode providers: %w", err)
+	}
+	return out.Data, nil
+}

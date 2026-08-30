@@ -222,6 +222,56 @@ func (s *Service) GetUserRoles(ctx context.Context, tenantID, userID uuid.UUID) 
 	return s.repo.GetUserRoles(ctx, tenantID, userID)
 }
 
+// ListRoles returns every seeded hospital role (global catalog — the picker source for the
+// Users admin page's "change role" action).
+func (s *Service) ListRoles(ctx context.Context) ([]*HospitalRole, error) {
+	return s.repo.ListRoles(ctx)
+}
+
+// SetUserRole replaces a user's current role assignment(s) with the single named role — the
+// "change role" operation the Users admin page needs. Unlike AssignRole (additive, errors if
+// already assigned) this is idempotent and always leaves the user with exactly one role:
+// revokes every currently-assigned role first, then assigns the new one. Roles are global
+// (no tenant-specific variants), so this only ever needs the role code.
+func (s *Service) SetUserRole(ctx context.Context, tenantID, userID, assignedBy uuid.UUID, roleCode string) error {
+	role, err := s.repo.GetRoleByCode(ctx, roleCode)
+	if err != nil {
+		return fmt.Errorf("role %q not found: %w", roleCode, err)
+	}
+
+	current, err := s.repo.GetUserRoles(ctx, tenantID, userID)
+	if err != nil {
+		return fmt.Errorf("get current roles: %w", err)
+	}
+	for _, r := range current {
+		if r.ID == role.ID {
+			continue // already holds this exact role
+		}
+		if err := s.repo.RevokeRoleFromUser(ctx, tenantID, userID, r.ID); err != nil {
+			return fmt.Errorf("revoke existing role %q: %w", r.RoleCode, err)
+		}
+	}
+	if len(current) == 1 && current[0].ID == role.ID {
+		return nil // no-op: already exactly this role
+	}
+
+	assignment := &UserRoleAssignment{
+		ID:         uuid.New(),
+		TenantID:   tenantID,
+		UserID:     userID,
+		RoleID:     role.ID,
+		AssignedBy: assignedBy,
+	}
+	if err := s.repo.AssignRoleToUser(ctx, tenantID, assignment); err != nil {
+		return fmt.Errorf("assign role: %w", err)
+	}
+	s.logger.Info("user role changed",
+		zap.String("tenant_id", tenantID.String()),
+		zap.String("user_id", userID.String()),
+		zap.String("role_code", roleCode))
+	return nil
+}
+
 // GetUserPermissions retrieves all permissions for a user.
 func (s *Service) GetUserPermissions(ctx context.Context, tenantID, userID uuid.UUID) ([]*HospitalPermission, error) {
 	return s.repo.GetUserPermissions(ctx, tenantID, userID)

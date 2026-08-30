@@ -222,6 +222,10 @@ func New(ctx context.Context) (*App, error) {
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
+	// ── Users / Config admin (2026-08-30) ─────────────────────────────────
+	usersHandler := handlers.NewUsersHandler(identitySvc, rbacService)
+	configHandler := handlers.NewConfigHandler(identitySvc)
+
 	deps := router.Deps{
 		Log:            log,
 		Health:         healthHandler,
@@ -236,6 +240,8 @@ func New(ctx context.Context) (*App, error) {
 		Billing:        billingHandler,
 		Lab:            labHandler,
 		Pharmacy:       pharmacyHandler,
+		Users:          usersHandler,
+		Config:         configHandler,
 	}
 	chiRouter := router.New(deps)
 

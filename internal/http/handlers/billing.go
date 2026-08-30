@@ -149,6 +149,62 @@ type settleAccountRequest struct {
 	NextOfKinID   string `json:"next_of_kin_id,omitempty"`
 }
 
+// ListNextOfKin handles GET /{tenant}/hospital/patients/{patientID}/next-of-kin — the picker
+// source for the Settle Account modal (offer existing contacts before falling back to "add new").
+func (h *BillingHandler) ListNextOfKin(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	patientID, err := uuid.Parse(chi.URLParam(r, "patientID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid patient ID")
+		return
+	}
+	list, err := h.svc.ListNextOfKin(r.Context(), tenantID, patientID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list next-of-kin")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+type createNextOfKinRequest struct {
+	Name         string `json:"name"`
+	Phone        string `json:"phone,omitempty"`
+	Relationship string `json:"relationship,omitempty"`
+	IDNumber     string `json:"id_number,omitempty"`
+	IsPrimary    bool   `json:"is_primary,omitempty"`
+}
+
+// CreateNextOfKin handles POST /{tenant}/hospital/patients/{patientID}/next-of-kin
+func (h *BillingHandler) CreateNextOfKin(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	patientID, err := uuid.Parse(chi.URLParam(r, "patientID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid patient ID")
+		return
+	}
+	var in createNextOfKinRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	kin, err := h.svc.CreateNextOfKin(r.Context(), tenantID, patientID, billing.NextOfKinInput{
+		Name: in.Name, Phone: in.Phone, Relationship: in.Relationship, IDNumber: in.IDNumber, IsPrimary: in.IsPrimary,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, kin)
+}
+
 // SettleAccount handles POST /{tenant}/hospital/billing/accounts/{accountID}/settle
 func (h *BillingHandler) SettleAccount(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)
@@ -294,6 +350,22 @@ func (h *BillingHandler) DeactivateCatalogItem(w http.ResponseWriter, r *http.Re
 }
 
 // ── Insurance (Sprint 5 remainder) ──────────────────────────────────────────────────────────
+
+// ListInsuranceProviders handles GET /{tenant}/hospital/insurance/providers — shared picker
+// source for Lab, Pharmacy and Billing's own insurance actions (all three need the same list).
+func (h *BillingHandler) ListInsuranceProviders(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	providers, err := h.svc.ListInsuranceProviders(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": providers})
+}
 
 type checkEligibilityRequest struct {
 	ProviderID string            `json:"provider_id"`

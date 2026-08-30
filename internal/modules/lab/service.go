@@ -499,3 +499,125 @@ func (s *Service) ListCatalog(ctx context.Context, tenantID uuid.UUID) ([]Catalo
 	}
 	return out, nil
 }
+
+// ── Tenant Lab Test Catalog admin CRUD (2026-08-30) ─────────────────────────────────────────
+//
+// ListCatalog above merges the global defaults with a tenant's own entries into one read-only
+// picker list for order creation. These methods manage the tenant-owned half of that (
+// LabTestCatalogEntry) directly — until now there was no way, UI or API, for a facility whose
+// lab does anything beyond the ~20 globally-seeded starter tests to add its own. Mirrors
+// billing.Service's BillableItemCatalog CRUD shape.
+
+// ListTenantCatalogEntries lists a tenant's own custom lab tests (admin view — includes id and
+// inactive rows when requested, unlike the merged picker list ListCatalog returns).
+func (s *Service) ListTenantCatalogEntries(ctx context.Context, tenantID uuid.UUID, includeInactive bool) ([]*ent.LabTestCatalogEntry, error) {
+	q := s.client.LabTestCatalogEntry.Query().Where(labtestcatalogentry.TenantID(tenantID))
+	if !includeInactive {
+		q = q.Where(labtestcatalogentry.IsActive(true))
+	}
+	return q.Order(ent.Asc(labtestcatalogentry.FieldName)).All(ctx)
+}
+
+// LabTestEntryInput is the input to CreateLabTestEntry.
+type LabTestEntryInput struct {
+	Code            string
+	Name            string
+	SpecimenType    string
+	ReferenceRange  string
+	Unit            string
+	TurnaroundHours *int
+	Price           float64
+}
+
+// CreateLabTestEntry adds one tenant-owned lab test (the unique(tenant_id, code) index enforces
+// no duplicate code per tenant — including one that shadows a global default code, which is
+// allowed and intentional: a tenant-specific price/turnaround override).
+func (s *Service) CreateLabTestEntry(ctx context.Context, tenantID uuid.UUID, in LabTestEntryInput) (*ent.LabTestCatalogEntry, error) {
+	if in.Code == "" || in.Name == "" {
+		return nil, fmt.Errorf("lab: code and name are required")
+	}
+	create := s.client.LabTestCatalogEntry.Create().
+		SetTenantID(tenantID).
+		SetCode(in.Code).
+		SetName(in.Name).
+		SetPrice(in.Price).
+		SetIsActive(true)
+	if in.SpecimenType != "" {
+		create = create.SetSpecimenType(in.SpecimenType)
+	}
+	if in.ReferenceRange != "" {
+		create = create.SetReferenceRange(in.ReferenceRange)
+	}
+	if in.Unit != "" {
+		create = create.SetUnit(in.Unit)
+	}
+	if in.TurnaroundHours != nil {
+		create = create.SetTurnaroundHours(*in.TurnaroundHours)
+	}
+	entry, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lab: create catalog entry: %w", err)
+	}
+	return entry, nil
+}
+
+// LabTestEntryUpdate is the input to UpdateLabTestEntry — every field is a pointer so only
+// fields the caller actually sent are changed.
+type LabTestEntryUpdate struct {
+	Name            *string
+	SpecimenType    *string
+	ReferenceRange  *string
+	Unit            *string
+	TurnaroundHours *int
+	Price           *float64
+	IsActive        *bool
+}
+
+// UpdateLabTestEntry applies a partial update to one tenant-owned catalog entry.
+func (s *Service) UpdateLabTestEntry(ctx context.Context, tenantID, entryID uuid.UUID, in LabTestEntryUpdate) (*ent.LabTestCatalogEntry, error) {
+	existing, err := s.client.LabTestCatalogEntry.Query().
+		Where(labtestcatalogentry.ID(entryID), labtestcatalogentry.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lab: catalog entry not found: %w", err)
+	}
+	upd := s.client.LabTestCatalogEntry.UpdateOneID(existing.ID)
+	if in.Name != nil {
+		upd = upd.SetName(*in.Name)
+	}
+	if in.SpecimenType != nil {
+		upd = upd.SetSpecimenType(*in.SpecimenType)
+	}
+	if in.ReferenceRange != nil {
+		upd = upd.SetReferenceRange(*in.ReferenceRange)
+	}
+	if in.Unit != nil {
+		upd = upd.SetUnit(*in.Unit)
+	}
+	if in.TurnaroundHours != nil {
+		upd = upd.SetTurnaroundHours(*in.TurnaroundHours)
+	}
+	if in.Price != nil {
+		upd = upd.SetPrice(*in.Price)
+	}
+	if in.IsActive != nil {
+		upd = upd.SetIsActive(*in.IsActive)
+	}
+	entry, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lab: update catalog entry: %w", err)
+	}
+	return entry, nil
+}
+
+// DeactivateLabTestEntry soft-deletes a tenant-owned catalog entry (is_active=false) — never a
+// hard delete, so historical LabOrderLine snapshots (test_code/test_name/price) keep resolving.
+func (s *Service) DeactivateLabTestEntry(ctx context.Context, tenantID, entryID uuid.UUID) (*ent.LabTestCatalogEntry, error) {
+	existing, err := s.client.LabTestCatalogEntry.Query().
+		Where(labtestcatalogentry.ID(entryID), labtestcatalogentry.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lab: catalog entry not found: %w", err)
+	}
+	return s.client.LabTestCatalogEntry.UpdateOneID(existing.ID).SetIsActive(false).Save(ctx)
+}

@@ -19,6 +19,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
+	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
 	"github.com/bengobox/hospital-service/internal/modules/treasury"
 )
 
@@ -265,6 +266,55 @@ func (s *Service) SettleAccount(ctx context.Context, tenantID, accountID uuid.UU
 	return upd.Save(ctx)
 }
 
+// ── PatientNextOfKin (2026-08-30) ───────────────────────────────────────────────────────────
+//
+// Was a dead feature end to end before this: SettleAccount already consumed a next_of_kin_id,
+// but nothing anywhere ever created one, forcing the Settle Account UI to ask a cashier to type
+// a raw UUID nobody could ever have. These two methods close that: list a patient's recorded
+// next-of-kin (so the UI can offer a picker before falling back to "add new"), and create one.
+
+// ListNextOfKin returns every next-of-kin recorded for a patient, primary first.
+func (s *Service) ListNextOfKin(ctx context.Context, tenantID, patientID uuid.UUID) ([]*ent.PatientNextOfKin, error) {
+	return s.client.PatientNextOfKin.Query().
+		Where(patientnextofkin.TenantID(tenantID), patientnextofkin.PatientID(patientID)).
+		Order(ent.Desc(patientnextofkin.FieldIsPrimary), ent.Asc(patientnextofkin.FieldCreatedAt)).
+		All(ctx)
+}
+
+// NextOfKinInput is the input to CreateNextOfKin.
+type NextOfKinInput struct {
+	Name         string
+	Phone        string
+	Relationship string
+	IDNumber     string
+	IsPrimary    bool
+}
+
+// CreateNextOfKin records a new next-of-kin for a patient. If IsPrimary is set, any existing
+// primary record for this patient is demoted first (at most one primary per patient).
+func (s *Service) CreateNextOfKin(ctx context.Context, tenantID, patientID uuid.UUID, in NextOfKinInput) (*ent.PatientNextOfKin, error) {
+	if in.Name == "" {
+		return nil, fmt.Errorf("billing: next-of-kin name is required")
+	}
+	if in.IsPrimary {
+		if _, err := s.client.PatientNextOfKin.Update().
+			Where(patientnextofkin.TenantID(tenantID), patientnextofkin.PatientID(patientID), patientnextofkin.IsPrimary(true)).
+			SetIsPrimary(false).
+			Save(ctx); err != nil {
+			return nil, fmt.Errorf("billing: demote existing primary next-of-kin: %w", err)
+		}
+	}
+	return s.client.PatientNextOfKin.Create().
+		SetTenantID(tenantID).
+		SetPatientID(patientID).
+		SetName(in.Name).
+		SetPhone(in.Phone).
+		SetRelationship(in.Relationship).
+		SetIDNumber(in.IDNumber).
+		SetIsPrimary(in.IsPrimary).
+		Save(ctx)
+}
+
 // ── BillableItemCatalog admin CRUD (Gap 3 — a tenant admin isn't stuck editing rows via direct ──
 // DB access; the starter set itself comes from refdata.SeedFacilityBillableItems) ─────────────
 
@@ -394,6 +444,16 @@ func (s *Service) CheckEligibility(ctx context.Context, tenantID, providerID uui
 		return nil, fmt.Errorf("billing: treasury client not configured")
 	}
 	return s.treasury.CheckEligibility(ctx, tenantID, providerID, fields)
+}
+
+// ListInsuranceProviders lists a tenant's configured insurance providers — the picker source
+// for the eligibility-check/claim-submission UI (Lab, Pharmacy, and Billing's own visit-level
+// insurance actions all need this same list).
+func (s *Service) ListInsuranceProviders(ctx context.Context, tenantID uuid.UUID) ([]treasury.Provider, error) {
+	if !s.treasury.Enabled() {
+		return nil, fmt.Errorf("billing: treasury client not configured")
+	}
+	return s.treasury.ListProviders(ctx, tenantID)
 }
 
 // PollInsuranceClaim polls a previously submitted claim's async adjudication status — a thin

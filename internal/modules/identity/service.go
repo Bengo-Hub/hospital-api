@@ -120,6 +120,22 @@ func (s *Service) assignDefaultRoleFromJWT(ctx context.Context, tenantID uuid.UU
 	}
 }
 
+// GetTenant returns the tenant row — used by the read-only Config admin page to display the
+// facility_type/enabled_modules resolved from subscriptions-api (Tenant.metadata cache).
+func (s *Service) GetTenant(ctx context.Context, tenantID uuid.UUID) (*ent.Tenant, error) {
+	return s.client.Tenant.Get(ctx, tenantID)
+}
+
+// ListUsers returns every HospitalUser provisioned for a tenant — the Users admin page's
+// source list. Ordered by email for stable pagination-free display (facility tenants are
+// small; a real paged list can be added if that stops being true).
+func (s *Service) ListUsers(ctx context.Context, tenantID uuid.UUID) ([]*ent.HospitalUser, error) {
+	return s.client.HospitalUser.Query().
+		Where(hospitaluser.TenantIDEQ(tenantID)).
+		Order(ent.Asc(hospitaluser.FieldEmail)).
+		All(ctx)
+}
+
 // extractRoles pulls the "roles" claim out of either a []string or []interface{} shape
 // (JWT claims maps decode differently depending on the caller).
 func extractRoles(claims map[string]any) []string {

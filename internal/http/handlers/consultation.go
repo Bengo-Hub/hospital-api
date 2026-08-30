@@ -132,3 +132,25 @@ func (h *ConsultationHandler) CreateReferral(w http.ResponseWriter, r *http.Requ
 	}
 	respondJSON(w, http.StatusCreated, ref)
 }
+
+// ListReferrals handles GET /{tenant}/hospital/visits/{visitID}/referrals — consultation.Service
+// already implemented this; it had no handler or route (2026-08-30 fix), so a referral could be
+// created but never listed/viewed anywhere.
+func (h *ConsultationHandler) ListReferrals(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	visitID, err := uuid.Parse(chi.URLParam(r, "visitID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid visit ID")
+		return
+	}
+	list, err := h.svc.ListReferrals(r.Context(), tenantID, visitID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list referrals")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}

@@ -47,6 +47,9 @@ type Deps struct {
 	Lab *handlers.LabHandler
 	// Sprint 4: prescription lifecycle, dispensing, controlled-substance register.
 	Pharmacy *handlers.PharmacyHandler
+	// Tenant staff role-management and a read-only config view (2026-08-30).
+	Users  *handlers.UsersHandler
+	Config *handlers.ConfigHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -179,6 +182,9 @@ func New(d Deps) http.Handler {
 					Post("/visits/{visitID}/refer", d.Consultation.CreateReferral)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
+					Get("/visits/{visitID}/referrals", d.Consultation.ListReferrals)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
 					Get("/diagnosis-catalog", d.Consultation.ListDiagnosisCatalog)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
@@ -208,6 +214,19 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingOverrideSettlement)).
 					Post("/billing/accounts/{accountID}/override-settlement", d.Billing.OverrideSettlement)
+
+				// PatientNextOfKin (2026-08-30) — the person settling an account needs to record
+				// who's settling/collecting on the patient's behalf, so this carries the SAME
+				// permission as Settle Account itself, not a records permission (the cashier
+				// calling this typically holds neither PermRecordsView nor PermRecordsAdd).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Get("/patients/{patientID}/next-of-kin", d.Billing.ListNextOfKin)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/patients/{patientID}/next-of-kin", d.Billing.CreateNextOfKin)
 
 				// BillableItemCatalog admin CRUD (Gap 3, 2026-08-29) — so a tenant admin isn't
 				// stuck editing the seeded starter price list via direct DB access. Reads sit
@@ -241,6 +260,16 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
 					Get("/insurance/claims/{claimID}/status", d.Billing.PollInsuranceClaim)
+				// Shared picker source (2026-08-30) — Lab and Pharmacy's own insurance-claim UI
+				// need this exact same list, mounted once here rather than duplicated per module.
+				// Gated on ANY permission that lets a role submit SOME insurance-claim action
+				// (not just PermBillingView) — a doctor billing a lab order to insurance holds
+				// PermLabAdd but not PermBillingView, and would otherwise 403 on the picker alone.
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingView, rbacmodule.PermLabAdd, rbacmodule.PermPharmacyPrescribe,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Get("/insurance/providers", d.Billing.ListInsuranceProviders)
 			}
 
 			// Sprint 3 — Laboratory.
@@ -264,6 +293,21 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
 					Get("/lab-test-catalog", d.Lab.ListCatalog)
+				// Tenant Lab Test Catalog admin CRUD (2026-08-30) — mirrors Billing's catalog
+				// CRUD gating shape: reads behind the broad view permission, mutations behind the
+				// narrower manage permission.
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).
+					Get("/lab-test-catalog/entries", d.Lab.ListTenantCatalogEntries)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabManage)).
+					Post("/lab-test-catalog/entries", d.Lab.CreateLabTestEntry)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabManage)).
+					Put("/lab-test-catalog/entries/{entryID}", d.Lab.UpdateLabTestEntry)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabManage)).
+					Post("/lab-test-catalog/entries/{entryID}/deactivate", d.Lab.DeactivateLabTestEntry)
 				// Insurance-path alternative to CollectCharge+activate — same permission gate as
 				// /lab-orders/{orderID}/activate since it's that same payment-gate action's
 				// insurance leg (see lab.Service.SubmitInsuranceClaim).
@@ -319,6 +363,25 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc,
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/prescriptions/{prescriptionID}/insurance-claim", d.Pharmacy.SubmitInsuranceClaim)
+			}
+
+			// Users / Config admin — tenant staff role-management and a read-only config view.
+			// No subscriptions.RequireFeature gate: unlike the clinical modules above, these are
+			// baseline tenant administration available at every facility tier, not a paywalled
+			// Afya feature — there is no matching feature code in subscriptions-api's catalog and
+			// none should be invented for this (mirrors how /auth/me and /ping are mounted with
+			// only the RBAC gate, no feature gate).
+			if d.Users != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersView)).
+					Get("/users", d.Users.ListUsers)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersView)).
+					Get("/roles", d.Users.ListRoles)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Put("/users/{userID}/role", d.Users.SetUserRole)
+			}
+			if d.Config != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConfigView)).
+					Get("/config", d.Config.GetConfig)
 			}
 		})
 	})

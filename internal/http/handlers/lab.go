@@ -231,3 +231,112 @@ func (h *LabHandler) ListCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"data": list})
 }
+
+// ── Tenant Lab Test Catalog admin CRUD (2026-08-30) ─────────────────────────────────────────
+
+// ListTenantCatalogEntries handles GET /{tenant}/hospital/lab-test-catalog/entries?include_inactive=1
+func (h *LabHandler) ListTenantCatalogEntries(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	includeInactive := r.URL.Query().Get("include_inactive") == "1" || r.URL.Query().Get("include_inactive") == "true"
+	list, err := h.svc.ListTenantCatalogEntries(r.Context(), tenantID, includeInactive)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list lab test catalog entries")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+type labTestEntryRequest struct {
+	Code            string  `json:"code"`
+	Name            string  `json:"name"`
+	SpecimenType    string  `json:"specimen_type,omitempty"`
+	ReferenceRange  string  `json:"reference_range,omitempty"`
+	Unit            string  `json:"unit,omitempty"`
+	TurnaroundHours *int    `json:"turnaround_hours,omitempty"`
+	Price           float64 `json:"price,omitempty"`
+}
+
+// CreateLabTestEntry handles POST /{tenant}/hospital/lab-test-catalog/entries
+func (h *LabHandler) CreateLabTestEntry(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	var in labTestEntryRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	entry, err := h.svc.CreateLabTestEntry(r.Context(), tenantID, lab.LabTestEntryInput{
+		Code: in.Code, Name: in.Name, SpecimenType: in.SpecimenType, ReferenceRange: in.ReferenceRange,
+		Unit: in.Unit, TurnaroundHours: in.TurnaroundHours, Price: in.Price,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, entry)
+}
+
+type labTestEntryUpdateRequest struct {
+	Name            *string  `json:"name,omitempty"`
+	SpecimenType    *string  `json:"specimen_type,omitempty"`
+	ReferenceRange  *string  `json:"reference_range,omitempty"`
+	Unit            *string  `json:"unit,omitempty"`
+	TurnaroundHours *int     `json:"turnaround_hours,omitempty"`
+	Price           *float64 `json:"price,omitempty"`
+	IsActive        *bool    `json:"is_active,omitempty"`
+}
+
+// UpdateLabTestEntry handles PUT /{tenant}/hospital/lab-test-catalog/entries/{entryID}
+func (h *LabHandler) UpdateLabTestEntry(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	entryID, err := uuid.Parse(chi.URLParam(r, "entryID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid entry ID")
+		return
+	}
+	var in labTestEntryUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	entry, err := h.svc.UpdateLabTestEntry(r.Context(), tenantID, entryID, lab.LabTestEntryUpdate{
+		Name: in.Name, SpecimenType: in.SpecimenType, ReferenceRange: in.ReferenceRange,
+		Unit: in.Unit, TurnaroundHours: in.TurnaroundHours, Price: in.Price, IsActive: in.IsActive,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, entry)
+}
+
+// DeactivateLabTestEntry handles POST /{tenant}/hospital/lab-test-catalog/entries/{entryID}/deactivate
+func (h *LabHandler) DeactivateLabTestEntry(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	entryID, err := uuid.Parse(chi.URLParam(r, "entryID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid entry ID")
+		return
+	}
+	entry, err := h.svc.DeactivateLabTestEntry(r.Context(), tenantID, entryID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, entry)
+}
