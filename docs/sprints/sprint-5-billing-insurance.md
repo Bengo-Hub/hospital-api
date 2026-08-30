@@ -92,6 +92,16 @@ of first-contact fees + inpatient accounts.
 - `POST /{tenant}/hospital/lab-orders/{orderID}/insurance-claim` — the insurance-path alternative to CollectCharge+`/activate` for one lab order's charges. ✅ Built (not in the original endpoint list above — added alongside the pharmacy equivalent since Gap 1's actual clinical wiring point is per-order/per-prescription, not just the generic visit-level proxy).
 - `POST /{tenant}/hospital/prescriptions/{prescriptionID}/insurance-claim` — the insurance-path alternative to a cash charge collect for a prescription's dispensed lines. ✅ Built.
 - `GET /{tenant}/hospital/billing/catalog`, `POST /{tenant}/hospital/billing/catalog`, `PUT /{tenant}/hospital/billing/catalog/{itemID}`, `POST /{tenant}/hospital/billing/catalog/{itemID}/deactivate` — `BillableItemCatalog` admin CRUD, gated on `hospital.billing.manage_catalog` for mutations. ✅ Built.
+- `GET /{tenant}/hospital/insurance/providers` — 2026-08-30, shared picker source for the Lab/
+  Pharmacy/Billing insurance-claim UI. Closes a real gap the frontend build surfaced: treasury-api's
+  `ListProviders` was admin-JWT-only, so a caller had no way to discover configured providers at all
+  — fixed by exposing it over S2S on treasury-api too (`treasury-api@e67ef9d`). ✅ Built.
+- `GET /{tenant}/hospital/patients/{patientID}/next-of-kin`, `POST .../next-of-kin` — 2026-08-30.
+  `PatientNextOfKin` was consumed by `SettleAccount`'s `next_of_kin_id` from day one but nothing
+  anywhere ever created one — the Settle Account UI had to ask a cashier to type a raw UUID nobody
+  could ever have. Gated on the SAME `collect_own`/`collect_any` permission as Settle Account
+  itself (not a records permission), since the caller is typically the cashier settling the
+  account, not records staff. ✅ Built.
 
 ## Integration Points
 

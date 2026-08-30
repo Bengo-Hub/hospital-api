@@ -37,6 +37,13 @@ integration target than in-house analyzer connectivity for a Level 2-4 facility.
 - `GET /{tenant}/hospital/lab-orders?status=` — lab worklist.
 - `POST /{tenant}/hospital/lab-orders/{id}/lines/{lineId}/result` — enter a result.
 - `GET /{tenant}/hospital/lab-test-catalog` — merged global + tenant-custom catalogue.
+- `GET /{tenant}/hospital/lab-test-catalog/entries`, `POST .../entries`, `PUT .../entries/{entryID}`,
+  `POST .../entries/{entryID}/deactivate` — 2026-08-30, tenant Lab Test Catalog admin CRUD, gated
+  `hospital.lab.view`/`hospital.lab.manage`. Was genuinely missing on both ends — a facility whose
+  lab does anything beyond the ~20 globally-seeded starter tests had no way, UI or API, to add its
+  own. Mirrors `BillableItemCatalog`'s CRUD shape. ✅ Built.
+- `POST /{tenant}/hospital/lab-orders/{orderID}/insurance-claim` — see Sprint 5's doc for the full
+  insurance-claim endpoint list (this one lives here because it's order-scoped). ✅ Built.
 
 ## Integration Points
 
