@@ -49,9 +49,17 @@ func (s *Service) SetRBACService(svc *rbac.Service) {
 // the steady-state path — see the treasury-api EnsureUserFromToken bug this mirrors the
 // fix for (reference_service_rbac_authme_sync).
 func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UUID, tenantSlug string, claims map[string]any) (*ent.HospitalUser, error) {
-	// 1. Check if user exists by auth_service_id.
+	// 1. Resolve the tenant FIRST — a HospitalUser row is now unique per (tenant, auth user),
+	// not per auth user alone, so the existence check itself must be tenant-scoped. Cheap on
+	// the steady-state path: tenantSyncer.SyncTenant is a single indexed local lookup.
+	tenantID, err := s.tenantSyncer.SyncTenant(ctx, tenantSlug)
+	if err != nil {
+		return nil, fmt.Errorf("identity.Service: sync tenant %q: %w", tenantSlug, err)
+	}
+
+	// 2. Check if user exists for THIS tenant.
 	u, err := s.client.HospitalUser.Query().
-		Where(hospitaluser.AuthServiceUserIDEQ(authServiceID)).
+		Where(hospitaluser.TenantIDEQ(tenantID), hospitaluser.AuthServiceUserIDEQ(authServiceID)).
 		Only(ctx)
 
 	if err == nil {
@@ -69,18 +77,13 @@ func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UU
 		return nil, fmt.Errorf("identity.Service: query user: %w", err)
 	}
 
-	// 2. User not found — ensure tenant exists.
-	tenantID, err := s.tenantSyncer.SyncTenant(ctx, tenantSlug)
-	if err != nil {
-		return nil, fmt.Errorf("identity.Service: sync tenant %q: %w", tenantSlug, err)
-	}
-
 	if !s.shouldProvisionForHospital(ctx, tenantID, claims) {
 		log.Printf("  [jit-provisioning] skipping user (not hospital-relevant) for tenant %s", tenantSlug)
 		return nil, nil
 	}
 
-	// 3. Create user.
+	// 3. Create user. ID is a locally generated UUID (ent's default) — never the auth-service
+	// user's own UUID, since the same auth user may now hold one HospitalUser row per tenant.
 	email, _ := claims["email"].(string)
 	fullName, _ := claims["full_name"].(string)
 	if fullName == "" {
@@ -92,7 +95,6 @@ func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UU
 	}
 
 	newUsr, err := s.client.HospitalUser.Create().
-		SetID(authServiceID).
 		SetAuthServiceUserID(authServiceID).
 		SetTenantID(tenantID).
 		SetEmail(email).
@@ -163,6 +165,21 @@ func (s *Service) assignDefaultRoleFromJWT(ctx context.Context, tenantID uuid.UU
 	if err := s.rbacService.AssignRoleByCode(ctx, tenantID, localUserID, authUserID, roleCode); err != nil {
 		log.Printf("  [jit-provisioning] role assignment failed for %s: %v", roleCode, err)
 	}
+}
+
+// ResolveLocalUserID resolves an auth-service user ID (the JWT `sub` claim) to this tenant's
+// local HospitalUser.ID. Implements rbac.UserResolver — since a HospitalUser row is unique per
+// (tenant_id, auth_service_user_id) rather than globally keyed by the auth ID, every permission
+// check that only has the raw JWT subject must resolve through here before querying
+// UserRoleAssignment (which is keyed on the local ID).
+func (s *Service) ResolveLocalUserID(ctx context.Context, tenantID, authUserID uuid.UUID) (uuid.UUID, error) {
+	u, err := s.client.HospitalUser.Query().
+		Where(hospitaluser.TenantIDEQ(tenantID), hospitaluser.AuthServiceUserIDEQ(authUserID)).
+		Only(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return u.ID, nil
 }
 
 // GetTenant returns the tenant row — used by the read-only Config admin page to display the

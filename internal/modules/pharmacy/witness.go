@@ -43,9 +43,10 @@ const (
 )
 
 // witnessClaims is the short-lived, single-purpose token minted by VerifyWitness and consumed
-// by Dispense. WitnessUserID is HospitalUser.ID — which, per identity.Service.EnsureUserFromToken
-// (SetID(authServiceID)), is always equal to WitnessAuthID; both are carried for clarity/
-// auditability, not because they can differ.
+// by Dispense. WitnessUserID is the witness's local HospitalUser.ID (tenant-scoped, resolved via
+// a (tenant_id, auth_service_user_id) lookup below) — it can differ from WitnessAuthID (the
+// auth-service user ID) once a user holds HospitalUser rows in more than one tenant. Both are
+// carried on the token for clarity/auditability.
 type witnessClaims struct {
 	Purpose       string `json:"purpose"`
 	WitnessUserID string `json:"witness_user_id"`

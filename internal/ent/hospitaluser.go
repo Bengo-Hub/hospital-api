@@ -21,7 +21,7 @@ type HospitalUser struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// Tenant identifier
 	TenantID uuid.UUID `json:"tenant_id,omitempty"`
-	// Reference to auth-service user (same UUID as id; no duplication)
+	// Reference to auth-service user; unique per-tenant (see the composite index below), not platform-wide
 	AuthServiceUserID uuid.UUID `json:"auth_service_user_id,omitempty"`
 	// Denormalized email for convenience
 	Email string `json:"email,omitempty"`

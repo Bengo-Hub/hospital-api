@@ -340,7 +340,7 @@ var (
 	// HospitalUsersColumns holds the columns for the "hospital_users" table.
 	HospitalUsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
-		{Name: "auth_service_user_id", Type: field.TypeUUID, Unique: true},
+		{Name: "auth_service_user_id", Type: field.TypeUUID},
 		{Name: "email", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "active"},
@@ -368,11 +368,6 @@ var (
 				Name:    "hospitaluser_tenant_id",
 				Unique:  false,
 				Columns: []*schema.Column{HospitalUsersColumns[9]},
-			},
-			{
-				Name:    "hospitaluser_auth_service_user_id",
-				Unique:  true,
-				Columns: []*schema.Column{HospitalUsersColumns[1]},
 			},
 			{
 				Name:    "hospitaluser_tenant_id_auth_service_user_id",

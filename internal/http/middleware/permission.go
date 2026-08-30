@@ -13,7 +13,11 @@ import (
 // permissionChecker is the subset of rbac.Service used for the DB fallback. Declared as an
 // interface so this package doesn't import the rbac module (avoids an import cycle).
 type permissionChecker interface {
-	HasAnyPermission(ctx context.Context, tenantID, userID uuid.UUID, permissionCodes ...string) (bool, error)
+	// HasAnyPermissionForAuthUser resolves the JWT `sub` (an auth-service user ID) to this
+	// tenant's local HospitalUser.ID before checking UserRoleAssignment grants — a HospitalUser
+	// row is keyed by (tenant_id, auth_service_user_id), NOT by the auth ID directly, so the raw
+	// claims.Subject can never be used as the local user ID.
+	HasAnyPermissionForAuthUser(ctx context.Context, tenantID, authUserID uuid.UUID, permissionCodes ...string) (bool, error)
 	// HasAnyPermissionViaGlobalRoles resolves through the hospital service role mapped off
 	// the caller's GLOBAL JWT roles (the /auth/me resolution) — SSO principals often have no
 	// per-user assignment rows and no hospital.* codes in their JWT.
@@ -27,7 +31,7 @@ type permissionChecker interface {
 //  1. no/empty claims                       -> 401 unauthorized
 //  2. superuser or platform owner           -> allow (bypass)
 //  3. JWT canonical permissions (claims)    -> allow if HasAnyPermission
-//  4. local RBAC DB (tenant-scoped roles)   -> allow if HasAnyPermission
+//  4. local RBAC DB (tenant-scoped roles)   -> allow if HasAnyPermissionForAuthUser
 //  5. otherwise                             -> 403 permission_denied
 func RequireServicePermission(rbac permissionChecker, permissions ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -65,9 +69,9 @@ func HasServicePermission(r *http.Request, rbac permissionChecker, permissions .
 	}
 	if rbac != nil {
 		tenantID, terr := uuid.Parse(claims.TenantID)
-		userID, uerr := uuid.Parse(claims.Subject)
-		if terr == nil && uerr == nil && tenantID != uuid.Nil && userID != uuid.Nil {
-			if has, err := rbac.HasAnyPermission(r.Context(), tenantID, userID, permissions...); err == nil && has {
+		authUserID, uerr := uuid.Parse(claims.Subject)
+		if terr == nil && uerr == nil && tenantID != uuid.Nil && authUserID != uuid.Nil {
+			if has, err := rbac.HasAnyPermissionForAuthUser(r.Context(), tenantID, authUserID, permissions...); err == nil && has {
 				return true
 			}
 		}

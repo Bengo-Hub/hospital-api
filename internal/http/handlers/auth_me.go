@@ -55,13 +55,16 @@ func (h *AuthMeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 	if tenantID != "" && h.rbacService != nil {
 		if tenantUUID, err := uuid.Parse(tenantID); err == nil {
-			userUUID, _ := uuid.Parse(claims.Subject)
-			if svcRoles, err := h.rbacService.GetUserRoles(ctx, tenantUUID, userUUID); err == nil {
+			// claims.Subject is the auth-service user ID, NOT the local HospitalUser.ID — a
+			// HospitalUser row is keyed by (tenant_id, auth_service_user_id), so this must
+			// resolve through the *ForAuthUser variants rather than assuming ID equality.
+			authUUID, _ := uuid.Parse(claims.Subject)
+			if svcRoles, err := h.rbacService.GetUserRolesForAuthUser(ctx, tenantUUID, authUUID); err == nil {
 				for _, sr := range svcRoles {
 					roles = appendUniqueStr(roles, sr.RoleCode)
 				}
 			}
-			if svcPerms, err := h.rbacService.GetUserPermissions(ctx, tenantUUID, userUUID); err == nil {
+			if svcPerms, err := h.rbacService.GetUserPermissionsForAuthUser(ctx, tenantUUID, authUUID); err == nil {
 				for _, sp := range svcPerms {
 					permissions = appendUniqueStr(permissions, sp.PermissionCode)
 				}

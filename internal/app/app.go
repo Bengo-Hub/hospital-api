@@ -159,6 +159,7 @@ func New(ctx context.Context) (*App, error) {
 
 	identitySvc := identity.NewService(ormClient, tenantSyncer)
 	identitySvc.SetRBACService(rbacService)
+	rbacService.SetUserResolver(identitySvc)
 
 	authMeHandler := handlers.NewAuthMeHandler(rbacService)
 

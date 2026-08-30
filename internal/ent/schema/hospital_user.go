@@ -11,8 +11,15 @@ import (
 )
 
 // HospitalUser holds the schema definition for hospital service users — a JIT-provisioned
-// local projection of an auth-service user. The primary key is auth-service's own user UUID
-// (never a locally generated one) so cross-service references stay consistent.
+// local projection of an auth-service user. ID is a LOCALLY generated UUID (ent's default
+// generator, see the "id" field below); auth_service_user_id references the auth-service
+// account and is unique only WITHIN a tenant (see the composite index below) — the same
+// auth-service user may hold one HospitalUser row per tenant they belong to (e.g. someone who
+// is staff at two separate hospital tenants). A prior version of this schema made
+// auth_service_user_id globally unique and set it as the row's own ID, which meant one
+// auth-service user could only ever have a single HospitalUser row across the ENTIRE
+// platform — visiting a second tenant silently reused/corrupted the first tenant's row. Fixed
+// 2026-08-30; see the user-management addendum in docs/plan.md.
 type HospitalUser struct {
 	ent.Schema
 }
@@ -26,8 +33,7 @@ func (HospitalUser) Fields() []ent.Field {
 		field.UUID("tenant_id", uuid.UUID{}).
 			Comment("Tenant identifier"),
 		field.UUID("auth_service_user_id", uuid.UUID{}).
-			Unique().
-			Comment("Reference to auth-service user (same UUID as id; no duplication)"),
+			Comment("Reference to auth-service user; unique per-tenant (see the composite index below), not platform-wide"),
 		field.String("email").
 			NotEmpty().
 			Comment("Denormalized email for convenience"),
@@ -68,7 +74,6 @@ func (HospitalUser) Edges() []ent.Edge {
 func (HospitalUser) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tenant_id"),
-		index.Fields("auth_service_user_id").Unique(),
 		index.Fields("tenant_id", "auth_service_user_id").Unique(),
 		index.Fields("status"),
 		index.Fields("sync_status"),

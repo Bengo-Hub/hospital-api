@@ -115,9 +115,12 @@ func (h *AuthEventHandler) SubscribeToAuthEvents(nc *nats.Conn) error {
 	return nil
 }
 
-// handleUserDeleted hard-deletes this user's local hospital-api rows after auth-api
-// permanently deletes the account (AdminPurgeUser). UserRoleAssignment has a real
-// OnDelete:NoAction FK to hospital_users, so it must go first.
+// handleUserDeleted hard-deletes this user's local hospital-api rows, across EVERY tenant they
+// were provisioned into, after auth-api permanently deletes the account (AdminPurgeUser). A
+// single auth-service user may now hold more than one HospitalUser row (one per tenant), so this
+// must query by auth_service_user_id first to collect every local row's ID before deleting the
+// UserRoleAssignment rows that reference them (UserRoleAssignment.user_id is the LOCAL ID, not
+// the auth ID — it has a real OnDelete:NoAction FK to hospital_users, so it must go first).
 func (h *AuthEventHandler) handleUserDeleted(ctx context.Context, evt *sharedevents.Event) error {
 	userIDStr, _ := evt.Payload["user_id"].(string)
 	authServiceUserID, err := uuid.Parse(userIDStr)
@@ -130,9 +133,20 @@ func (h *AuthEventHandler) handleUserDeleted(ctx context.Context, evt *sharedeve
 		return fmt.Errorf("start tx: %w", err)
 	}
 
-	if _, err := tx.UserRoleAssignment.Delete().Where(userroleassignment.UserID(authServiceUserID)).Exec(ctx); err != nil {
+	rows, err := tx.HospitalUser.Query().Where(hospitaluser.AuthServiceUserID(authServiceUserID)).All(ctx)
+	if err != nil {
 		_ = tx.Rollback()
-		return fmt.Errorf("delete user role assignments: %w", err)
+		return fmt.Errorf("query hospital users: %w", err)
+	}
+	if len(rows) > 0 {
+		localIDs := make([]uuid.UUID, len(rows))
+		for i, u := range rows {
+			localIDs[i] = u.ID
+		}
+		if _, err := tx.UserRoleAssignment.Delete().Where(userroleassignment.UserIDIn(localIDs...)).Exec(ctx); err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("delete user role assignments: %w", err)
+		}
 	}
 	if _, err := tx.HospitalUser.Delete().Where(hospitaluser.AuthServiceUserID(authServiceUserID)).Exec(ctx); err != nil {
 		_ = tx.Rollback()
@@ -143,7 +157,8 @@ func (h *AuthEventHandler) handleUserDeleted(ctx context.Context, evt *sharedeve
 		return fmt.Errorf("commit: %w", err)
 	}
 
-	h.logger.Info("user hard-deleted from auth.user.deleted event", zap.String("user_id", userIDStr))
+	h.logger.Info("user hard-deleted from auth.user.deleted event",
+		zap.String("user_id", userIDStr), zap.Int("tenant_rows_deleted", len(rows)))
 	return nil
 }
 
@@ -255,15 +270,9 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 		return fmt.Errorf("invalid user_id %q: %w", userIDStr, err)
 	}
 
-	exists, _ := h.client.HospitalUser.Query().
-		Where(hospitaluser.AuthServiceUserIDEQ(authServiceUserID)).
-		Exist(ctx)
-	if exists {
-		h.logger.Debug("user already exists, skipping", zap.String("user_id", userIDStr))
-		return nil
-	}
-
-	// Resolve tenant ID — prefer tenant_slug from payload, fallback to event tenant_id.
+	// Resolve tenant ID FIRST — prefer tenant_slug from payload, fallback to event tenant_id.
+	// A HospitalUser row is unique per (tenant, auth user), not per auth user alone, so the
+	// existence check below must be tenant-scoped too.
 	var tenantID uuid.UUID
 	if tenantSlug != "" && h.tenantSyncer != nil {
 		tenantID, err = h.tenantSyncer.SyncTenant(ctx, tenantSlug)
@@ -279,14 +288,23 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 		return fmt.Errorf("no tenant_id available for user %s", userIDStr)
 	}
 
+	exists, _ := h.client.HospitalUser.Query().
+		Where(hospitaluser.TenantIDEQ(tenantID), hospitaluser.AuthServiceUserIDEQ(authServiceUserID)).
+		Exist(ctx)
+	if exists {
+		h.logger.Debug("user already exists for this tenant, skipping", zap.String("user_id", userIDStr))
+		return nil
+	}
+
 	if !h.shouldProvisionForHospital(ctx, tenantID, tenantSlug, evt.Payload) {
 		h.logger.Info("skipping user: not hospital-relevant",
 			zap.String("user_id", userIDStr), zap.String("tenant_slug", tenantSlug))
 		return nil
 	}
 
+	// ID is a locally generated UUID (ent's default) — never the auth-service user's own UUID,
+	// since the same auth user may now hold one HospitalUser row per tenant.
 	created, err := h.client.HospitalUser.Create().
-		SetID(authServiceUserID).
 		SetAuthServiceUserID(authServiceUserID).
 		SetTenantID(tenantID).
 		SetEmail(email).
@@ -317,26 +335,32 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 	return nil
 }
 
+// handleUserUpdated applies a profile/role update from auth-api to EVERY tenant this auth user
+// has a local HospitalUser row in — a single auth-service user may now hold more than one such
+// row (one per tenant), so this can no longer assume a single match (.Only()).
 func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedevents.Event) error {
 	userIDStr, _ := evt.Payload["user_id"].(string)
 	email, _ := evt.Payload["email"].(string)
 	fullName, _ := evt.Payload["full_name"].(string)
+	tenantSlug, _ := evt.Payload["tenant_slug"].(string)
 
 	authServiceUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		return fmt.Errorf("invalid user_id %q: %w", userIDStr, err)
 	}
 
-	u, err := h.client.HospitalUser.Query().
+	rows, err := h.client.HospitalUser.Query().
 		Where(hospitaluser.AuthServiceUserIDEQ(authServiceUserID)).
-		Only(ctx)
+		All(ctx)
 	if err != nil {
-		if !ent.IsNotFound(err) {
-			return fmt.Errorf("query user: %w", err)
-		}
-		// User row doesn't exist (e.g. after a DB reset). Backfill-create it.
+		return fmt.Errorf("query user: %w", err)
+	}
+
+	if len(rows) == 0 {
+		// No row exists in ANY tenant yet (e.g. after a DB reset, or this is the user's first
+		// event ever seen). Backfill-create it for the event's own tenant only — a genuinely
+		// new tenant membership arrives via its own auth.user.created event, not here.
 		tenantID := evt.TenantID
-		tenantSlug, _ := evt.Payload["tenant_slug"].(string)
 		if tenantSlug != "" && h.tenantSyncer != nil {
 			if tid, syncErr := h.tenantSyncer.SyncTenant(ctx, tenantSlug); syncErr == nil {
 				tenantID = tid
@@ -353,7 +377,6 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 			return nil
 		}
 		created, createErr := h.client.HospitalUser.Create().
-			SetID(authServiceUserID).
 			SetAuthServiceUserID(authServiceUserID).
 			SetTenantID(tenantID).
 			SetEmail(email).
@@ -367,42 +390,46 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 		}
 		h.logger.Info("user created from auth.user.updated event (backfill)",
 			zap.String("user_id", userIDStr))
-		u = created
+		rows = []*ent.HospitalUser{created}
 	} else {
-		update := h.client.HospitalUser.UpdateOne(u)
-		changed := false
-		if email != "" {
-			update = update.SetEmail(email)
-			changed = true
-		}
-		if fullName != "" {
-			update = update.SetName(fullName)
-			changed = true
-		}
-		if changed {
-			update = update.SetSyncStatus("synced").SetLastSyncAt(time.Now())
-			if _, err := update.Save(ctx); err != nil {
-				return fmt.Errorf("update user from auth event: %w", err)
+		for _, u := range rows {
+			update := h.client.HospitalUser.UpdateOne(u)
+			changed := false
+			if email != "" {
+				update = update.SetEmail(email)
+				changed = true
+			}
+			if fullName != "" {
+				update = update.SetName(fullName)
+				changed = true
+			}
+			if changed {
+				update = update.SetSyncStatus("synced").SetLastSyncAt(time.Now())
+				if _, err := update.Save(ctx); err != nil {
+					return fmt.Errorf("update user from auth event (tenant %s): %w", u.TenantID, err)
+				}
 			}
 		}
 	}
 
-	// Re-sync role — corrects stale role mappings (e.g. a promotion from nurse to manager).
-	// Gated the same as creation: an existing row (e.g. provisioned before this hardening
-	// shipped) is never deleted here, but it must stop accruing hospital permissions once its
-	// outlet/role evidence no longer supports them.
-	tenantSlug, _ := evt.Payload["tenant_slug"].(string)
-	if h.rbacService != nil && h.shouldProvisionForHospital(ctx, u.TenantID, tenantSlug, evt.Payload) {
-		if roleCode := mapSSORoleToHospital(eventRoles(evt.Payload)); roleCode != "" {
-			if err := h.rbacService.AssignRoleByCode(ctx, u.TenantID, u.ID, authServiceUserID, roleCode); err != nil {
-				h.logger.Warn("JIT role re-sync failed on user.updated",
-					zap.String("role_code", roleCode), zap.Error(err))
+	// Re-sync role per tenant row — corrects stale role mappings (e.g. a promotion from nurse
+	// to manager). Gated the same as creation: an existing row (e.g. provisioned before this
+	// hardening shipped) is never deleted here, but it must stop accruing hospital permissions
+	// once its outlet/role evidence no longer supports them.
+	for _, u := range rows {
+		if h.rbacService != nil && h.shouldProvisionForHospital(ctx, u.TenantID, tenantSlug, evt.Payload) {
+			if roleCode := mapSSORoleToHospital(eventRoles(evt.Payload)); roleCode != "" {
+				if err := h.rbacService.AssignRoleByCode(ctx, u.TenantID, u.ID, authServiceUserID, roleCode); err != nil {
+					h.logger.Warn("JIT role re-sync failed on user.updated",
+						zap.String("role_code", roleCode), zap.String("tenant_id", u.TenantID.String()), zap.Error(err))
+				}
 			}
 		}
 	}
 
 	h.logger.Info("user updated from auth.user.updated event",
 		zap.String("user_id", userIDStr),
-		zap.String("email", email))
+		zap.String("email", email),
+		zap.Int("tenant_rows_updated", len(rows)))
 	return nil
 }

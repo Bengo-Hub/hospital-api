@@ -8,15 +8,30 @@ import (
 	"go.uber.org/zap"
 )
 
+// UserResolver resolves an auth-service user ID (the JWT `sub` claim) to this tenant's local
+// HospitalUser.ID. Declared here (not imported from the identity package) to avoid an import
+// cycle — identity.Service satisfies this interface.
+type UserResolver interface {
+	ResolveLocalUserID(ctx context.Context, tenantID, authUserID uuid.UUID) (uuid.UUID, error)
+}
+
 // Service provides business logic for RBAC operations.
 type Service struct {
-	repo   Repository
-	logger *zap.Logger
+	repo         Repository
+	logger       *zap.Logger
+	userResolver UserResolver
 }
 
 // NewService creates a new RBAC service.
 func NewService(repo Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetUserResolver wires the auth-ID -> local-ID resolver (identity.Service). Must be called
+// before HasAnyPermissionForAuthUser/GetUserRolesForAuthUser/GetUserPermissionsForAuthUser are
+// used — every caller holding only the raw JWT subject (middleware, /auth/me) needs it.
+func (s *Service) SetUserResolver(r UserResolver) {
+	s.userResolver = r
 }
 
 // MapGlobalRolesToServiceRole maps global SSO roles to a hospital-api service role code.
@@ -115,6 +130,49 @@ func (s *Service) HasAnyPermission(ctx context.Context, tenantID, userID uuid.UU
 		}
 	}
 	return false, nil
+}
+
+// HasAnyPermissionForAuthUser resolves authUserID (the JWT `sub` claim) to this tenant's local
+// HospitalUser.ID via the wired UserResolver, then delegates to HasAnyPermission. Returns
+// (false, nil) — never an error — when the caller has no local row yet for this tenant (e.g. a
+// brand-new SSO principal that hasn't been JIT-provisioned): callers fall through to the
+// existing HasAnyPermissionViaGlobalRoles leg for that case, exactly as before this resolver
+// existed.
+func (s *Service) HasAnyPermissionForAuthUser(ctx context.Context, tenantID, authUserID uuid.UUID, permissionCodes ...string) (bool, error) {
+	if s.userResolver == nil {
+		return false, nil
+	}
+	localID, err := s.userResolver.ResolveLocalUserID(ctx, tenantID, authUserID)
+	if err != nil {
+		return false, nil
+	}
+	return s.HasAnyPermission(ctx, tenantID, localID, permissionCodes...)
+}
+
+// GetUserRolesForAuthUser is GetUserRoles resolved from an auth-service user ID instead of the
+// local HospitalUser.ID. Returns an empty slice (not an error) when unresolvable.
+func (s *Service) GetUserRolesForAuthUser(ctx context.Context, tenantID, authUserID uuid.UUID) ([]*HospitalRole, error) {
+	if s.userResolver == nil {
+		return nil, nil
+	}
+	localID, err := s.userResolver.ResolveLocalUserID(ctx, tenantID, authUserID)
+	if err != nil {
+		return nil, nil
+	}
+	return s.GetUserRoles(ctx, tenantID, localID)
+}
+
+// GetUserPermissionsForAuthUser is GetUserPermissions resolved from an auth-service user ID
+// instead of the local HospitalUser.ID. Returns an empty slice (not an error) when unresolvable.
+func (s *Service) GetUserPermissionsForAuthUser(ctx context.Context, tenantID, authUserID uuid.UUID) ([]*HospitalPermission, error) {
+	if s.userResolver == nil {
+		return nil, nil
+	}
+	localID, err := s.userResolver.ResolveLocalUserID(ctx, tenantID, authUserID)
+	if err != nil {
+		return nil, nil
+	}
+	return s.GetUserPermissions(ctx, tenantID, localID)
 }
 
 // unambiguousHospitalRoles are SSO role names used ONLY by the hospital vertical. Unlike
