@@ -13,6 +13,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/modules/auditlog"
+	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
 )
@@ -27,6 +28,7 @@ type Service struct {
 	tenantSyncer *tenant.Syncer
 	rbacService  *rbac.Service
 	audit        *auditlog.Writer
+	authAPI      *authapi.Client
 }
 
 // NewService creates a new Identity Service.
@@ -46,6 +48,41 @@ func (s *Service) SetRBACService(svc *rbac.Service) {
 // optional, always-safe contract).
 func (s *Service) SetAuditWriter(w *auditlog.Writer) {
 	s.audit = w
+}
+
+// SetAuthAPIClient wires the auth-api S2S client used by InviteMember.
+func (s *Service) SetAuthAPIClient(c *authapi.Client) {
+	s.authAPI = c
+}
+
+// InviteMember invites a new (or attaches an existing) staff member by email to tenantID via
+// auth-api's S2S tenant-membership endpoint (see authapi.Client.InviteTenantMember) — the same
+// real mechanism every other service's own staff-invite flow uses. roleCode drives
+// auth_events.go's JIT role assignment the moment the invitee first logs in: no separate
+// "pending role assignment" table is needed because inviting with the right role name (or an
+// outletID resolving to a hospital outlet) is already sufficient signal.
+func (s *Service) InviteMember(ctx context.Context, tenantID, actorID uuid.UUID, email, name, roleCode, outletID string) (*authapi.InviteMemberResult, error) {
+	if s.authAPI == nil {
+		return nil, fmt.Errorf("invite is not configured")
+	}
+	if email == "" || roleCode == "" {
+		return nil, fmt.Errorf("email and role_code are required")
+	}
+	result, err := s.authAPI.InviteTenantMember(ctx, tenantID, authapi.InviteMemberRequest{
+		Email: email, Name: name, Roles: []string{roleCode}, OutletID: outletID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if s.audit != nil {
+		targetID, _ := uuid.Parse(result.UserID) // best-effort; Nil if unparsable
+		s.audit.Record(ctx, auditlog.Entry{
+			TenantID: tenantID, ActorID: actorID, Action: "user.invited",
+			TargetType: "user", TargetID: targetID,
+			After: map[string]any{"email": email, "role_code": roleCode, "auth_user_id": result.UserID},
+		})
+	}
+	return result, nil
 }
 
 // EnsureUserFromToken performs JIT (Just-In-Time) provisioning of users and tenants.

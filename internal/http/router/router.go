@@ -439,6 +439,8 @@ func New(d Deps) http.Handler {
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersView)).
 					Get("/permissions", d.Users.ListPermissions)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Post("/users/invite", d.Users.InviteMember)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Put("/users/{userID}/role", d.Users.SetUserRole)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Put("/users/{userID}/status", d.Users.SetUserStatus)

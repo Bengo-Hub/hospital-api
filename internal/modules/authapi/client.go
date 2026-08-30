@@ -1,10 +1,13 @@
-// Package authapi is hospital-api's client for auth-api's PUBLIC POST /api/v1/auth/login
-// endpoint — used only to re-verify a controlled-substance dispense witness's OWN email+
-// password server-side (see internal/modules/pharmacy/witness.go's VerifyWitness). This is
-// deliberately NOT built like treasury.Client/inventory.Client's S2S clients: /auth/login takes
-// no X-API-Key and no "/api/v1/s2s/{tenant}/..." path prefix, it is a plain public route that
-// any client (including a browser) may already call directly — see auth_handler.go's Login and
-// its router.go mount at /api/v1/auth/login (outside the S2S group).
+// Package authapi is hospital-api's client for auth-api. Two distinct capabilities live here:
+//
+//   - Login: auth-api's PUBLIC POST /api/v1/auth/login, used only to re-verify a
+//     controlled-substance dispense witness's OWN email+password server-side (see
+//     internal/modules/pharmacy/witness.go's VerifyWitness). No X-API-Key, no
+//     "/api/v1/s2s/{tenant}/..." path prefix — it's a plain public route any client (including
+//     a browser) may already call directly.
+//   - InviteTenantMember: auth-api's S2S POST /api/v1/s2s/tenants/{tenant_id}/members, used by
+//     the Users admin page's "Invite staff" action (see identity.Service.InviteMember). Built
+//     like treasury.Client/inventory.Client's S2S clients: X-API-Key + the S2S path prefix.
 package authapi
 
 import (
@@ -17,19 +20,21 @@ import (
 	"go.uber.org/zap"
 )
 
-// Client calls auth-api's public login endpoint.
+// Client calls auth-api's login and S2S tenant-membership endpoints.
 type Client struct {
 	baseURL string
+	apiKey  string
 	enabled bool
 	sc      *serviceclient.Client
 	log     *zap.Logger
 }
 
-// NewClient builds the auth-api login client. Built on the same shared
+// NewClient builds the auth-api client. Built on the same shared
 // github.com/Bengo-Hub/shared-service-client used by treasury.Client/inventory.Client (circuit
 // breaker + retry + tracing), per the migration plan's own instruction — not a hand-rolled
-// net/http client.
-func NewClient(baseURL string, log *zap.Logger) *Client {
+// net/http client. apiKey is only required for InviteTenantMember (the S2S capability); Login
+// works with an empty apiKey.
+func NewClient(baseURL, apiKey string, log *zap.Logger) *Client {
 	log = log.Named("authapi.client")
 	baseURL = strings.TrimRight(baseURL, "/")
 	enabled := baseURL != ""
@@ -39,7 +44,7 @@ func NewClient(baseURL string, log *zap.Logger) *Client {
 		cfg.Timeout = 10 * time.Second
 		sc = serviceclient.New(cfg)
 	}
-	return &Client{baseURL: baseURL, enabled: enabled, sc: sc, log: log}
+	return &Client{baseURL: baseURL, apiKey: apiKey, enabled: enabled, sc: sc, log: log}
 }
 
 // Enabled reports whether the client is configured for calls.

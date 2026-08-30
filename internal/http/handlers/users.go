@@ -182,6 +182,43 @@ func (h *UsersHandler) SetUserRole(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]any{"status": "ok"})
 }
 
+type inviteMemberRequest struct {
+	Email    string `json:"email"`
+	Name     string `json:"name,omitempty"`
+	RoleCode string `json:"role_code"`
+	OutletID string `json:"outlet_id,omitempty"`
+}
+
+type inviteMemberResponseDTO struct {
+	AuthUserID   string `json:"auth_user_id"`
+	Status       string `json:"status,omitempty"`
+	TempPassword string `json:"temp_password,omitempty"`
+}
+
+// InviteMember handles POST /{tenant}/hospital/users/invite — invites a new (or attaches an
+// existing) staff member by email via auth-api's S2S member endpoint. See
+// identity.Service.InviteMember.
+func (h *UsersHandler) InviteMember(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	var req inviteMemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	result, err := h.identitySvc.InviteMember(r.Context(), tenantID, currentUserID(r), req.Email, req.Name, req.RoleCode, req.OutletID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": inviteMemberResponseDTO{
+		AuthUserID: result.UserID, Status: result.Status, TempPassword: result.TempPassword,
+	}})
+}
+
 type setUserStatusRequest struct {
 	Status string `json:"status"`
 }

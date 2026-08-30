@@ -210,10 +210,13 @@ func New(ctx context.Context) (*App, error) {
 
 	// ── Sprint 4: pharmacy / dispensing ────────────────────────────────────
 	inventorySvc := inventoryclient.NewClient(cfg.Services.InventoryURL, cfg.Auth.APIKey, log)
-	// authapi.Client re-verifies a controlled-substance dispense witness's OWN email+password
-	// against auth-api's public /auth/login (2026-08-29 fix — see witness.go). Not an S2S
-	// client: no API key, uses the same public route any client may already call.
-	authAPIClient := authapi.NewClient(cfg.Auth.ServiceURL, log)
+	// authapi.Client has two uses: (1) re-verifying a controlled-substance dispense witness's
+	// OWN email+password against auth-api's public /auth/login (2026-08-29 — see witness.go,
+	// doesn't need the API key), and (2) the Users admin page's "Invite staff" action via
+	// auth-api's S2S tenant-membership endpoint (2026-08-30 — see identity.Service.InviteMember,
+	// needs the API key).
+	authAPIClient := authapi.NewClient(cfg.Auth.ServiceURL, cfg.Auth.APIKey, log)
+	identitySvc.SetAuthAPIClient(authAPIClient)
 	// Witness step-up token signing secret — PHARMACY_WITNESS_JWT_SECRET must be set in
 	// production. Falls back to INTERNAL_SERVICE_KEY only to prevent a hard startup failure in
 	// dev/local environments, mirroring pos-api's own TERMINAL_JWT_SECRET fallback pattern.
