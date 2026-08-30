@@ -432,6 +432,15 @@ func (s *Service) ListPermissions(ctx context.Context) ([]*HospitalPermission, e
 	return s.repo.ListPermissions(ctx, PermissionFilters{})
 }
 
+// GetRolePermissions returns roleID's currently-granted permissions — pre-populates the Roles &
+// Permissions matrix editor so opening a role and saving without changing anything is a true
+// no-op, not an accidental wipe to zero permissions. No tenant ownership check: reading a role's
+// permission-code list is non-sensitive reference data (the ASSIGNMENT of a role to a specific
+// person is what's tenant-scoped/sensitive, not the role definition itself).
+func (s *Service) GetRolePermissions(ctx context.Context, roleID uuid.UUID) ([]*HospitalPermission, error) {
+	return s.repo.GetRolePermissions(ctx, roleID)
+}
+
 // CustomizeRole idempotently clones the global role roleCode into a tenant-scoped copy on
 // first edit (returns the existing clone unchanged if one already exists), copies its current
 // permission set, and re-points every existing UserRoleAssignment in this tenant from the

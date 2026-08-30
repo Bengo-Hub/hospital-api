@@ -351,6 +351,27 @@ func (h *UsersHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, map[string]any{"data": toRoleDTO(role)})
 }
 
+// GetRolePermissions handles GET /{tenant}/hospital/roles/{roleID}/permissions — a role's
+// currently-granted permission codes, so the matrix editor can pre-populate instead of
+// defaulting to (and risking an accidental save-as-empty of) a blank selection.
+func (h *UsersHandler) GetRolePermissions(w http.ResponseWriter, r *http.Request) {
+	roleID, err := uuid.Parse(chi.URLParam(r, "roleID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid role id")
+		return
+	}
+	perms, err := h.rbacSvc.GetRolePermissions(r.Context(), roleID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to load role permissions")
+		return
+	}
+	out := make([]permissionDTO, 0, len(perms))
+	for _, p := range perms {
+		out = append(out, permissionDTO{Code: p.PermissionCode, Name: p.Name, Module: p.Module, Action: p.Action})
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": out})
+}
+
 type updateRolePermissionsRequest struct {
 	PermissionCodes []string `json:"permission_codes"`
 }

@@ -452,6 +452,8 @@ func New(d Deps) http.Handler {
 					Post("/roles/customize", d.Users.CustomizeRole)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Post("/roles", d.Users.CreateRole)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersView)).
+					Get("/roles/{roleID}/permissions", d.Users.GetRolePermissions)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Put("/roles/{roleID}/permissions", d.Users.UpdateRolePermissions)
 			}
