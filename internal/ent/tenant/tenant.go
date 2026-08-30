@@ -29,6 +29,8 @@ const (
 	FieldLastSyncAt = "last_sync_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
+	// FieldSettings holds the string denoting the settings field in the database.
+	FieldSettings = "settings"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -65,6 +67,7 @@ var Columns = []string{
 	FieldSyncStatus,
 	FieldLastSyncAt,
 	FieldMetadata,
+	FieldSettings,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }

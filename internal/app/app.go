@@ -235,6 +235,7 @@ func New(ctx context.Context) (*App, error) {
 	usersHandler := handlers.NewUsersHandler(identitySvc, rbacService)
 	configHandler := handlers.NewConfigHandler(identitySvc)
 	auditLogHandler := handlers.NewAuditLogHandler(auditWriter)
+	userOutletsHandler := handlers.NewUserOutletsHandler(identitySvc)
 
 	deps := router.Deps{
 		Log:            log,
@@ -253,6 +254,7 @@ func New(ctx context.Context) (*App, error) {
 		Users:          usersHandler,
 		Config:         configHandler,
 		AuditLog:       auditLogHandler,
+		UserOutlets:    userOutletsHandler,
 		TenantSyncer:   tenantSyncer,
 	}
 	chiRouter := router.New(deps)

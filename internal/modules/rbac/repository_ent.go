@@ -376,6 +376,27 @@ func (r *EntRepository) ListUserAssignments(ctx context.Context, tenantID uuid.U
 	return assignments, nil
 }
 
+// DeleteRole permanently removes roleID. RolePermission rows are deleted first (role_id carries
+// a Required() edge to HospitalRole — a leftover row would FK-violate the role delete).
+func (r *EntRepository) DeleteRole(ctx context.Context, roleID uuid.UUID) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("delete role: start tx: %w", err)
+	}
+	if _, err := tx.RolePermission.Delete().Where(rolepermission.RoleID(roleID)).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("delete role: clear permissions: %w", err)
+	}
+	if err := tx.HospitalRole.DeleteOneID(roleID).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("delete role: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("delete role: commit: %w", err)
+	}
+	return nil
+}
+
 // RepointRoleAssignments moves every UserRoleAssignment in tenantID from fromRoleID to
 // toRoleID. Safe by construction: toRoleID is always a brand-new clone with no pre-existing
 // assignments at call time, so this can never collide with the (tenant_id, user_id, role_id)

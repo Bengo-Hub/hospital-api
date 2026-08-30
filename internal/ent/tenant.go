@@ -33,6 +33,8 @@ type Tenant struct {
 	LastSyncAt *time.Time `json:"last_sync_at,omitempty"`
 	// Facility configuration cache: facility_type (chemist|clinic|facility|hospital) and enabled_modules, resolved from subscriptions-api's plan/tenant metadata. Additive, no dedicated schema table per the migration plan's own instruction.
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	// Tenant-admin-writable facility operating settings (hospital.config.manage): auto_logout_minutes (int), default_landing_view (string), operating_hours (per-day JSON block). Deliberately a SEPARATE field from metadata — metadata is fully owned/overwritten by the subscriptions-api sync (tenant.Syncer.SyncTenant), so mixing admin-writable settings into it would risk a sync silently clobbering them.
+	Settings map[string]interface{} `json:"settings,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -77,7 +79,7 @@ func (*Tenant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case tenant.FieldMetadata:
+		case tenant.FieldMetadata, tenant.FieldSettings:
 			values[i] = new([]byte)
 		case tenant.FieldName, tenant.FieldSlug, tenant.FieldStatus, tenant.FieldUseCase, tenant.FieldSyncStatus:
 			values[i] = new(sql.NullString)
@@ -150,6 +152,14 @@ func (_m *Tenant) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
+		case tenant.FieldSettings:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field settings", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Settings); err != nil {
+					return fmt.Errorf("unmarshal field settings: %w", err)
 				}
 			}
 		case tenant.FieldCreatedAt:
@@ -234,6 +244,9 @@ func (_m *Tenant) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString(", ")
+	builder.WriteString("settings=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Settings))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

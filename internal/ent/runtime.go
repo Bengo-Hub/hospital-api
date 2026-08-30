@@ -16,6 +16,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -317,6 +318,20 @@ func init() {
 	hospitaluserDescID := hospitaluserFields[0].Descriptor()
 	// hospitaluser.DefaultID holds the default value on creation for the id field.
 	hospitaluser.DefaultID = hospitaluserDescID.Default.(func() uuid.UUID)
+	hospitaluseroutletFields := schema.HospitalUserOutlet{}.Fields()
+	_ = hospitaluseroutletFields
+	// hospitaluseroutletDescIsHomeOutlet is the schema descriptor for is_home_outlet field.
+	hospitaluseroutletDescIsHomeOutlet := hospitaluseroutletFields[4].Descriptor()
+	// hospitaluseroutlet.DefaultIsHomeOutlet holds the default value on creation for the is_home_outlet field.
+	hospitaluseroutlet.DefaultIsHomeOutlet = hospitaluseroutletDescIsHomeOutlet.Default.(bool)
+	// hospitaluseroutletDescAssignedAt is the schema descriptor for assigned_at field.
+	hospitaluseroutletDescAssignedAt := hospitaluseroutletFields[6].Descriptor()
+	// hospitaluseroutlet.DefaultAssignedAt holds the default value on creation for the assigned_at field.
+	hospitaluseroutlet.DefaultAssignedAt = hospitaluseroutletDescAssignedAt.Default.(func() time.Time)
+	// hospitaluseroutletDescID is the schema descriptor for id field.
+	hospitaluseroutletDescID := hospitaluseroutletFields[0].Descriptor()
+	// hospitaluseroutlet.DefaultID holds the default value on creation for the id field.
+	hospitaluseroutlet.DefaultID = hospitaluseroutletDescID.Default.(func() uuid.UUID)
 	laborderFields := schema.LabOrder{}.Fields()
 	_ = laborderFields
 	// laborderDescOrderedAt is the schema descriptor for ordered_at field.
@@ -684,11 +699,11 @@ func init() {
 	// tenant.DefaultSyncStatus holds the default value on creation for the sync_status field.
 	tenant.DefaultSyncStatus = tenantDescSyncStatus.Default.(string)
 	// tenantDescCreatedAt is the schema descriptor for created_at field.
-	tenantDescCreatedAt := tenantFields[8].Descriptor()
+	tenantDescCreatedAt := tenantFields[9].Descriptor()
 	// tenant.DefaultCreatedAt holds the default value on creation for the created_at field.
 	tenant.DefaultCreatedAt = tenantDescCreatedAt.Default.(func() time.Time)
 	// tenantDescUpdatedAt is the schema descriptor for updated_at field.
-	tenantDescUpdatedAt := tenantFields[9].Descriptor()
+	tenantDescUpdatedAt := tenantFields[10].Descriptor()
 	// tenant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	tenant.DefaultUpdatedAt = tenantDescUpdatedAt.Default.(func() time.Time)
 	// tenant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

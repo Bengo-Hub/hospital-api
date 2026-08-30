@@ -27,6 +27,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -74,6 +75,8 @@ type Client struct {
 	HospitalRole *HospitalRoleClient
 	// HospitalUser is the client for interacting with the HospitalUser builders.
 	HospitalUser *HospitalUserClient
+	// HospitalUserOutlet is the client for interacting with the HospitalUserOutlet builders.
+	HospitalUserOutlet *HospitalUserOutletClient
 	// LabOrder is the client for interacting with the LabOrder builders.
 	LabOrder *LabOrderClient
 	// LabOrderLine is the client for interacting with the LabOrderLine builders.
@@ -132,6 +135,7 @@ func (c *Client) init() {
 	c.HospitalPermission = NewHospitalPermissionClient(c.config)
 	c.HospitalRole = NewHospitalRoleClient(c.config)
 	c.HospitalUser = NewHospitalUserClient(c.config)
+	c.HospitalUserOutlet = NewHospitalUserOutletClient(c.config)
 	c.LabOrder = NewLabOrderClient(c.config)
 	c.LabOrderLine = NewLabOrderLineClient(c.config)
 	c.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(c.config)
@@ -253,6 +257,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		HospitalPermission:      NewHospitalPermissionClient(cfg),
 		HospitalRole:            NewHospitalRoleClient(cfg),
 		HospitalUser:            NewHospitalUserClient(cfg),
+		HospitalUserOutlet:      NewHospitalUserOutletClient(cfg),
 		LabOrder:                NewLabOrderClient(cfg),
 		LabOrderLine:            NewLabOrderLineClient(cfg),
 		LabTestCatalogDefault:   NewLabTestCatalogDefaultClient(cfg),
@@ -301,6 +306,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		HospitalPermission:      NewHospitalPermissionClient(cfg),
 		HospitalRole:            NewHospitalRoleClient(cfg),
 		HospitalUser:            NewHospitalUserClient(cfg),
+		HospitalUserOutlet:      NewHospitalUserOutletClient(cfg),
 		LabOrder:                NewLabOrderClient(cfg),
 		LabOrderLine:            NewLabOrderLineClient(cfg),
 		LabTestCatalogDefault:   NewLabTestCatalogDefaultClient(cfg),
@@ -351,9 +357,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillableCharge, c.BillableItemCatalog, c.ControlledSubstanceLog,
 		c.DiagnosisCatalogDefault, c.DiagnosisCatalogEntry, c.DocumentSequence,
 		c.DrugInteractionCheck, c.ExaminationRecord, c.HospitalPermission,
-		c.HospitalRole, c.HospitalUser, c.LabOrder, c.LabOrderLine,
-		c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet,
-		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
+		c.HospitalRole, c.HospitalUser, c.HospitalUserOutlet, c.LabOrder,
+		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
+		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
 		c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
 		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
@@ -368,9 +374,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillableCharge, c.BillableItemCatalog, c.ControlledSubstanceLog,
 		c.DiagnosisCatalogDefault, c.DiagnosisCatalogEntry, c.DocumentSequence,
 		c.DrugInteractionCheck, c.ExaminationRecord, c.HospitalPermission,
-		c.HospitalRole, c.HospitalUser, c.LabOrder, c.LabOrderLine,
-		c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet,
-		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
+		c.HospitalRole, c.HospitalUser, c.HospitalUserOutlet, c.LabOrder,
+		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
+		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
 		c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
 		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
 	} {
@@ -403,6 +409,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.HospitalRole.mutate(ctx, m)
 	case *HospitalUserMutation:
 		return c.HospitalUser.mutate(ctx, m)
+	case *HospitalUserOutletMutation:
+		return c.HospitalUserOutlet.mutate(ctx, m)
 	case *LabOrderMutation:
 		return c.LabOrder.mutate(ctx, m)
 	case *LabOrderLineMutation:
@@ -2048,6 +2056,139 @@ func (c *HospitalUserClient) mutate(ctx context.Context, m *HospitalUserMutation
 		return (&HospitalUserDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown HospitalUser mutation op: %q", m.Op())
+	}
+}
+
+// HospitalUserOutletClient is a client for the HospitalUserOutlet schema.
+type HospitalUserOutletClient struct {
+	config
+}
+
+// NewHospitalUserOutletClient returns a client for the HospitalUserOutlet from the given config.
+func NewHospitalUserOutletClient(c config) *HospitalUserOutletClient {
+	return &HospitalUserOutletClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `hospitaluseroutlet.Hooks(f(g(h())))`.
+func (c *HospitalUserOutletClient) Use(hooks ...Hook) {
+	c.hooks.HospitalUserOutlet = append(c.hooks.HospitalUserOutlet, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `hospitaluseroutlet.Intercept(f(g(h())))`.
+func (c *HospitalUserOutletClient) Intercept(interceptors ...Interceptor) {
+	c.inters.HospitalUserOutlet = append(c.inters.HospitalUserOutlet, interceptors...)
+}
+
+// Create returns a builder for creating a HospitalUserOutlet entity.
+func (c *HospitalUserOutletClient) Create() *HospitalUserOutletCreate {
+	mutation := newHospitalUserOutletMutation(c.config, OpCreate)
+	return &HospitalUserOutletCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of HospitalUserOutlet entities.
+func (c *HospitalUserOutletClient) CreateBulk(builders ...*HospitalUserOutletCreate) *HospitalUserOutletCreateBulk {
+	return &HospitalUserOutletCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *HospitalUserOutletClient) MapCreateBulk(slice any, setFunc func(*HospitalUserOutletCreate, int)) *HospitalUserOutletCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &HospitalUserOutletCreateBulk{err: fmt.Errorf("calling to HospitalUserOutletClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*HospitalUserOutletCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &HospitalUserOutletCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for HospitalUserOutlet.
+func (c *HospitalUserOutletClient) Update() *HospitalUserOutletUpdate {
+	mutation := newHospitalUserOutletMutation(c.config, OpUpdate)
+	return &HospitalUserOutletUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *HospitalUserOutletClient) UpdateOne(_m *HospitalUserOutlet) *HospitalUserOutletUpdateOne {
+	mutation := newHospitalUserOutletMutation(c.config, OpUpdateOne, withHospitalUserOutlet(_m))
+	return &HospitalUserOutletUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *HospitalUserOutletClient) UpdateOneID(id uuid.UUID) *HospitalUserOutletUpdateOne {
+	mutation := newHospitalUserOutletMutation(c.config, OpUpdateOne, withHospitalUserOutletID(id))
+	return &HospitalUserOutletUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for HospitalUserOutlet.
+func (c *HospitalUserOutletClient) Delete() *HospitalUserOutletDelete {
+	mutation := newHospitalUserOutletMutation(c.config, OpDelete)
+	return &HospitalUserOutletDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *HospitalUserOutletClient) DeleteOne(_m *HospitalUserOutlet) *HospitalUserOutletDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *HospitalUserOutletClient) DeleteOneID(id uuid.UUID) *HospitalUserOutletDeleteOne {
+	builder := c.Delete().Where(hospitaluseroutlet.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &HospitalUserOutletDeleteOne{builder}
+}
+
+// Query returns a query builder for HospitalUserOutlet.
+func (c *HospitalUserOutletClient) Query() *HospitalUserOutletQuery {
+	return &HospitalUserOutletQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeHospitalUserOutlet},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a HospitalUserOutlet entity by its id.
+func (c *HospitalUserOutletClient) Get(ctx context.Context, id uuid.UUID) (*HospitalUserOutlet, error) {
+	return c.Query().Where(hospitaluseroutlet.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *HospitalUserOutletClient) GetX(ctx context.Context, id uuid.UUID) *HospitalUserOutlet {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *HospitalUserOutletClient) Hooks() []Hook {
+	return c.hooks.HospitalUserOutlet
+}
+
+// Interceptors returns the client interceptors.
+func (c *HospitalUserOutletClient) Interceptors() []Interceptor {
+	return c.inters.HospitalUserOutlet
+}
+
+func (c *HospitalUserOutletClient) mutate(ctx context.Context, m *HospitalUserOutletMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&HospitalUserOutletCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&HospitalUserOutletUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&HospitalUserOutletUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&HospitalUserOutletDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown HospitalUserOutlet mutation op: %q", m.Op())
 	}
 }
 
@@ -4787,19 +4928,20 @@ type (
 		BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
 		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
-		HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
-		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
-		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
-		Referral, RolePermission, Tenant, TriageRecord, UserRoleAssignment []ent.Hook
+		HospitalUser, HospitalUserOutlet, LabOrder, LabOrderLine,
+		LabTestCatalogDefault, LabTestCatalogEntry, OutboxEvent, Outlet, Patient,
+		PatientAccount, PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine,
+		RbacAuditLog, Referral, RolePermission, Tenant, TriageRecord,
+		UserRoleAssignment []ent.Hook
 	}
 	inters struct {
 		BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
 		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
-		HospitalUser, LabOrder, LabOrderLine, LabTestCatalogDefault,
-		LabTestCatalogEntry, OutboxEvent, Outlet, Patient, PatientAccount,
-		PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
-		Referral, RolePermission, Tenant, TriageRecord,
+		HospitalUser, HospitalUserOutlet, LabOrder, LabOrderLine,
+		LabTestCatalogDefault, LabTestCatalogEntry, OutboxEvent, Outlet, Patient,
+		PatientAccount, PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine,
+		RbacAuditLog, Referral, RolePermission, Tenant, TriageRecord,
 		UserRoleAssignment []ent.Interceptor
 	}
 )

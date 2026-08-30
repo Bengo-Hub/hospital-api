@@ -60,6 +60,8 @@ type Deps struct {
 	Config *handlers.ConfigHandler
 	// RBAC/identity audit trail (2026-08-30).
 	AuditLog *handlers.AuditLogHandler
+	// Per-user outlet/branch assignment admin surface (2026-08-30).
+	UserOutlets *handlers.UserOutletsHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -167,7 +169,7 @@ func New(d Deps) http.Handler {
 			}
 
 			if d.EntClient != nil {
-				prot.Use(outletmw.OutletContextMiddleware(d.EntClient, d.Log))
+				prot.Use(outletmw.OutletContextMiddleware(d.EntClient, d.Log, d.IdentitySvc))
 			}
 
 			if d.AuthMe != nil {
@@ -456,13 +458,27 @@ func New(d Deps) http.Handler {
 					Get("/roles/{roleID}/permissions", d.Users.GetRolePermissions)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Put("/roles/{roleID}/permissions", d.Users.UpdateRolePermissions)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Delete("/roles/{roleID}", d.Users.DeleteRole)
+			}
+			if d.UserOutlets != nil {
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Get("/users/{userID}/outlets", d.UserOutlets.ListUserOutlets)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Post("/users/{userID}/outlets", d.UserOutlets.AssignUserOutlet)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Delete("/users/{userID}/outlets/{outletID}", d.UserOutlets.RemoveUserOutlet)
 			}
 			if d.Config != nil {
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConfigView)).
 					Get("/config", d.Config.GetConfig)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConfigManage)).
+					Put("/config", d.Config.UpdateConfig)
 				// No permission gate: every authenticated user needs their tenant's outlet list
 				// to render the outlet switcher, not just config-viewing admins — mirrors
 				// /auth/me and /ping (authenticated-only, no fine-grained permission check).
+				// Now self-scoping: ListOutlets filters to the caller's own assignments for a
+				// non-HQ/non-admin user (see its own doc comment).
 				prot.Get("/outlets", d.Config.ListOutlets)
 			}
 			if d.AuditLog != nil {

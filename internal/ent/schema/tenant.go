@@ -50,6 +50,9 @@ func (Tenant) Fields() []ent.Field {
 		field.JSON("metadata", map[string]any{}).
 			Optional().
 			Comment("Facility configuration cache: facility_type (chemist|clinic|facility|hospital) and enabled_modules, resolved from subscriptions-api's plan/tenant metadata. Additive, no dedicated schema table per the migration plan's own instruction."),
+		field.JSON("settings", map[string]any{}).
+			Optional().
+			Comment("Tenant-admin-writable facility operating settings (hospital.config.manage): auto_logout_minutes (int), default_landing_view (string), operating_hours (per-day JSON block). Deliberately a SEPARATE field from metadata — metadata is fully owned/overwritten by the subscriptions-api sync (tenant.Syncer.SyncTenant), so mixing admin-writable settings into it would risk a sync silently clobbering them."),
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable(),

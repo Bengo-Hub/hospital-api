@@ -491,6 +491,16 @@ func MetadataNotNil() predicate.Tenant {
 	return predicate.Tenant(sql.FieldNotNull(FieldMetadata))
 }
 
+// SettingsIsNil applies the IsNil predicate on the "settings" field.
+func SettingsIsNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldIsNull(FieldSettings))
+}
+
+// SettingsNotNil applies the NotNil predicate on the "settings" field.
+func SettingsNotNil() predicate.Tenant {
+	return predicate.Tenant(sql.FieldNotNull(FieldSettings))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Tenant {
 	return predicate.Tenant(sql.FieldEQ(FieldCreatedAt, v))

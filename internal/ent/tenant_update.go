@@ -139,6 +139,18 @@ func (_u *TenantUpdate) ClearMetadata() *TenantUpdate {
 	return _u
 }
 
+// SetSettings sets the "settings" field.
+func (_u *TenantUpdate) SetSettings(v map[string]interface{}) *TenantUpdate {
+	_u.mutation.SetSettings(v)
+	return _u
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (_u *TenantUpdate) ClearSettings() *TenantUpdate {
+	_u.mutation.ClearSettings()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *TenantUpdate) SetUpdatedAt(v time.Time) *TenantUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -314,6 +326,12 @@ func (_u *TenantUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(tenant.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Settings(); ok {
+		_spec.SetField(tenant.FieldSettings, field.TypeJSON, value)
+	}
+	if _u.mutation.SettingsCleared() {
+		_spec.ClearField(tenant.FieldSettings, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(tenant.FieldUpdatedAt, field.TypeTime, value)
@@ -536,6 +554,18 @@ func (_u *TenantUpdateOne) ClearMetadata() *TenantUpdateOne {
 	return _u
 }
 
+// SetSettings sets the "settings" field.
+func (_u *TenantUpdateOne) SetSettings(v map[string]interface{}) *TenantUpdateOne {
+	_u.mutation.SetSettings(v)
+	return _u
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (_u *TenantUpdateOne) ClearSettings() *TenantUpdateOne {
+	_u.mutation.ClearSettings()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *TenantUpdateOne) SetUpdatedAt(v time.Time) *TenantUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -741,6 +771,12 @@ func (_u *TenantUpdateOne) sqlSave(ctx context.Context) (_node *Tenant, err erro
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(tenant.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Settings(); ok {
+		_spec.SetField(tenant.FieldSettings, field.TypeJSON, value)
+	}
+	if _u.mutation.SettingsCleared() {
+		_spec.ClearField(tenant.FieldSettings, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(tenant.FieldUpdatedAt, field.TypeTime, value)

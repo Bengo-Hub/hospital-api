@@ -11,7 +11,17 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	entoutlet "github.com/bengobox/hospital-service/internal/ent/outlet"
+	entuseroutlet "github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 )
+
+// LocalUserResolver is the subset of identity.Service used here. Declared as an interface (not
+// imported directly as *identity.Service in the signature below — it still is, see
+// OutletContextMiddleware's param, but this documents the exact contract) so the enforcement
+// logic only depends on ResolveLocalUserID's behavior, including its deactivation check (a
+// non-active user resolves to an error here too, consistent with the rest of the RBAC layer).
+type LocalUserResolver interface {
+	ResolveLocalUserID(ctx context.Context, tenantID, authUserID uuid.UUID) (uuid.UUID, error)
+}
 
 type outletContextKey struct{}
 
@@ -38,12 +48,17 @@ func OutletFromContext(ctx context.Context) *OutletContext {
 //  2. JWT claim's outlet_id — sessions whose token already carries the outlet they logged into
 //  3. Tenant's HQ outlet    — fallback when no outlet can be determined
 //
-// Non-HQ per-user outlet assignment enforcement (pos-api's StaffOutlet check) is deferred:
-// hospital-api has no clinical/staff-outlet schema yet (Sprint 4, out of scope for this
-// pass) so there is no local table to check membership against. Any authenticated user in
-// the tenant may currently select any of the tenant's outlets via X-Outlet-ID; add a
-// UserOutlet-equivalent projection + membership check here once that schema lands.
-func OutletContextMiddleware(client *ent.Client, log *zap.Logger) func(http.Handler) http.Handler {
+// Per-user outlet assignment enforcement (2026-08-30, mirrors inventory-api's UserOutlet/
+// EnforceOutletAssignment — the fleet's proven pattern; pos-api's StaffOutlet and erp-api's port
+// of the same Django middleware do the equivalent): a resolved outlet from step 1 or 2 is
+// validated against the caller's HospitalUserOutlet assignments UNLESS they can access all
+// outlets (platform owner / admin-level / HQ user, per shared-auth-client's
+// Claims.CanAccessAllOutlets()). Progressive rollout: a user with ZERO assignment rows is
+// treated as unrestricted (matches inventory-api's exact carve-out) so existing staff aren't
+// locked out before a tenant admin assigns their outlets via the new /users/{id}/outlets API.
+// Step 3 (the tenant-HQ default) is intentionally NOT validated — it only ever fires when
+// neither an explicit header nor a JWT claim resolved anything, i.e. no real selection was made.
+func OutletContextMiddleware(client *ent.Client, log *zap.Logger, resolver LocalUserResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -100,6 +115,41 @@ func OutletContextMiddleware(client *ent.Client, log *zap.Logger) func(http.Hand
 							resolved = outletToCtx(o)
 						}
 					}
+				}
+			}
+
+			// Enforce per-user outlet assignment for an explicit selection (header or JWT claim) —
+			// never for the HQ default below, since that only fires when no real selection exists.
+			if resolved != nil && hasClaims && !claims.CanAccessAllOutlets() && !claims.IsService {
+				authUserID, err := claims.UserID()
+				if err == nil {
+					localUserID, resErr := resolver.ResolveLocalUserID(ctx, tenantID, authUserID)
+					if resErr == nil {
+						assigned, checkErr := client.HospitalUserOutlet.Query().
+							Where(entuseroutlet.TenantIDEQ(tenantID), entuseroutlet.UserIDEQ(localUserID)).
+							All(ctx)
+						if checkErr != nil {
+							log.Warn("outlet assignment check failed; allowing request", zap.Error(checkErr))
+						} else if len(assigned) > 0 {
+							allowed := false
+							for _, a := range assigned {
+								if a.OutletID == resolved.ID {
+									allowed = true
+									break
+								}
+							}
+							if !allowed {
+								w.Header().Set("Content-Type", "application/json")
+								w.WriteHeader(http.StatusForbidden)
+								_, _ = w.Write([]byte(`{"error":"OUTLET_NOT_ASSIGNED","message":"You are not assigned to this outlet"}`))
+								return
+							}
+						}
+						// len(assigned) == 0: progressive rollout — unrestricted until an admin assigns.
+					}
+					// resErr != nil (not provisioned / deactivated): fall through unrestricted here —
+					// RequireServicePermission (which runs on every gated route) is the real
+					// authorization backstop and will already reject a deactivated/unprovisioned user.
 				}
 			}
 

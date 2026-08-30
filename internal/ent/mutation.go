@@ -23,6 +23,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -65,6 +66,7 @@ const (
 	TypeHospitalPermission      = "HospitalPermission"
 	TypeHospitalRole            = "HospitalRole"
 	TypeHospitalUser            = "HospitalUser"
+	TypeHospitalUserOutlet      = "HospitalUserOutlet"
 	TypeLabOrder                = "LabOrder"
 	TypeLabOrderLine            = "LabOrderLine"
 	TypeLabTestCatalogDefault   = "LabTestCatalogDefault"
@@ -10345,6 +10347,630 @@ func (m *HospitalUserMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown HospitalUser edge %s", name)
+}
+
+// HospitalUserOutletMutation represents an operation that mutates the HospitalUserOutlet nodes in the graph.
+type HospitalUserOutletMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *uuid.UUID
+	tenant_id      *uuid.UUID
+	user_id        *uuid.UUID
+	outlet_id      *uuid.UUID
+	is_home_outlet *bool
+	assigned_by    *uuid.UUID
+	assigned_at    *time.Time
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*HospitalUserOutlet, error)
+	predicates     []predicate.HospitalUserOutlet
+}
+
+var _ ent.Mutation = (*HospitalUserOutletMutation)(nil)
+
+// hospitaluseroutletOption allows management of the mutation configuration using functional options.
+type hospitaluseroutletOption func(*HospitalUserOutletMutation)
+
+// newHospitalUserOutletMutation creates new mutation for the HospitalUserOutlet entity.
+func newHospitalUserOutletMutation(c config, op Op, opts ...hospitaluseroutletOption) *HospitalUserOutletMutation {
+	m := &HospitalUserOutletMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeHospitalUserOutlet,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withHospitalUserOutletID sets the ID field of the mutation.
+func withHospitalUserOutletID(id uuid.UUID) hospitaluseroutletOption {
+	return func(m *HospitalUserOutletMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *HospitalUserOutlet
+		)
+		m.oldValue = func(ctx context.Context) (*HospitalUserOutlet, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().HospitalUserOutlet.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withHospitalUserOutlet sets the old HospitalUserOutlet of the mutation.
+func withHospitalUserOutlet(node *HospitalUserOutlet) hospitaluseroutletOption {
+	return func(m *HospitalUserOutletMutation) {
+		m.oldValue = func(context.Context) (*HospitalUserOutlet, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m HospitalUserOutletMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m HospitalUserOutletMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of HospitalUserOutlet entities.
+func (m *HospitalUserOutletMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *HospitalUserOutletMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *HospitalUserOutletMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().HospitalUserOutlet.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *HospitalUserOutletMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *HospitalUserOutletMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the HospitalUserOutlet entity.
+// If the HospitalUserOutlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserOutletMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *HospitalUserOutletMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *HospitalUserOutletMutation) SetUserID(u uuid.UUID) {
+	m.user_id = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *HospitalUserOutletMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the HospitalUserOutlet entity.
+// If the HospitalUserOutlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserOutletMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *HospitalUserOutletMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetOutletID sets the "outlet_id" field.
+func (m *HospitalUserOutletMutation) SetOutletID(u uuid.UUID) {
+	m.outlet_id = &u
+}
+
+// OutletID returns the value of the "outlet_id" field in the mutation.
+func (m *HospitalUserOutletMutation) OutletID() (r uuid.UUID, exists bool) {
+	v := m.outlet_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutletID returns the old "outlet_id" field's value of the HospitalUserOutlet entity.
+// If the HospitalUserOutlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserOutletMutation) OldOutletID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutletID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutletID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutletID: %w", err)
+	}
+	return oldValue.OutletID, nil
+}
+
+// ResetOutletID resets all changes to the "outlet_id" field.
+func (m *HospitalUserOutletMutation) ResetOutletID() {
+	m.outlet_id = nil
+}
+
+// SetIsHomeOutlet sets the "is_home_outlet" field.
+func (m *HospitalUserOutletMutation) SetIsHomeOutlet(b bool) {
+	m.is_home_outlet = &b
+}
+
+// IsHomeOutlet returns the value of the "is_home_outlet" field in the mutation.
+func (m *HospitalUserOutletMutation) IsHomeOutlet() (r bool, exists bool) {
+	v := m.is_home_outlet
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsHomeOutlet returns the old "is_home_outlet" field's value of the HospitalUserOutlet entity.
+// If the HospitalUserOutlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserOutletMutation) OldIsHomeOutlet(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsHomeOutlet is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsHomeOutlet requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsHomeOutlet: %w", err)
+	}
+	return oldValue.IsHomeOutlet, nil
+}
+
+// ResetIsHomeOutlet resets all changes to the "is_home_outlet" field.
+func (m *HospitalUserOutletMutation) ResetIsHomeOutlet() {
+	m.is_home_outlet = nil
+}
+
+// SetAssignedBy sets the "assigned_by" field.
+func (m *HospitalUserOutletMutation) SetAssignedBy(u uuid.UUID) {
+	m.assigned_by = &u
+}
+
+// AssignedBy returns the value of the "assigned_by" field in the mutation.
+func (m *HospitalUserOutletMutation) AssignedBy() (r uuid.UUID, exists bool) {
+	v := m.assigned_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssignedBy returns the old "assigned_by" field's value of the HospitalUserOutlet entity.
+// If the HospitalUserOutlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserOutletMutation) OldAssignedBy(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssignedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssignedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssignedBy: %w", err)
+	}
+	return oldValue.AssignedBy, nil
+}
+
+// ClearAssignedBy clears the value of the "assigned_by" field.
+func (m *HospitalUserOutletMutation) ClearAssignedBy() {
+	m.assigned_by = nil
+	m.clearedFields[hospitaluseroutlet.FieldAssignedBy] = struct{}{}
+}
+
+// AssignedByCleared returns if the "assigned_by" field was cleared in this mutation.
+func (m *HospitalUserOutletMutation) AssignedByCleared() bool {
+	_, ok := m.clearedFields[hospitaluseroutlet.FieldAssignedBy]
+	return ok
+}
+
+// ResetAssignedBy resets all changes to the "assigned_by" field.
+func (m *HospitalUserOutletMutation) ResetAssignedBy() {
+	m.assigned_by = nil
+	delete(m.clearedFields, hospitaluseroutlet.FieldAssignedBy)
+}
+
+// SetAssignedAt sets the "assigned_at" field.
+func (m *HospitalUserOutletMutation) SetAssignedAt(t time.Time) {
+	m.assigned_at = &t
+}
+
+// AssignedAt returns the value of the "assigned_at" field in the mutation.
+func (m *HospitalUserOutletMutation) AssignedAt() (r time.Time, exists bool) {
+	v := m.assigned_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssignedAt returns the old "assigned_at" field's value of the HospitalUserOutlet entity.
+// If the HospitalUserOutlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserOutletMutation) OldAssignedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssignedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssignedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssignedAt: %w", err)
+	}
+	return oldValue.AssignedAt, nil
+}
+
+// ResetAssignedAt resets all changes to the "assigned_at" field.
+func (m *HospitalUserOutletMutation) ResetAssignedAt() {
+	m.assigned_at = nil
+}
+
+// Where appends a list predicates to the HospitalUserOutletMutation builder.
+func (m *HospitalUserOutletMutation) Where(ps ...predicate.HospitalUserOutlet) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the HospitalUserOutletMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *HospitalUserOutletMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.HospitalUserOutlet, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *HospitalUserOutletMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *HospitalUserOutletMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (HospitalUserOutlet).
+func (m *HospitalUserOutletMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *HospitalUserOutletMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.tenant_id != nil {
+		fields = append(fields, hospitaluseroutlet.FieldTenantID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, hospitaluseroutlet.FieldUserID)
+	}
+	if m.outlet_id != nil {
+		fields = append(fields, hospitaluseroutlet.FieldOutletID)
+	}
+	if m.is_home_outlet != nil {
+		fields = append(fields, hospitaluseroutlet.FieldIsHomeOutlet)
+	}
+	if m.assigned_by != nil {
+		fields = append(fields, hospitaluseroutlet.FieldAssignedBy)
+	}
+	if m.assigned_at != nil {
+		fields = append(fields, hospitaluseroutlet.FieldAssignedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *HospitalUserOutletMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case hospitaluseroutlet.FieldTenantID:
+		return m.TenantID()
+	case hospitaluseroutlet.FieldUserID:
+		return m.UserID()
+	case hospitaluseroutlet.FieldOutletID:
+		return m.OutletID()
+	case hospitaluseroutlet.FieldIsHomeOutlet:
+		return m.IsHomeOutlet()
+	case hospitaluseroutlet.FieldAssignedBy:
+		return m.AssignedBy()
+	case hospitaluseroutlet.FieldAssignedAt:
+		return m.AssignedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *HospitalUserOutletMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case hospitaluseroutlet.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case hospitaluseroutlet.FieldUserID:
+		return m.OldUserID(ctx)
+	case hospitaluseroutlet.FieldOutletID:
+		return m.OldOutletID(ctx)
+	case hospitaluseroutlet.FieldIsHomeOutlet:
+		return m.OldIsHomeOutlet(ctx)
+	case hospitaluseroutlet.FieldAssignedBy:
+		return m.OldAssignedBy(ctx)
+	case hospitaluseroutlet.FieldAssignedAt:
+		return m.OldAssignedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown HospitalUserOutlet field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *HospitalUserOutletMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case hospitaluseroutlet.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case hospitaluseroutlet.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case hospitaluseroutlet.FieldOutletID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutletID(v)
+		return nil
+	case hospitaluseroutlet.FieldIsHomeOutlet:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsHomeOutlet(v)
+		return nil
+	case hospitaluseroutlet.FieldAssignedBy:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssignedBy(v)
+		return nil
+	case hospitaluseroutlet.FieldAssignedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssignedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown HospitalUserOutlet field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *HospitalUserOutletMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *HospitalUserOutletMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *HospitalUserOutletMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown HospitalUserOutlet numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *HospitalUserOutletMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(hospitaluseroutlet.FieldAssignedBy) {
+		fields = append(fields, hospitaluseroutlet.FieldAssignedBy)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *HospitalUserOutletMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *HospitalUserOutletMutation) ClearField(name string) error {
+	switch name {
+	case hospitaluseroutlet.FieldAssignedBy:
+		m.ClearAssignedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown HospitalUserOutlet nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *HospitalUserOutletMutation) ResetField(name string) error {
+	switch name {
+	case hospitaluseroutlet.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case hospitaluseroutlet.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case hospitaluseroutlet.FieldOutletID:
+		m.ResetOutletID()
+		return nil
+	case hospitaluseroutlet.FieldIsHomeOutlet:
+		m.ResetIsHomeOutlet()
+		return nil
+	case hospitaluseroutlet.FieldAssignedBy:
+		m.ResetAssignedBy()
+		return nil
+	case hospitaluseroutlet.FieldAssignedAt:
+		m.ResetAssignedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown HospitalUserOutlet field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *HospitalUserOutletMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *HospitalUserOutletMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *HospitalUserOutletMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *HospitalUserOutletMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *HospitalUserOutletMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *HospitalUserOutletMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *HospitalUserOutletMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown HospitalUserOutlet unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *HospitalUserOutletMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown HospitalUserOutlet edge %s", name)
 }
 
 // LabOrderMutation represents an operation that mutates the LabOrder nodes in the graph.
@@ -26174,6 +26800,7 @@ type TenantMutation struct {
 	sync_status    *string
 	last_sync_at   *time.Time
 	metadata       *map[string]interface{}
+	settings       *map[string]interface{}
 	created_at     *time.Time
 	updated_at     *time.Time
 	clearedFields  map[string]struct{}
@@ -26583,6 +27210,55 @@ func (m *TenantMutation) ResetMetadata() {
 	delete(m.clearedFields, tenant.FieldMetadata)
 }
 
+// SetSettings sets the "settings" field.
+func (m *TenantMutation) SetSettings(value map[string]interface{}) {
+	m.settings = &value
+}
+
+// Settings returns the value of the "settings" field in the mutation.
+func (m *TenantMutation) Settings() (r map[string]interface{}, exists bool) {
+	v := m.settings
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettings returns the old "settings" field's value of the Tenant entity.
+// If the Tenant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TenantMutation) OldSettings(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettings is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettings requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettings: %w", err)
+	}
+	return oldValue.Settings, nil
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (m *TenantMutation) ClearSettings() {
+	m.settings = nil
+	m.clearedFields[tenant.FieldSettings] = struct{}{}
+}
+
+// SettingsCleared returns if the "settings" field was cleared in this mutation.
+func (m *TenantMutation) SettingsCleared() bool {
+	_, ok := m.clearedFields[tenant.FieldSettings]
+	return ok
+}
+
+// ResetSettings resets all changes to the "settings" field.
+func (m *TenantMutation) ResetSettings() {
+	m.settings = nil
+	delete(m.clearedFields, tenant.FieldSettings)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *TenantMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -26797,7 +27473,7 @@ func (m *TenantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TenantMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.name != nil {
 		fields = append(fields, tenant.FieldName)
 	}
@@ -26818,6 +27494,9 @@ func (m *TenantMutation) Fields() []string {
 	}
 	if m.metadata != nil {
 		fields = append(fields, tenant.FieldMetadata)
+	}
+	if m.settings != nil {
+		fields = append(fields, tenant.FieldSettings)
 	}
 	if m.created_at != nil {
 		fields = append(fields, tenant.FieldCreatedAt)
@@ -26847,6 +27526,8 @@ func (m *TenantMutation) Field(name string) (ent.Value, bool) {
 		return m.LastSyncAt()
 	case tenant.FieldMetadata:
 		return m.Metadata()
+	case tenant.FieldSettings:
+		return m.Settings()
 	case tenant.FieldCreatedAt:
 		return m.CreatedAt()
 	case tenant.FieldUpdatedAt:
@@ -26874,6 +27555,8 @@ func (m *TenantMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldLastSyncAt(ctx)
 	case tenant.FieldMetadata:
 		return m.OldMetadata(ctx)
+	case tenant.FieldSettings:
+		return m.OldSettings(ctx)
 	case tenant.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case tenant.FieldUpdatedAt:
@@ -26936,6 +27619,13 @@ func (m *TenantMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetMetadata(v)
 		return nil
+	case tenant.FieldSettings:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettings(v)
+		return nil
 	case tenant.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -26989,6 +27679,9 @@ func (m *TenantMutation) ClearedFields() []string {
 	if m.FieldCleared(tenant.FieldMetadata) {
 		fields = append(fields, tenant.FieldMetadata)
 	}
+	if m.FieldCleared(tenant.FieldSettings) {
+		fields = append(fields, tenant.FieldSettings)
+	}
 	return fields
 }
 
@@ -27011,6 +27704,9 @@ func (m *TenantMutation) ClearField(name string) error {
 		return nil
 	case tenant.FieldMetadata:
 		m.ClearMetadata()
+		return nil
+	case tenant.FieldSettings:
+		m.ClearSettings()
 		return nil
 	}
 	return fmt.Errorf("unknown Tenant nullable field %s", name)
@@ -27040,6 +27736,9 @@ func (m *TenantMutation) ResetField(name string) error {
 		return nil
 	case tenant.FieldMetadata:
 		m.ResetMetadata()
+		return nil
+	case tenant.FieldSettings:
+		m.ResetSettings()
 		return nil
 	case tenant.FieldCreatedAt:
 		m.ResetCreatedAt()

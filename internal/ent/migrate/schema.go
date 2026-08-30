@@ -410,6 +410,39 @@ var (
 			},
 		},
 	}
+	// HospitalUserOutletsColumns holds the columns for the "hospital_user_outlets" table.
+	HospitalUserOutletsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "is_home_outlet", Type: field.TypeBool, Default: false},
+		{Name: "assigned_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "assigned_at", Type: field.TypeTime},
+	}
+	// HospitalUserOutletsTable holds the schema information for the "hospital_user_outlets" table.
+	HospitalUserOutletsTable = &schema.Table{
+		Name:       "hospital_user_outlets",
+		Columns:    HospitalUserOutletsColumns,
+		PrimaryKey: []*schema.Column{HospitalUserOutletsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "hospitaluseroutlet_tenant_id_user_id_outlet_id",
+				Unique:  true,
+				Columns: []*schema.Column{HospitalUserOutletsColumns[1], HospitalUserOutletsColumns[2], HospitalUserOutletsColumns[3]},
+			},
+			{
+				Name:    "hospitaluseroutlet_tenant_id_outlet_id",
+				Unique:  false,
+				Columns: []*schema.Column{HospitalUserOutletsColumns[1], HospitalUserOutletsColumns[3]},
+			},
+			{
+				Name:    "hospitaluseroutlet_tenant_id_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{HospitalUserOutletsColumns[1], HospitalUserOutletsColumns[2]},
+			},
+		},
+	}
 	// LabOrdersColumns holds the columns for the "lab_orders" table.
 	LabOrdersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1005,6 +1038,7 @@ var (
 		{Name: "sync_status", Type: field.TypeString, Default: "synced"},
 		{Name: "last_sync_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "settings", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -1135,6 +1169,7 @@ var (
 		HospitalPermissionsTable,
 		HospitalRolesTable,
 		HospitalUsersTable,
+		HospitalUserOutletsTable,
 		LabOrdersTable,
 		LabOrderLinesTable,
 		LabTestCatalogDefaultsTable,

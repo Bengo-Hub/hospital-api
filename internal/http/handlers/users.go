@@ -372,6 +372,26 @@ func (h *UsersHandler) GetRolePermissions(w http.ResponseWriter, r *http.Request
 	respondJSON(w, http.StatusOK, map[string]any{"data": out})
 }
 
+// DeleteRole handles DELETE /{tenant}/hospital/roles/{roleID} — removes a tenant-owned custom
+// or customized role. Refuses (400) if any staff still holds it or if it's a global role.
+func (h *UsersHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	roleID, err := uuid.Parse(chi.URLParam(r, "roleID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid role id")
+		return
+	}
+	if err := h.rbacSvc.DeleteRole(r.Context(), tenantID, currentUserID(r), roleID); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"status": "deleted"})
+}
+
 type updateRolePermissionsRequest struct {
 	PermissionCodes []string `json:"permission_codes"`
 }

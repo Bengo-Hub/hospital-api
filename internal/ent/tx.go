@@ -34,6 +34,8 @@ type Tx struct {
 	HospitalRole *HospitalRoleClient
 	// HospitalUser is the client for interacting with the HospitalUser builders.
 	HospitalUser *HospitalUserClient
+	// HospitalUserOutlet is the client for interacting with the HospitalUserOutlet builders.
+	HospitalUserOutlet *HospitalUserOutletClient
 	// LabOrder is the client for interacting with the LabOrder builders.
 	LabOrder *LabOrderClient
 	// LabOrderLine is the client for interacting with the LabOrderLine builders.
@@ -212,6 +214,7 @@ func (tx *Tx) init() {
 	tx.HospitalPermission = NewHospitalPermissionClient(tx.config)
 	tx.HospitalRole = NewHospitalRoleClient(tx.config)
 	tx.HospitalUser = NewHospitalUserClient(tx.config)
+	tx.HospitalUserOutlet = NewHospitalUserOutletClient(tx.config)
 	tx.LabOrder = NewLabOrderClient(tx.config)
 	tx.LabOrderLine = NewLabOrderLineClient(tx.config)
 	tx.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(tx.config)

@@ -26,6 +26,10 @@ type Repository interface {
 	ListRoles(ctx context.Context, tenantID uuid.UUID) ([]*HospitalRole, error)
 	// ReplaceRolePermissions atomically replaces roleID's entire permission set.
 	ReplaceRolePermissions(ctx context.Context, roleID uuid.UUID, permissionIDs []uuid.UUID) error
+	// DeleteRole permanently removes roleID and its RolePermission rows. Callers must verify no
+	// UserRoleAssignment still references it (and that it's a tenant-owned, not global, role)
+	// before calling — this is a pure delete, no ownership/reference checks.
+	DeleteRole(ctx context.Context, roleID uuid.UUID) error
 	// RepointRoleAssignments moves every UserRoleAssignment in tenantID currently pointing at
 	// fromRoleID to toRoleID instead. Used by CustomizeRole so a role clone takes effect for
 	// already-assigned staff immediately, not just future assignments.

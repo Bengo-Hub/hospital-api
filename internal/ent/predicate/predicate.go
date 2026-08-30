@@ -39,6 +39,9 @@ type HospitalRole func(*sql.Selector)
 // HospitalUser is the predicate function for hospitaluser builders.
 type HospitalUser func(*sql.Selector)
 
+// HospitalUserOutlet is the predicate function for hospitaluseroutlet builders.
+type HospitalUserOutlet func(*sql.Selector)
+
 // LabOrder is the predicate function for laborder builders.
 type LabOrder func(*sql.Selector)
 

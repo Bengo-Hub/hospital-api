@@ -141,6 +141,18 @@ func (f HospitalUserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HospitalUserMutation", m)
 }
 
+// The HospitalUserOutletFunc type is an adapter to allow the use of ordinary
+// function as HospitalUserOutlet mutator.
+type HospitalUserOutletFunc func(context.Context, *ent.HospitalUserOutletMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f HospitalUserOutletFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.HospitalUserOutletMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HospitalUserOutletMutation", m)
+}
+
 // The LabOrderFunc type is an adapter to allow the use of ordinary
 // function as LabOrder mutator.
 type LabOrderFunc func(context.Context, *ent.LabOrderMutation) (ent.Value, error)

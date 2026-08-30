@@ -12,6 +12,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 )
@@ -147,6 +148,10 @@ func (h *AuthEventHandler) handleUserDeleted(ctx context.Context, evt *sharedeve
 			_ = tx.Rollback()
 			return fmt.Errorf("delete user role assignments: %w", err)
 		}
+		if _, err := tx.HospitalUserOutlet.Delete().Where(hospitaluseroutlet.UserIDIn(localIDs...)).Exec(ctx); err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("delete user outlet assignments: %w", err)
+		}
 	}
 	if _, err := tx.HospitalUser.Delete().Where(hospitaluser.AuthServiceUserID(authServiceUserID)).Exec(ctx); err != nil {
 		_ = tx.Rollback()
@@ -259,6 +264,98 @@ func (h *AuthEventHandler) shouldProvisionForHospital(ctx context.Context, tenan
 	return isHospitalRelevant(outletUseCase, resolved, tenantUseCase, eventRoles(payload))
 }
 
+// reconcileUserOutlets makes localUserID's HospitalUserOutlet rows match the outlet set
+// carried on an auth.user event, for tenantID. The home outlet is the first entry. Mirrors
+// inventory-api's identical function (its "gold standard" precedent for this pattern) — ported
+// verbatim except user_id here is the LOCAL HospitalUser.ID, not the auth-service id.
+//
+// Idempotent and safe against partial events: when the payload carries NO outlet information at
+// all (a plain profile-field update — e.g. VerifyAndSetUserEmail's auth.user.updated never
+// includes outlet_id), assignments are left untouched. This was verified against auth-api's
+// actual event-publishing code before wiring this in: outlet_id/outlet_ids only appear in a
+// payload when a tenant admin explicitly changed the assignment via AddTenantMember/
+// UpdateTenantMember, never on an unrelated profile update — so calling this unconditionally
+// from every auth.user.created/updated handler cannot silently wipe an admin-assigned
+// multi-outlet set.
+func (h *AuthEventHandler) reconcileUserOutlets(ctx context.Context, tenantID, localUserID uuid.UUID, payload map[string]any) error {
+	desired, present := desiredOutletSet(payload)
+	if !present {
+		return nil
+	}
+
+	existing, err := h.client.HospitalUserOutlet.Query().
+		Where(hospitaluseroutlet.TenantIDEQ(tenantID), hospitaluseroutlet.UserIDEQ(localUserID)).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("load user outlets: %w", err)
+	}
+	existingByOutlet := make(map[uuid.UUID]*ent.HospitalUserOutlet, len(existing))
+	for _, a := range existing {
+		existingByOutlet[a.OutletID] = a
+	}
+	desiredSet := make(map[uuid.UUID]bool, len(desired))
+	for _, o := range desired {
+		desiredSet[o] = true
+	}
+
+	for outletID, row := range existingByOutlet {
+		if !desiredSet[outletID] {
+			if delErr := h.client.HospitalUserOutlet.DeleteOne(row).Exec(ctx); delErr != nil && !ent.IsNotFound(delErr) {
+				return fmt.Errorf("remove stale user outlet: %w", delErr)
+			}
+		}
+	}
+
+	for i, outletID := range desired {
+		if _, ok := existingByOutlet[outletID]; ok {
+			continue
+		}
+		if _, createErr := h.client.HospitalUserOutlet.Create().
+			SetTenantID(tenantID).
+			SetUserID(localUserID).
+			SetOutletID(outletID).
+			SetIsHomeOutlet(i == 0).
+			Save(ctx); createErr != nil && !ent.IsConstraintError(createErr) {
+			return fmt.Errorf("assign user outlet: %w", createErr)
+		}
+	}
+
+	h.logger.Info("user-outlet assignments reconciled",
+		zap.String("user_id", localUserID.String()), zap.String("tenant_id", tenantID.String()),
+		zap.Int("outlets", len(desired)))
+	return nil
+}
+
+// desiredOutletSet extracts the desired outlet assignment set from an auth.user event payload.
+// Returns (set, true) when the payload carries assignment info — either outlet_ids (array) or
+// outlet_id (single; "" means clear). Returns (nil, false) when no outlet key is present,
+// signalling "leave assignments as-is".
+func desiredOutletSet(payload map[string]any) ([]uuid.UUID, bool) {
+	if raw, ok := payload["outlet_ids"]; ok {
+		arr, _ := raw.([]any)
+		out := make([]uuid.UUID, 0, len(arr))
+		for _, v := range arr {
+			if s, ok := v.(string); ok {
+				if id, err := uuid.Parse(s); err == nil {
+					out = append(out, id)
+				}
+			}
+		}
+		return out, true
+	}
+	if raw, ok := payload["outlet_id"]; ok {
+		s, _ := raw.(string)
+		if s == "" {
+			return nil, true
+		}
+		if id, err := uuid.Parse(s); err == nil {
+			return []uuid.UUID{id}, true
+		}
+		return nil, true
+	}
+	return nil, false
+}
+
 func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedevents.Event) error {
 	userIDStr, _ := evt.Payload["user_id"].(string)
 	email, _ := evt.Payload["email"].(string)
@@ -330,6 +427,10 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 					zap.String("role_code", roleCode), zap.Error(err))
 			}
 		}
+	}
+
+	if err := h.reconcileUserOutlets(ctx, tenantID, created.ID, evt.Payload); err != nil {
+		h.logger.Warn("outlet reconciliation failed on user.created", zap.Error(err))
 	}
 
 	return nil
@@ -424,6 +525,10 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 						zap.String("role_code", roleCode), zap.String("tenant_id", u.TenantID.String()), zap.Error(err))
 				}
 			}
+		}
+		if err := h.reconcileUserOutlets(ctx, u.TenantID, u.ID, evt.Payload); err != nil {
+			h.logger.Warn("outlet reconciliation failed on user.updated",
+				zap.String("tenant_id", u.TenantID.String()), zap.Error(err))
 		}
 	}
 

@@ -100,6 +100,12 @@ func (_c *TenantCreate) SetMetadata(v map[string]interface{}) *TenantCreate {
 	return _c
 }
 
+// SetSettings sets the "settings" field.
+func (_c *TenantCreate) SetSettings(v map[string]interface{}) *TenantCreate {
+	_c.mutation.SetSettings(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *TenantCreate) SetCreatedAt(v time.Time) *TenantCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -323,6 +329,10 @@ func (_c *TenantCreate) createSpec() (*Tenant, *sqlgraph.CreateSpec) {
 		_spec.SetField(tenant.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
+	if value, ok := _c.mutation.Settings(); ok {
+		_spec.SetField(tenant.FieldSettings, field.TypeJSON, value)
+		_node.Settings = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(tenant.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -517,6 +527,24 @@ func (u *TenantUpsert) ClearMetadata() *TenantUpsert {
 	return u
 }
 
+// SetSettings sets the "settings" field.
+func (u *TenantUpsert) SetSettings(v map[string]interface{}) *TenantUpsert {
+	u.Set(tenant.FieldSettings, v)
+	return u
+}
+
+// UpdateSettings sets the "settings" field to the value that was provided on create.
+func (u *TenantUpsert) UpdateSettings() *TenantUpsert {
+	u.SetExcluded(tenant.FieldSettings)
+	return u
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (u *TenantUpsert) ClearSettings() *TenantUpsert {
+	u.SetNull(tenant.FieldSettings)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *TenantUpsert) SetUpdatedAt(v time.Time) *TenantUpsert {
 	u.Set(tenant.FieldUpdatedAt, v)
@@ -696,6 +724,27 @@ func (u *TenantUpsertOne) UpdateMetadata() *TenantUpsertOne {
 func (u *TenantUpsertOne) ClearMetadata() *TenantUpsertOne {
 	return u.Update(func(s *TenantUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetSettings sets the "settings" field.
+func (u *TenantUpsertOne) SetSettings(v map[string]interface{}) *TenantUpsertOne {
+	return u.Update(func(s *TenantUpsert) {
+		s.SetSettings(v)
+	})
+}
+
+// UpdateSettings sets the "settings" field to the value that was provided on create.
+func (u *TenantUpsertOne) UpdateSettings() *TenantUpsertOne {
+	return u.Update(func(s *TenantUpsert) {
+		s.UpdateSettings()
+	})
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (u *TenantUpsertOne) ClearSettings() *TenantUpsertOne {
+	return u.Update(func(s *TenantUpsert) {
+		s.ClearSettings()
 	})
 }
 
@@ -1047,6 +1096,27 @@ func (u *TenantUpsertBulk) UpdateMetadata() *TenantUpsertBulk {
 func (u *TenantUpsertBulk) ClearMetadata() *TenantUpsertBulk {
 	return u.Update(func(s *TenantUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetSettings sets the "settings" field.
+func (u *TenantUpsertBulk) SetSettings(v map[string]interface{}) *TenantUpsertBulk {
+	return u.Update(func(s *TenantUpsert) {
+		s.SetSettings(v)
+	})
+}
+
+// UpdateSettings sets the "settings" field to the value that was provided on create.
+func (u *TenantUpsertBulk) UpdateSettings() *TenantUpsertBulk {
+	return u.Update(func(s *TenantUpsert) {
+		s.UpdateSettings()
+	})
+}
+
+// ClearSettings clears the value of the "settings" field.
+func (u *TenantUpsertBulk) ClearSettings() *TenantUpsertBulk {
+	return u.Update(func(s *TenantUpsert) {
+		s.ClearSettings()
 	})
 }
 

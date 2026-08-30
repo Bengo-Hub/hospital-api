@@ -11,6 +11,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/modules/auditlog"
 	"github.com/bengobox/hospital-service/internal/modules/authapi"
@@ -273,6 +274,54 @@ func (s *Service) GetTenant(ctx context.Context, tenantID uuid.UUID) (*ent.Tenan
 	return s.client.Tenant.Get(ctx, tenantID)
 }
 
+// allowedTenantSettingKeys are the only keys UpdateTenantSettings accepts — an explicit
+// allowlist, not free-form passthrough, since Tenant.settings has no per-key schema/migration.
+var allowedTenantSettingKeys = map[string]bool{
+	"auto_logout_minutes": true,
+	"default_landing_view": true,
+	"operating_hours":      true,
+}
+
+// UpdateTenantSettings merges the given key/value pairs into Tenant.settings (hospital.config.manage
+// — facility operating settings a tenant admin genuinely owns, deliberately kept in a SEPARATE
+// field from metadata so the subscriptions-api sync can never clobber it, see the schema's own
+// doc comment). Unknown keys are rejected outright rather than silently accepted, so a typo in a
+// future frontend field name fails loudly instead of writing dead data nothing ever reads.
+func (s *Service) UpdateTenantSettings(ctx context.Context, tenantID, actorID uuid.UUID, updates map[string]any) (*ent.Tenant, error) {
+	for k := range updates {
+		if !allowedTenantSettingKeys[k] {
+			return nil, fmt.Errorf("unknown setting %q", k)
+		}
+	}
+	t, err := s.client.Tenant.Get(ctx, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("load tenant: %w", err)
+	}
+	before := map[string]any{}
+	for k, v := range t.Settings {
+		before[k] = v
+	}
+	merged := map[string]any{}
+	for k, v := range t.Settings {
+		merged[k] = v
+	}
+	for k, v := range updates {
+		merged[k] = v
+	}
+	updated, err := s.client.Tenant.UpdateOne(t).SetSettings(merged).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("save tenant settings: %w", err)
+	}
+	if s.audit != nil {
+		s.audit.Record(ctx, auditlog.Entry{
+			TenantID: tenantID, ActorID: actorID, Action: "tenant.settings_updated",
+			TargetType: "tenant", TargetID: tenantID,
+			Before: before, After: merged,
+		})
+	}
+	return updated, nil
+}
+
 // ListOutlets returns every outlet synced for a tenant — the source list for hospital-ui's
 // outlet switcher (2026-08-30). Outlets are synced in via auth-service NATS events
 // (auth_outlet_events.go); this is the first place they're ever exposed over HTTP. No
@@ -294,6 +343,68 @@ func (s *Service) ListUsers(ctx context.Context, tenantID uuid.UUID) ([]*ent.Hos
 		Where(hospitaluser.TenantIDEQ(tenantID)).
 		Order(ent.Asc(hospitaluser.FieldEmail)).
 		All(ctx)
+}
+
+// ListUserOutlets returns userID's (a LOCAL HospitalUser.ID) outlet assignments for tenantID —
+// the source list for the Users admin page's per-user outlet management, and consumed directly
+// by outlet_context.go's enforcement check.
+func (s *Service) ListUserOutlets(ctx context.Context, tenantID, userID uuid.UUID) ([]*ent.HospitalUserOutlet, error) {
+	return s.client.HospitalUserOutlet.Query().
+		Where(hospitaluseroutlet.TenantIDEQ(tenantID), hospitaluseroutlet.UserIDEQ(userID)).
+		Order(ent.Desc(hospitaluseroutlet.FieldIsHomeOutlet)).
+		All(ctx)
+}
+
+// AssignUserOutlet idempotently grants userID (a LOCAL HospitalUser.ID) access to outletID.
+// Validates the outlet belongs to this tenant before assigning (never trusts a bare UUID).
+func (s *Service) AssignUserOutlet(ctx context.Context, tenantID, actorID, userID, outletID uuid.UUID, isHomeOutlet bool) error {
+	exists, err := s.client.Outlet.Query().Where(outlet.ID(outletID), outlet.TenantID(tenantID)).Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("check outlet: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("outlet not found for this tenant")
+	}
+	already, err := s.client.HospitalUserOutlet.Query().
+		Where(hospitaluseroutlet.TenantIDEQ(tenantID), hospitaluseroutlet.UserIDEQ(userID), hospitaluseroutlet.OutletIDEQ(outletID)).
+		Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("check existing assignment: %w", err)
+	}
+	if already {
+		return nil
+	}
+	if _, err := s.client.HospitalUserOutlet.Create().
+		SetTenantID(tenantID).SetUserID(userID).SetOutletID(outletID).SetIsHomeOutlet(isHomeOutlet).SetAssignedBy(actorID).
+		Save(ctx); err != nil {
+		return fmt.Errorf("assign outlet: %w", err)
+	}
+	if s.audit != nil {
+		s.audit.Record(ctx, auditlog.Entry{
+			TenantID: tenantID, ActorID: actorID, Action: "user.outlet_assigned",
+			TargetType: "user", TargetID: userID,
+			After: map[string]any{"outlet_id": outletID.String(), "is_home_outlet": isHomeOutlet},
+		})
+	}
+	return nil
+}
+
+// RemoveUserOutlet revokes userID's (a LOCAL HospitalUser.ID) access to outletID.
+func (s *Service) RemoveUserOutlet(ctx context.Context, tenantID, actorID, userID, outletID uuid.UUID) error {
+	n, err := s.client.HospitalUserOutlet.Delete().
+		Where(hospitaluseroutlet.TenantIDEQ(tenantID), hospitaluseroutlet.UserIDEQ(userID), hospitaluseroutlet.OutletIDEQ(outletID)).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("remove outlet assignment: %w", err)
+	}
+	if n > 0 && s.audit != nil {
+		s.audit.Record(ctx, auditlog.Entry{
+			TenantID: tenantID, ActorID: actorID, Action: "user.outlet_unassigned",
+			TargetType: "user", TargetID: userID,
+			Before: map[string]any{"outlet_id": outletID.String()},
+		})
+	}
+	return nil
 }
 
 // extractRoles pulls the "roles" claim out of either a []string or []interface{} shape

@@ -23,6 +23,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalpermission"
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
+	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -112,6 +113,7 @@ func checkColumn(t, c string) error {
 			hospitalpermission.Table:      hospitalpermission.ValidColumn,
 			hospitalrole.Table:            hospitalrole.ValidColumn,
 			hospitaluser.Table:            hospitaluser.ValidColumn,
+			hospitaluseroutlet.Table:      hospitaluseroutlet.ValidColumn,
 			laborder.Table:                laborder.ValidColumn,
 			laborderline.Table:            laborderline.ValidColumn,
 			labtestcatalogdefault.Table:   labtestcatalogdefault.ValidColumn,

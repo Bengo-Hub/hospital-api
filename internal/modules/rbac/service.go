@@ -581,6 +581,33 @@ func (s *Service) UpdateRolePermissions(ctx context.Context, tenantID, actorID, 
 	return nil
 }
 
+// DeleteRole permanently removes a TENANT-owned role (a clone or from-scratch custom role —
+// never a global role, is_system_role rows are always rejected). Refuses when any
+// UserRoleAssignment still references it, requiring the caller to reassign those users first
+// rather than silently stripping their access or cascading the delete.
+func (s *Service) DeleteRole(ctx context.Context, tenantID, actorID, roleID uuid.UUID) error {
+	role, err := s.repo.GetRole(ctx, roleID)
+	if err != nil {
+		return fmt.Errorf("role not found: %w", err)
+	}
+	if role.TenantID == nil || *role.TenantID != tenantID {
+		return fmt.Errorf("cannot delete a global role, or a role belonging to another tenant")
+	}
+	assignments, err := s.repo.ListUserAssignments(ctx, tenantID, AssignmentFilters{RoleID: &roleID})
+	if err != nil {
+		return fmt.Errorf("check existing assignments: %w", err)
+	}
+	if len(assignments) > 0 {
+		return fmt.Errorf("%d staff member(s) still hold this role — reassign them before deleting", len(assignments))
+	}
+	if err := s.repo.DeleteRole(ctx, roleID); err != nil {
+		return fmt.Errorf("delete role: %w", err)
+	}
+	s.logger.Info("role deleted", zap.String("tenant_id", tenantID.String()), zap.String("role_code", role.RoleCode))
+	s.recordAudit(ctx, tenantID, actorID, "role.deleted", "role", roleID, map[string]any{"role_code": role.RoleCode}, nil)
+	return nil
+}
+
 // permissionIDsForCodes resolves permission codes to their catalog IDs, skipping any code that
 // doesn't exist in the seeded catalog (rather than failing the whole operation on one typo).
 func (s *Service) permissionIDsForCodes(ctx context.Context, codes []string) ([]uuid.UUID, error) {
