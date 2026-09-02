@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -35,6 +36,7 @@ type PatientVisitQuery struct {
 	withReferrals          *ReferralQuery
 	withExaminationRecords *ExaminationRecordQuery
 	withLabOrders          *LabOrderQuery
+	withAdmissions         *AdmissionQuery
 	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -175,6 +177,28 @@ func (_q *PatientVisitQuery) QueryLabOrders() *LabOrderQuery {
 			sqlgraph.From(patientvisit.Table, patientvisit.FieldID, selector),
 			sqlgraph.To(laborder.Table, laborder.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, patientvisit.LabOrdersTable, patientvisit.LabOrdersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAdmissions chains the current query on the "admissions" edge.
+func (_q *PatientVisitQuery) QueryAdmissions() *AdmissionQuery {
+	query := (&AdmissionClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(patientvisit.Table, patientvisit.FieldID, selector),
+			sqlgraph.To(admission.Table, admission.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, patientvisit.AdmissionsTable, patientvisit.AdmissionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -379,6 +403,7 @@ func (_q *PatientVisitQuery) Clone() *PatientVisitQuery {
 		withReferrals:          _q.withReferrals.Clone(),
 		withExaminationRecords: _q.withExaminationRecords.Clone(),
 		withLabOrders:          _q.withLabOrders.Clone(),
+		withAdmissions:         _q.withAdmissions.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -437,6 +462,17 @@ func (_q *PatientVisitQuery) WithLabOrders(opts ...func(*LabOrderQuery)) *Patien
 		opt(query)
 	}
 	_q.withLabOrders = query
+	return _q
+}
+
+// WithAdmissions tells the query-builder to eager-load the nodes that are connected to
+// the "admissions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PatientVisitQuery) WithAdmissions(opts ...func(*AdmissionQuery)) *PatientVisitQuery {
+	query := (&AdmissionClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAdmissions = query
 	return _q
 }
 
@@ -518,12 +554,13 @@ func (_q *PatientVisitQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*PatientVisit{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withPatient != nil,
 			_q.withTriageRecords != nil,
 			_q.withReferrals != nil,
 			_q.withExaminationRecords != nil,
 			_q.withLabOrders != nil,
+			_q.withAdmissions != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -580,6 +617,13 @@ func (_q *PatientVisitQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		if err := _q.loadLabOrders(ctx, query, nodes,
 			func(n *PatientVisit) { n.Edges.LabOrders = []*LabOrder{} },
 			func(n *PatientVisit, e *LabOrder) { n.Edges.LabOrders = append(n.Edges.LabOrders, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAdmissions; query != nil {
+		if err := _q.loadAdmissions(ctx, query, nodes,
+			func(n *PatientVisit) { n.Edges.Admissions = []*Admission{} },
+			func(n *PatientVisit, e *Admission) { n.Edges.Admissions = append(n.Edges.Admissions, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -730,6 +774,36 @@ func (_q *PatientVisitQuery) loadLabOrders(ctx context.Context, query *LabOrderQ
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "visit_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *PatientVisitQuery) loadAdmissions(ctx context.Context, query *AdmissionQuery, nodes []*PatientVisit, init func(*PatientVisit), assign func(*PatientVisit, *Admission)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*PatientVisit)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(admission.FieldPatientVisitID)
+	}
+	query.Where(predicate.Admission(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(patientvisit.AdmissionsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PatientVisitID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "patient_visit_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

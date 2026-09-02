@@ -29,6 +29,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
+	"github.com/bengobox/hospital-service/internal/modules/inpatient"
 	inventoryclient "github.com/bengobox/hospital-service/internal/modules/inventory"
 	"github.com/bengobox/hospital-service/internal/modules/lab"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
@@ -228,6 +229,10 @@ func New(ctx context.Context) (*App, error) {
 	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log, authAPIClient, validator, rbacService, witnessTokenSecret)
 	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc, rbacService)
 
+	// ── Sprint 6: inpatient (ward/bed/admission/transfer/discharge) ───────
+	inpatientSvc := inpatient.NewService(ormClient, billingSvc, log)
+	inpatientHandler := handlers.NewInpatientHandler(inpatientSvc, rbacService)
+
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
@@ -255,6 +260,7 @@ func New(ctx context.Context) (*App, error) {
 		Config:         configHandler,
 		AuditLog:       auditLogHandler,
 		UserOutlets:    userOutletsHandler,
+		Inpatient:      inpatientHandler,
 		TenantSyncer:   tenantSyncer,
 	}
 	chiRouter := router.New(deps)

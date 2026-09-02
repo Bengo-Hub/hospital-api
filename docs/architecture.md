@@ -46,7 +46,9 @@ hospital-api **owns**:
 - `LabOrder`/`LabOrderLine` (the `LabTest` catalogue itself is global reference data + tenant-custom additions)
 - `Prescription`/`PrescriptionLine`, `ControlledSubstanceLog` — **the only place this logic lives on the platform**; see `migration-pos-pharmacy.md` for why pos-api carries none of it
 - `BillableItemCatalog`, `PatientAccount`, `BillableCharge`, `PatientNextOfKin` — the **billing ledger** (what's owed, by which department, settled or not). This is distinct from the actual money: hospital-api never stores an invoice/payment/GL row (those stay treasury-owned below) — it owns the clinical-workflow question of "has this step been paid for," the same relationship pos-api's `POSOrder` already has to treasury. See "Distributed Billing & Patient Accounts" below.
-- `Ward`/`Bed`/`Admission`, discharge summaries
+- `Ward`/`Bed`/`Admission`, discharge summaries, `PatientTransfer` (ward/bed moves and inter-facility
+  transfer-out events, planned 2026-09-02 alongside Sprint 6 — see "Referral, Transfer & Ambulance
+  Billing" below)
 - `TheatreBooking` (OT scheduling), `ICUEpisode` (critical-care monitoring flags)
 - `DonorRecord`, `CrossmatchRequest`, `TransfusionRecord` (clinical blood-bank records — physical blood units are inventory-api lots, not owned here)
 - `AmbulanceBooking` (thin reference row only — see below, not a dispatch/fleet engine)
@@ -171,6 +173,172 @@ required to exist as a system user) rather than blocking silently. An explicit
 a patient/body with an outstanding balance (real facilities do this for emergencies/charity cases) —
 same "guardrail with an audited approval escape hatch" convention the platform already uses
 elsewhere (pos-api's `ApprovalIntentID` pattern), never a silent bypass.
+
+## Referral, Transfer & Ambulance Billing (2026-09-02 research round)
+
+**The gap this section closes**: a client-facing engineer on this project reviewed the shipped docs
+and code and correctly flagged that IPD/OPD referral, transfer, and ambulance workflows were thin.
+The real, shipped `Referral` schema (`internal/ent/schema/referral.go`) only carries `referred_to`
+(a free string: `lab`/`pharmacy`/`external_facility`/`specialist`), `reason`, and `status`
+(`pending`/`acted_on`/`cancelled`). There is no receiving-facility identity, no referral letter
+content, no accept/reject/counter-referral lifecycle, and no distinction in the schema between an
+internal department hand-off (already well covered by the ordinary visit status machine,
+`registered→triaged→in_examination→awaiting_lab→...`) and a genuine inter-facility referral, where the
+patient physically leaves for another facility. There is also no "transfer" concept at all, neither a
+ward-to-ward move during an admission nor an inter-facility transfer of an active inpatient, and
+`ambulance_booking`'s `fare_amount` field is a dead end, never wired into the Distributed Billing
+ledger described above. This section is a **planned design**, written ahead of the code exactly the
+way the Distributed Billing section above was, not yet built. `erd.md` carries the corresponding
+additive field lists.
+
+### Definitions used below
+
+- **Internal (intra-visit) referral**: a hand-off between departments of the SAME visit at the SAME
+  facility, for example Consultation → Lab or Consultation → Pharmacy. This already works today via
+  `Referral.referred_to` plus `PatientVisit.status`, and needs no new entity.
+- **Inter-facility referral**: the patient physically leaves for another facility, carrying a referral
+  letter, typically without this platform having any operational role in getting them there (they
+  self-present, or arrange their own transport). The clinical record of "I referred this patient out,
+  here is why, here is what came back" belongs to hospital-api.
+- **Intra-facility transfer**: a ward-to-ward or bed-to-bed move during an ONGOING admission at the
+  SAME facility, for example general ward to ICU. The admission never closes.
+- **Inter-facility transfer**: an ACTIVE inpatient is moved to another facility. Operationally
+  different from an inter-facility referral: it usually involves the sending clinician's summary, the
+  receiving facility confirming bed availability before the move, and an ambulance leg, since the
+  patient cannot self-present. The admission at the sending facility closes.
+
+### Sourcing this design is grounded in
+
+- **Kenya's 2014 national referral guideline** (Kenya Health Sector Referral Strategy and its
+  Implementation Guideline, MOH, both referenced via measureevaluation.org/pima) is a real, named
+  document, not an invented one. Two independent peer-reviewed studies auditing adherence to it at
+  Kenyan teaching hospitals (a Western Kenya paediatric referral study, and a Kenyatta National
+  Hospital orthopedic-admissions study) describe its core transfer requirements: the referring
+  facility should call/consult the receiving facility for concurrence BEFORE transfer, a referral
+  document (form or letter) should accompany the patient, and for a transfer, the ambulance should
+  carry essential medicines, a first-aid kit, a transfer couch, and an oxygen supply. Both studies also
+  found real-world adherence is weak: one found only 46.3% of paediatric referrals met all
+  requirements with no counter-referrals observed at all; the other found written referral letters
+  present only ~48-49% of the time even after a hospital enforced a referral-office-concurrence
+  policy, because most referrals in practice happen by phone call first, with a written letter often
+  never following. **Design implication**: the system must let a referral/transfer be created and
+  progressed even before a formal letter exists (a phone-confirmed, letter-pending state is normal
+  practice here, not an edge case), and a counter-referral field should exist without an assumption
+  that it will usually be filled in.
+- **Kenya's MOH 100 "Community Referral Form"** (a real, sourced, existing paper form, confirmed via
+  the Ministry's own Department of Family Health and via TCI Urban Health's published copy) is the
+  community-health-worker-to-facility referral, a different direction from a facility-to-facility
+  referral. It is not the same document as an inter-facility referral letter and should not be
+  conflated with one; no confirmed MOH form number for a facility-to-facility referral letter itself
+  was found in this round, treat that specific gap as "not found," not "does not exist."
+- **A national "Kenya Healthcare Referral Policy"** is under active MOH stakeholder engagement (per a
+  2026 KBC News report), aiming to standardize referral procedures, ensure timely transfers, and
+  improve feedback between referring and receiving providers — consistent with, and an update to, the
+  "national e-Referral policy is still in stakeholder review" note already in `docs/integrations.md`
+  §2D. Treat the policy's own final content as not yet settled; nothing here assumes a specific
+  outcome from it.
+- **OpenMRS's real Bed Management + EMR API modules** (confirmed via the actual GitHub source, the
+  same OpenMRS lineage KenyaEMR is built on, see `docs/kenyaemr-technical-reference.md`) implement a
+  named Admission-Discharge-Transfer (ADT) workflow with a distinct "Transfer" encounter type, and let
+  a user "transfer a patient to another ward or to a bed on the current ward" as a first-class action,
+  separate from the admission encounter itself. This independently validates modeling a transfer as
+  its own event record rather than a silent field mutation (see the `PatientTransfer` decision below).
+- **St John Ambulance Kenya** runs a named, separate "Patient Transfers" service line alongside its
+  Emergency Ambulance call-out and individual/family membership products (confirmed via its own site,
+  though the page did not yield pricing detail in this round). This corroborates treating inter-facility
+  patient transfer as operationally distinct from a standalone emergency call-out in the Kenyan private
+  ambulance market, independent of the base-fee-plus-per-km pricing model already documented in
+  `docs/integrations.md` §2A.
+- **General (non-Kenya-specific) inter-facility ambulance billing literature**: US EMS billing sources
+  describe hospital-to-hospital transport of an already-admitted inpatient as typically billed to the
+  transferring/receiving FACILITY rather than directly to the patient or their insurer, a materially
+  different flow from a standalone community ambulance call. This is used below only as a general
+  inference about how the fare should route into this platform's own ledger, explicitly not as a
+  claim about Kenyan law or a specific Kenyan facility's practice.
+- **Not confirmed**: a distinct, standard "referral coordination" or "transfer administrative fee"
+  separate from the transport fare itself, in Kenyan private/faith-based facility billing practice. No
+  source for this was found in this round. The design below treats it as an optional, tenant-configured
+  billing-catalog line item, not a confirmed universal practice and not a new schema concept.
+
+### Design: `PatientTransfer` as a new entity, not new fields on `Admission`
+
+**Decision**: model a transfer as a new `patient_transfer` row (see `erd.md`'s Inpatient section),
+keeping `Admission.bed_id` as a mutable "current location" field but requiring every change to it to
+also write a `patient_transfer` row. This mirrors the platform's own `RbacAuditLog` pattern (a minimal,
+additive, no-hard-FK audit-style table introduced 2026-08-30 for RBAC mutations) rather than inventing
+a new kind of table.
+
+**Why not just mutate `Admission.bed_id`/`ward_id` directly**: two real requirements need history, not
+just a current value. First, billing: if a ward's day-rate differs (see below), the platform needs to
+know which ward the patient occupied on which calendar days to bill correctly, not only where they are
+right now. Second, occupancy/audit: `sprint-6-inpatient.md`'s bed-occupancy dashboard and Sprint 12's
+future audit trail both benefit from a real "who moved this patient, from where, to where, when, and
+why" record, the same kind of question the OpenMRS ADT "Transfer" encounter exists to answer. A field
+overwrite with no accompanying row cannot answer either question after the fact.
+
+**How intra- vs inter-facility share the one entity**: `patient_transfer.transfer_type` distinguishes
+them. An `intra_facility` row has both `to_ward_id`/`to_bed_id` populated (a real destination bed at
+this facility) and leaves the admission open. An `inter_facility` row has `to_ward_id`/`to_bed_id`
+null, `receiving_facility_name` populated instead, closes the admission (`discharged_at` set, with a
+discharge reason of "transferred out"), and may reference a `referral_id` (if the transfer traces back
+to a referral decision) and/or an `ambulance_booking_id` (if this platform arranged the ambulance leg).
+
+**Ward differential day-rate on transfer — decision**: yes, a ward-to-ward transfer changes the
+inpatient day-rate from the transfer date forward. `Ward.billable_item_code` (new, nullable, see
+`erd.md`) names which `BillableItemCatalog` code prices a day in that ward (e.g. `BED_DAY_GENERAL` vs
+`BED_DAY_ICU`). The daily bed-charge posting job resolves the applicable code from the patient's ward
+as of that calendar day (using `patient_transfer` history for a day that already passed, or the live
+`Admission`/`Bed`/`Ward` chain for the current day), and posts one `BillableCharge` per admission per
+day at whichever rate applies. A transfer therefore changes the rate for free, as a side effect of
+which ward's code the daily job reads, with no special-cased "mid-stay rate change" logic needed.
+
+### Design: ambulance fare into `PatientAccount`, or deliberately not
+
+`ambulance_booking` gains `patient_account_id`, `billable_charge_id`, `referral_id`, and
+`patient_transfer_id` (all nullable, see `erd.md`). The routing decision:
+
+- **An admitted inpatient's inter-facility transfer, or any OPD patient with an already-open
+  `PatientAccount`**: the ambulance fare posts as a normal `BillableCharge`
+  (`department: "ambulance"`, `source_module: "ambulance"`) onto that SAME account, exactly like a
+  lab or pharmacy charge. No special billing path, no separate mini-invoice. This is the general
+  inference from the US inter-facility billing pattern above, applied to this platform's own
+  already-distributed billing model: the facility's own ledger is the natural place for a transport
+  cost tied to a patient already in that facility's care.
+- **A standalone emergency call-out with no prior registration** (`ambulance_booking.patient_visit_id`
+  is nullable for exactly this reason): no `PatientAccount` exists yet. Two sub-cases, both left to the
+  calling context rather than forced by the schema: (1) the patient is registered after the call
+  (on arrival, or once stabilized), and the fare is posted retroactively once an account exists; or
+  (2) the call never becomes a hospital-api patient record at all, for example a dispatch that ends at
+  a different facility, or a pure community call-out the ambulance operator bills directly, in which
+  case `patient_account_id`/`billable_charge_id` simply stay null forever and the fare is either a
+  standalone treasury-api transaction (mirroring `WalkInSale`'s ledgerless pattern) or entirely outside
+  this platform's billing if a third-party ambulance operator collects payment itself.
+- **A "referral coordination" or "transfer administrative" fee**, distinct from the transport fare, is
+  NOT modeled as a new concept, since no confirmed standard Kenyan practice for it was found (see
+  Sourcing above). A tenant that wants to charge for the administrative work of arranging a transfer
+  can add an ordinary `BillableItemCatalog` row for it (e.g. `department: "records"`,
+  code `REFERRAL_COORDINATION_FEE`), tenant-configured and opt-in like every other catalog entry, not
+  a schema addition.
+
+### Data-ownership boundary (referral / transfer / ambulance dispatch)
+
+No change to the existing ownership split, this section only makes explicit what already follows from
+it, since the gap audit specifically asked for this to be named rather than left implicit:
+
+- **hospital-api owns** the clinical referral record (`Referral`, including its inter-facility fields),
+  the clinical transfer record (`PatientTransfer`), and the billing-ledger view of an ambulance
+  booking's fare (`BillableCharge`/`PatientAccount` linkage on `AmbulanceBooking`). These are clinical
+  and financial-ledger facts about a specific patient's care, hospital-api's core domain.
+- **logistics-api owns** the ambulance fleet, drivers, the dispatch `Task` lifecycle, and distance-based
+  pricing rules, entirely unchanged from `docs/integrations.md` §2A/§1.5. hospital-api never models a
+  vehicle, a driver, or a dispatch state machine; `AmbulanceBooking.logistics_task_id` is the only link.
+- **treasury-api owns** the actual invoice, payment intent, and GL posting for any charge that reaches
+  it, whether that charge originated from a lab test, a drug dispense, or an ambulance fare. hospital-api
+  never stores a payment or an invoice line item itself, only the `BillableCharge` row that says a
+  charge exists and whether it has been settled.
+
+See `shared-docs/docs/architecture/cross-service-data-ownership.md` for the platform-wide version of
+this same boundary, updated the same day.
 
 ## Runtime Document Generation (future)
 
@@ -301,3 +469,11 @@ follow-up section.
   leak (36 non-hospital demo users, pre-dating this file's own `isHospitalRelevant` fix) was found
   via a user bug report and cleaned up the same session — see
   `.claude/memory/hospital-demo-tenant-leak-and-fleet-backfill-cleanup-2026-08-30.md`.
+- **2026-09-02** — added the "Referral, Transfer & Ambulance Billing" section above (planned design,
+  docs only, no code) after a client-facing engineer flagged that IPD/OPD referral, transfer, and
+  ambulance workflows were thin relative to the rest of the platform. Decided `PatientTransfer` is a
+  new entity (not new fields on `Admission`), decided ward transfer changes the inpatient day-rate
+  from the transfer date forward via a new `Ward.billable_item_code`, and decided how an ambulance
+  fare routes into `PatientAccount`/`BillableCharge` versus staying a standalone charge. See `erd.md`
+  for the corresponding additive field lists and `docs/sprints/sprint-6-inpatient.md` /
+  `sprint-9-ambulance-assets.md` / `sprint-12-compliance-hardening.md` for where this lands sprint-wise.

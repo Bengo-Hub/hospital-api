@@ -1,4 +1,4 @@
-h1:iQp/KkJ7IQCE282wKQUlCC6A8vvXdR4w065uCByX+Ig=
+h1:vER8qcdWzKUddDFRkWxLEIhWzhH3NncQ2QWfrWgElLs=
 20260731212101_add_rbac_and_sync_schemas.sql h1:k+F/1ko7AGn0h9CZoWquPgsfoCCH+wMm8/wdycvUnxs=
 20260829112442_tenant_facility_metadata.sql h1:NaPnpW01TiNmyX6U6hQR2bIZekD6r7QqiIjU+HM5Aaw=
 20260829120437_sprint1_patient_opd_triage.sql h1:Qya7Ud7B6bbQMJHBecWOtx5+KFtu74ROeeRFHnCrLPw=
@@ -12,3 +12,4 @@ h1:iQp/KkJ7IQCE282wKQUlCC6A8vvXdR4w065uCByX+Ig=
 20260830150000_user_outlets_and_tenant_settings.sql h1:x5kZTXMqDNZMNfVnv1AMGMcDGowsWiovAq+j4CWrSpg=
 20260902100427_add_walk_in_sale.sql h1:l6TQvROY29sVlsZpWlb6AVhaaYtQdhkzqjeR/+U0ZbM=
 20260902123013_add_outlet_facility_type.sql h1:5FavUgt2xHWIUZQbdi3XS/CWEvBUzcbITMMtJ4x80H0=
+20260902182648_sprint6_inpatient_ward_bed_admission_transfer.sql h1:iuRrIZqVFzOynhPnSR9kWSh9CKbZpVfxO44WpuFUcXI=

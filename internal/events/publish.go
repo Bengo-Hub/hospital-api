@@ -30,6 +30,13 @@ const (
 	EventVisitAdmitted    = "visit.admitted"
 	EventVisitDischarged  = "visit.discharged"
 	EventLabOrderResulted = "lab_order.resulted"
+	// EventAdmissionCreated (Sprint 6) — a patient was admitted to a ward/bed. Distinct from the
+	// confusingly-named EventVisitAdmitted above (which actually fires on ordinary OPD check-in,
+	// not IPD admission) — kept as-is rather than renamed, since EventVisitAdmitted is already
+	// live in production and a rename would be a breaking subject change for zero real benefit.
+	EventAdmissionCreated = "admission.created"
+	// EventAdmissionTransferred (Sprint 6) — a ward/bed transfer within an active admission.
+	EventAdmissionTransferred = "admission.transferred"
 )
 
 // Publisher inserts outbox rows. oc is either client.OutboxEvent or tx.OutboxEvent.

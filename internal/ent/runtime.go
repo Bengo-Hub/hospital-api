@@ -5,6 +5,8 @@ package ent
 import (
 	"time"
 
+	"github.com/bengobox/hospital-service/internal/ent/admission"
+	"github.com/bengobox/hospital-service/internal/ent/bed"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
@@ -26,6 +28,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
+	"github.com/bengobox/hospital-service/internal/ent/patienttransfer"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
@@ -36,6 +39,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
+	"github.com/bengobox/hospital-service/internal/ent/ward"
 	"github.com/google/uuid"
 )
 
@@ -43,6 +47,54 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	admissionFields := schema.Admission{}.Fields()
+	_ = admissionFields
+	// admissionDescAdmissionNumber is the schema descriptor for admission_number field.
+	admissionDescAdmissionNumber := admissionFields[5].Descriptor()
+	// admission.AdmissionNumberValidator is a validator for the "admission_number" field. It is called by the builders before save.
+	admission.AdmissionNumberValidator = admissionDescAdmissionNumber.Validators[0].(func(string) error)
+	// admissionDescAdmittedAt is the schema descriptor for admitted_at field.
+	admissionDescAdmittedAt := admissionFields[10].Descriptor()
+	// admission.DefaultAdmittedAt holds the default value on creation for the admitted_at field.
+	admission.DefaultAdmittedAt = admissionDescAdmittedAt.Default.(func() time.Time)
+	// admissionDescWardChargePosted is the schema descriptor for ward_charge_posted field.
+	admissionDescWardChargePosted := admissionFields[14].Descriptor()
+	// admission.DefaultWardChargePosted holds the default value on creation for the ward_charge_posted field.
+	admission.DefaultWardChargePosted = admissionDescWardChargePosted.Default.(bool)
+	// admissionDescCreatedAt is the schema descriptor for created_at field.
+	admissionDescCreatedAt := admissionFields[15].Descriptor()
+	// admission.DefaultCreatedAt holds the default value on creation for the created_at field.
+	admission.DefaultCreatedAt = admissionDescCreatedAt.Default.(func() time.Time)
+	// admissionDescUpdatedAt is the schema descriptor for updated_at field.
+	admissionDescUpdatedAt := admissionFields[16].Descriptor()
+	// admission.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	admission.DefaultUpdatedAt = admissionDescUpdatedAt.Default.(func() time.Time)
+	// admission.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	admission.UpdateDefaultUpdatedAt = admissionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// admissionDescID is the schema descriptor for id field.
+	admissionDescID := admissionFields[0].Descriptor()
+	// admission.DefaultID holds the default value on creation for the id field.
+	admission.DefaultID = admissionDescID.Default.(func() uuid.UUID)
+	bedFields := schema.Bed{}.Fields()
+	_ = bedFields
+	// bedDescBedNumber is the schema descriptor for bed_number field.
+	bedDescBedNumber := bedFields[3].Descriptor()
+	// bed.BedNumberValidator is a validator for the "bed_number" field. It is called by the builders before save.
+	bed.BedNumberValidator = bedDescBedNumber.Validators[0].(func(string) error)
+	// bedDescCreatedAt is the schema descriptor for created_at field.
+	bedDescCreatedAt := bedFields[5].Descriptor()
+	// bed.DefaultCreatedAt holds the default value on creation for the created_at field.
+	bed.DefaultCreatedAt = bedDescCreatedAt.Default.(func() time.Time)
+	// bedDescUpdatedAt is the schema descriptor for updated_at field.
+	bedDescUpdatedAt := bedFields[6].Descriptor()
+	// bed.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	bed.DefaultUpdatedAt = bedDescUpdatedAt.Default.(func() time.Time)
+	// bed.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	bed.UpdateDefaultUpdatedAt = bedDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// bedDescID is the schema descriptor for id field.
+	bedDescID := bedFields[0].Descriptor()
+	// bed.DefaultID holds the default value on creation for the id field.
+	bed.DefaultID = bedDescID.Default.(func() uuid.UUID)
 	billablechargeFields := schema.BillableCharge{}.Fields()
 	_ = billablechargeFields
 	// billablechargeDescSourceModule is the schema descriptor for source_module field.
@@ -579,6 +631,16 @@ func init() {
 	patientnextofkinDescID := patientnextofkinFields[0].Descriptor()
 	// patientnextofkin.DefaultID holds the default value on creation for the id field.
 	patientnextofkin.DefaultID = patientnextofkinDescID.Default.(func() uuid.UUID)
+	patienttransferFields := schema.PatientTransfer{}.Fields()
+	_ = patienttransferFields
+	// patienttransferDescTransferredAt is the schema descriptor for transferred_at field.
+	patienttransferDescTransferredAt := patienttransferFields[13].Descriptor()
+	// patienttransfer.DefaultTransferredAt holds the default value on creation for the transferred_at field.
+	patienttransfer.DefaultTransferredAt = patienttransferDescTransferredAt.Default.(func() time.Time)
+	// patienttransferDescID is the schema descriptor for id field.
+	patienttransferDescID := patienttransferFields[0].Descriptor()
+	// patienttransfer.DefaultID holds the default value on creation for the id field.
+	patienttransfer.DefaultID = patienttransferDescID.Default.(func() uuid.UUID)
 	patientvisitFields := schema.PatientVisit{}.Fields()
 	_ = patientvisitFields
 	// patientvisitDescVisitNumber is the schema descriptor for visit_number field.
@@ -761,4 +823,32 @@ func init() {
 	walkinsaleDescID := walkinsaleFields[0].Descriptor()
 	// walkinsale.DefaultID holds the default value on creation for the id field.
 	walkinsale.DefaultID = walkinsaleDescID.Default.(func() uuid.UUID)
+	wardFields := schema.Ward{}.Fields()
+	_ = wardFields
+	// wardDescName is the schema descriptor for name field.
+	wardDescName := wardFields[3].Descriptor()
+	// ward.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	ward.NameValidator = wardDescName.Validators[0].(func(string) error)
+	// wardDescCapacity is the schema descriptor for capacity field.
+	wardDescCapacity := wardFields[4].Descriptor()
+	// ward.DefaultCapacity holds the default value on creation for the capacity field.
+	ward.DefaultCapacity = wardDescCapacity.Default.(int)
+	// wardDescIsActive is the schema descriptor for is_active field.
+	wardDescIsActive := wardFields[6].Descriptor()
+	// ward.DefaultIsActive holds the default value on creation for the is_active field.
+	ward.DefaultIsActive = wardDescIsActive.Default.(bool)
+	// wardDescCreatedAt is the schema descriptor for created_at field.
+	wardDescCreatedAt := wardFields[7].Descriptor()
+	// ward.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ward.DefaultCreatedAt = wardDescCreatedAt.Default.(func() time.Time)
+	// wardDescUpdatedAt is the schema descriptor for updated_at field.
+	wardDescUpdatedAt := wardFields[8].Descriptor()
+	// ward.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ward.DefaultUpdatedAt = wardDescUpdatedAt.Default.(func() time.Time)
+	// ward.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ward.UpdateDefaultUpdatedAt = wardDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// wardDescID is the schema descriptor for id field.
+	wardDescID := wardFields[0].Descriptor()
+	// ward.DefaultID holds the default value on creation for the id field.
+	ward.DefaultID = wardDescID.Default.(func() uuid.UUID)
 }

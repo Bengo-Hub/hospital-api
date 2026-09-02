@@ -9,6 +9,114 @@ import (
 )
 
 var (
+	// AdmissionsColumns holds the columns for the "admissions" table.
+	AdmissionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "patient_id", Type: field.TypeUUID},
+		{Name: "admission_number", Type: field.TypeString},
+		{Name: "ward_id", Type: field.TypeUUID},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "discharged"}, Default: "active"},
+		{Name: "admitted_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "admitted_at", Type: field.TypeTime},
+		{Name: "discharged_at", Type: field.TypeTime, Nullable: true},
+		{Name: "discharged_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "discharge_summary", Type: field.TypeString, Nullable: true},
+		{Name: "ward_charge_posted", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "bed_id", Type: field.TypeUUID},
+		{Name: "patient_visit_id", Type: field.TypeUUID},
+	}
+	// AdmissionsTable holds the schema information for the "admissions" table.
+	AdmissionsTable = &schema.Table{
+		Name:       "admissions",
+		Columns:    AdmissionsColumns,
+		PrimaryKey: []*schema.Column{AdmissionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "admissions_beds_admissions",
+				Columns:    []*schema.Column{AdmissionsColumns[15]},
+				RefColumns: []*schema.Column{BedsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "admissions_patient_visits_admissions",
+				Columns:    []*schema.Column{AdmissionsColumns[16]},
+				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "admission_tenant_id_patient_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[16]},
+			},
+			{
+				Name:    "admission_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[6]},
+			},
+			{
+				Name:    "admission_tenant_id_ward_id",
+				Unique:  false,
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[5]},
+			},
+			{
+				Name:    "admission_tenant_id_bed_id",
+				Unique:  false,
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[15]},
+			},
+			{
+				Name:    "admission_tenant_id_admission_number",
+				Unique:  true,
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[4]},
+			},
+		},
+	}
+	// BedsColumns holds the columns for the "beds" table.
+	BedsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "bed_number", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"available", "occupied", "cleaning", "out_of_service"}, Default: "available"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "ward_id", Type: field.TypeUUID},
+	}
+	// BedsTable holds the schema information for the "beds" table.
+	BedsTable = &schema.Table{
+		Name:       "beds",
+		Columns:    BedsColumns,
+		PrimaryKey: []*schema.Column{BedsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "beds_wards_beds",
+				Columns:    []*schema.Column{BedsColumns[6]},
+				RefColumns: []*schema.Column{WardsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "bed_tenant_id_ward_id",
+				Unique:  false,
+				Columns: []*schema.Column{BedsColumns[1], BedsColumns[6]},
+			},
+			{
+				Name:    "bed_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{BedsColumns[1], BedsColumns[3]},
+			},
+			{
+				Name:    "bed_ward_id_bed_number",
+				Unique:  true,
+				Columns: []*schema.Column{BedsColumns[6], BedsColumns[2]},
+			},
+		},
+	}
 	// BillableChargesColumns holds the columns for the "billable_charges" table.
 	BillableChargesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -772,6 +880,41 @@ var (
 			},
 		},
 	}
+	// PatientTransfersColumns holds the columns for the "patient_transfers" table.
+	PatientTransfersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "admission_id", Type: field.TypeUUID},
+		{Name: "transfer_type", Type: field.TypeEnum, Enums: []string{"intra_facility", "inter_facility"}},
+		{Name: "from_ward_id", Type: field.TypeUUID},
+		{Name: "from_bed_id", Type: field.TypeUUID},
+		{Name: "to_ward_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "to_bed_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "receiving_facility_name", Type: field.TypeString, Nullable: true},
+		{Name: "referral_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "ambulance_booking_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Nullable: true},
+		{Name: "transferred_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "transferred_at", Type: field.TypeTime},
+	}
+	// PatientTransfersTable holds the schema information for the "patient_transfers" table.
+	PatientTransfersTable = &schema.Table{
+		Name:       "patient_transfers",
+		Columns:    PatientTransfersColumns,
+		PrimaryKey: []*schema.Column{PatientTransfersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "patienttransfer_tenant_id_admission_id",
+				Unique:  false,
+				Columns: []*schema.Column{PatientTransfersColumns[1], PatientTransfersColumns[2]},
+			},
+			{
+				Name:    "patienttransfer_tenant_id_transferred_at",
+				Unique:  false,
+				Columns: []*schema.Column{PatientTransfersColumns[1], PatientTransfersColumns[13]},
+			},
+		},
+	}
 	// PatientVisitsColumns holds the columns for the "patient_visits" table.
 	PatientVisitsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1216,8 +1359,40 @@ var (
 			},
 		},
 	}
+	// WardsColumns holds the columns for the "wards" table.
+	WardsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString},
+		{Name: "capacity", Type: field.TypeInt, Default: 0},
+		{Name: "billable_item_code", Type: field.TypeString, Nullable: true},
+		{Name: "is_active", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// WardsTable holds the schema information for the "wards" table.
+	WardsTable = &schema.Table{
+		Name:       "wards",
+		Columns:    WardsColumns,
+		PrimaryKey: []*schema.Column{WardsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ward_tenant_id_outlet_id",
+				Unique:  false,
+				Columns: []*schema.Column{WardsColumns[1], WardsColumns[2]},
+			},
+			{
+				Name:    "ward_tenant_id_outlet_id_name",
+				Unique:  true,
+				Columns: []*schema.Column{WardsColumns[1], WardsColumns[2], WardsColumns[3]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AdmissionsTable,
+		BedsTable,
 		BillableChargesTable,
 		BillableItemCatalogsTable,
 		ControlledSubstanceLogsTable,
@@ -1239,6 +1414,7 @@ var (
 		PatientsTable,
 		PatientAccountsTable,
 		PatientNextOfKinsTable,
+		PatientTransfersTable,
 		PatientVisitsTable,
 		PrescriptionsTable,
 		PrescriptionLinesTable,
@@ -1249,10 +1425,14 @@ var (
 		TriageRecordsTable,
 		UserRoleAssignmentsTable,
 		WalkInSalesTable,
+		WardsTable,
 	}
 )
 
 func init() {
+	AdmissionsTable.ForeignKeys[0].RefTable = BedsTable
+	AdmissionsTable.ForeignKeys[1].RefTable = PatientVisitsTable
+	BedsTable.ForeignKeys[0].RefTable = WardsTable
 	BillableChargesTable.ForeignKeys[0].RefTable = PatientAccountsTable
 	ExaminationRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	HospitalUsersTable.ForeignKeys[0].RefTable = TenantsTable

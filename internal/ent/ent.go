@@ -12,6 +12,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/bengobox/hospital-service/internal/ent/admission"
+	"github.com/bengobox/hospital-service/internal/ent/bed"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
@@ -33,6 +35,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
+	"github.com/bengobox/hospital-service/internal/ent/patienttransfer"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
@@ -43,6 +46,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
+	"github.com/bengobox/hospital-service/internal/ent/ward"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -103,6 +107,8 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			admission.Table:               admission.ValidColumn,
+			bed.Table:                     bed.ValidColumn,
 			billablecharge.Table:          billablecharge.ValidColumn,
 			billableitemcatalog.Table:     billableitemcatalog.ValidColumn,
 			controlledsubstancelog.Table:  controlledsubstancelog.ValidColumn,
@@ -124,6 +130,7 @@ func checkColumn(t, c string) error {
 			patient.Table:                 patient.ValidColumn,
 			patientaccount.Table:          patientaccount.ValidColumn,
 			patientnextofkin.Table:        patientnextofkin.ValidColumn,
+			patienttransfer.Table:         patienttransfer.ValidColumn,
 			patientvisit.Table:            patientvisit.ValidColumn,
 			prescription.Table:            prescription.ValidColumn,
 			prescriptionline.Table:        prescriptionline.ValidColumn,
@@ -134,6 +141,7 @@ func checkColumn(t, c string) error {
 			triagerecord.Table:            triagerecord.ValidColumn,
 			userroleassignment.Table:      userroleassignment.ValidColumn,
 			walkinsale.Table:              walkinsale.ValidColumn,
+			ward.Table:                    ward.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

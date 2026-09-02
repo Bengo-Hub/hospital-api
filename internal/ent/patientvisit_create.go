@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -242,6 +243,21 @@ func (_c *PatientVisitCreate) AddLabOrders(v ...*LabOrder) *PatientVisitCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddLabOrderIDs(ids...)
+}
+
+// AddAdmissionIDs adds the "admissions" edge to the Admission entity by IDs.
+func (_c *PatientVisitCreate) AddAdmissionIDs(ids ...uuid.UUID) *PatientVisitCreate {
+	_c.mutation.AddAdmissionIDs(ids...)
+	return _c
+}
+
+// AddAdmissions adds the "admissions" edges to the Admission entity.
+func (_c *PatientVisitCreate) AddAdmissions(v ...*Admission) *PatientVisitCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAdmissionIDs(ids...)
 }
 
 // Mutation returns the PatientVisitMutation object of the builder.
@@ -506,6 +522,22 @@ func (_c *PatientVisitCreate) createSpec() (*PatientVisit, *sqlgraph.CreateSpec)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(laborder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.AdmissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

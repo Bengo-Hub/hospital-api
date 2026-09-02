@@ -1,17 +1,26 @@
 # Hospital API — Entity Relationship Diagram
 
-**Last updated:** 2026-08-29 — Initial ERD draft written 2026-07-31 alongside the Sprint-0 scaffold.
-**As of 2026-08-29 (later the same day), the Patient & Visits, Clinical Workflow, Pharmacy &
-Dispensing, and Billing & Patient Accounts sections below are real, implemented `internal/ent/schema/`
-tables with generated Atlas migrations** (Sprints 1/2/3/4/5-core — see `docs/sprints/`); the
-Tenant & Outlet Structure / Global Reference Data tables were already implemented since 2026-08-01.
-Inpatient, Theatre & Critical Care, Blood Bank & Transfusion, Ambulance & Emergency Dispatch, and
-Specialized Care Programmes remain the **planned** model for Sprint 6 onward — not yet built. A
+**Last updated:** 2026-09-02 — Initial ERD draft written 2026-07-31 alongside the Sprint-0 scaffold.
+**As of 2026-09-02, the Patient & Visits, Clinical Workflow, Pharmacy & Dispensing, Billing &
+Patient Accounts, and Inpatient sections below are real, implemented `internal/ent/schema/` tables
+with generated Atlas migrations** (Sprints 1/2/3/4/5-core/6 — see `docs/sprints/`); the Tenant &
+Outlet Structure / Global Reference Data tables were already implemented since 2026-08-01.
+Theatre & Critical Care, Blood Bank & Transfusion, Ambulance & Emergency Dispatch, and
+Specialized Care Programmes remain the **planned** model for Sprint 7 onward — not yet built. A
 KenyaEMR technical audit earlier the same day (`docs/kenyaemr-technical-reference.md`) expanded the
 specialized-programmes table (VMMC, an OTZ flag on `art_record`, HIV-exposed-infant/PMTCT follow-up,
 cervical/prostate cancer screening), added `patient.identification_type`/`identification_number`
 (Maisha Number support), and added a `loinc_code` field to the lab-test catalogue — all additive
 metadata, carried through into the real Sprint-1/3 schemas as built.
+
+**2026-09-02 — referral/transfer/ambulance-billing gap fix (planned, docs only).** A client-facing
+engineer flagged that IPD/OPD referral, transfer, and ambulance workflows were underdeveloped in the
+docs relative to what the shipped `Referral`/planned `Ward`/`Bed`/`Admission`/`ambulance_booking`
+schemas actually needed. This pass extended (additively) the `referral` row below with inter-facility
+and counter-referral fields, added a new planned `patient_transfer` table under Inpatient, and added a
+billing linkage to `ambulance_booking`. None of this is built yet; the shipped `Referral` schema is
+still exactly the thin shape in `internal/ent/schema/referral.go` today. Full sourcing and design
+reasoning: `docs/architecture.md`'s new "Referral, Transfer & Ambulance Billing" section.
 
 ---
 
@@ -56,7 +65,40 @@ metadata, carried through into the real Sprint-1/3 schemas as built.
 |---|---|---|
 | `patient` | `id`, `tenant_id`, `mrn` (unique per tenant), `full_name`, `dob`, `sex`, `phone`, `next_of_kin`, `crm_contact_id` (nullable), `client_registry_id` (nullable), `identification_type`, `identification_number` | Patient master record (medical record number) — retained per Kenya DPA's 20-year minimum. `client_registry_id` is the national Client Registry `CR...` identifier returned by DHA's registry lookup (see `docs/sha-taifacare-api-specs/`), stored as a reference so treasury-api's claims never need a second lookup, never treated as a locally-generated ID. `identification_type` is an enum (`national_id`/`passport`/`birth_certificate`/`maisha_number`/`alien_id`) matching the ID types Kenya's own Client Registry accepts (added 2026-08-29, see `docs/compliance-kenya.md` §6) |
 | `patient_visit` | `id`, `tenant_id`, `patient_id`, `outlet_id`, `visit_type` (OPD/IPD), `status`, `checked_in_at`, `discharged_at` | One row per encounter, the spine every clinical module hangs off |
-| `referral` | `id`, `tenant_id`, `patient_visit_id`, `referred_to`, `reason`, `status` | Inter-facility or inter-department referral |
+| `referral` | `id`, `tenant_id`, `patient_visit_id`, `referred_to`, `referral_type` (new), `reason`, `status`, plus the inter-facility/counter-referral fields listed below (new) | Internal department hand-off (lab/pharmacy/specialist queue) or a genuine inter-facility referral (patient physically leaves for another facility) — see the note directly below |
+
+**2026-09-02 — inter-facility referral fields (planned, additive, not yet built).** A client-facing
+gap audit found the shipped `Referral` schema (`referred_to`/`reason`/`status`) is enough for an
+internal department hand-off, which the ordinary visit status machine
+(`registered→triaged→in_examination→awaiting_lab→...`) already covers well, but not for a genuine
+inter-facility referral, where the patient physically leaves for another facility carrying a
+referral letter. New fields, all additive, existing rows unaffected:
+
+- `referral_type` (`internal_department` | `inter_facility`) — backfilled on existing rows from the
+  current `referred_to` value: `external_facility` maps to `inter_facility`, every other value
+  (`lab`/`pharmacy`/`specialist`) maps to `internal_department`. `referred_to` itself is unchanged.
+- `referral_summary` (text, nullable) — the referral letter's actual clinical content (presenting
+  complaint, diagnosis, treatment already given, reason for referral). Distinct from the existing
+  short `reason` field, which stays a one-line reason code/label.
+- `receiving_facility_name` (nullable) and `receiving_facility_mfl_code` (nullable) — free text plus
+  an optional Kenya Master Facility List code (`docs/compliance-kenya.md` §6). hospital-api has no
+  facility directory of its own, so this is not a foreign key to another tenant, only a reference the
+  sending facility records for its own letter/register.
+- `pre_referral_contact_confirmed` (bool, default `false`) — whether the referring clinician
+  confirmed the receiving facility can take the patient before transfer. This is the real first step
+  in Kenya's own 2014 national referral guideline (see `docs/architecture.md`'s new referral/transfer
+  section for the sourcing), not an invented field.
+- `ambulance_booking_id` (nullable UUID, references `ambulance_booking` below) — set when the
+  referral required an ambulance leg.
+- `counter_referral_received_at` / `counter_referral_summary` / `counter_referral_received_by`
+  (all nullable) — feedback from the receiving facility once the patient was actually seen there, the
+  standard "counter-referral" concept in referral-systems literature. Kept even though Kenyan studies
+  found this step is rarely completed in practice (see `docs/architecture.md`) — the field should
+  exist and be usable, adoption is a workflow/training question, not a reason to omit it from the
+  schema.
+- `status`'s existing `pending`/`acted_on`/`cancelled` values are unchanged. `accepted`/`declined`/
+  `completed` are new additive values that only make sense for an `inter_facility` referral — an
+  `internal_department` referral keeps using `acted_on` exactly as today.
 
 ---
 
@@ -103,9 +145,10 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 | Table | Key Columns | Description |
 |---|---|---|
-| `ward` | `id`, `tenant_id`, `outlet_id`, `name`, `capacity` | Physical ward definition |
-| `bed` | `id`, `ward_id`, `bed_number`, `status` | Individual bed within a ward |
-| `admission` | `id`, `patient_visit_id`, `bed_id`, `admitted_at`, `discharged_at`, `discharge_summary` | Admission-to-discharge record |
+| `ward` | `id`, `tenant_id`, `outlet_id`, `name`, `capacity`, `billable_item_code` (nullable), `is_active` | **Shipped 2026-09-02.** Physical ward definition. `billable_item_code` names the `BillableItemCatalog` code that prices one day in this ward (e.g. `BED_DAY_ICU` vs `BED_DAY_GENERAL`) — a ward-to-ward transfer changes the day-rate automatically because it changes which ward's code applies going forward, see `docs/architecture.md`. Falls back to a tenant-default inpatient day rate if unset. |
+| `bed` | `id`, `tenant_id`, `ward_id`, `bed_number`, `status` | **Shipped 2026-09-02.** Individual bed within a ward |
+| `admission` | `id`, `tenant_id`, `outlet_id`, `patient_visit_id`, `patient_id`, `admission_number`, `ward_id`, `bed_id`, `status` (active/discharged), `admitted_by`, `admitted_at`, `discharged_at`, `discharged_by`, `discharge_summary`, `ward_charge_posted` | **Shipped 2026-09-02.** Admission-to-discharge record. `bed_id`/`ward_id` always reflect the patient's CURRENT location. Every change to it also writes a `patient_transfer` row below, not a silent field update. `ward_charge_posted` guards the discharge-time ward/day-rate charge against double-posting across repeated discharge attempts while a balance is still outstanding. |
+| `patient_transfer` (shipped 2026-09-02) | `id`, `tenant_id`, `admission_id`, `transfer_type` (`intra_facility`\|`inter_facility`), `from_ward_id`, `from_bed_id`, `to_ward_id` (nullable), `to_bed_id` (nullable), `receiving_facility_name` (nullable), `referral_id` (nullable), `ambulance_booking_id` (nullable), `reason`, `transferred_by`, `transferred_at` | One row per ward/bed move (intra-facility) or per transfer-out to another facility (inter-facility, closes the admission). See `docs/architecture.md`'s "Referral, Transfer & Ambulance Billing" section for why this is a new table rather than just mutable fields on `admission` — the short version: billing needs to know which ward a patient occupied on which calendar days, and occupancy/audit history needs the same thing, so the move itself has to be a row, not just a field overwrite. |
 
 ---
 
@@ -132,8 +175,22 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 | Table | Key Columns | Description |
 |---|---|---|
-| `ambulance_booking` | `id`, `patient_visit_id` (nullable — may precede registration), `logistics_task_id`, `pickup_location`, `status`, `fare_amount` | Reference row only; dispatch/fleet/pricing all live in logistics-api (`task_type: "ambulance_dispatch"`) |
+| `ambulance_booking` | `id`, `patient_visit_id` (nullable — may precede registration), `logistics_task_id`, `pickup_location`, `status`, `fare_amount`, `patient_account_id` (new, nullable), `billable_charge_id` (new, nullable), `referral_id` (new, nullable), `patient_transfer_id` (new, nullable) | Reference row only; dispatch/fleet/pricing all live in logistics-api (`task_type: "ambulance_dispatch"`) |
 | `ambulance_membership` | `id`, `tenant_id`, `crm_contact_id`, `plan_type` (individual/family), `expires_at` | Optional recurring membership product; billed via treasury-api, not a new billing engine |
+
+**2026-09-02 — ambulance billing linkage (planned, additive).** `fare_amount` previously had nowhere
+to go once known; it was not wired into the Distributed Billing ledger the rest of the platform uses.
+New fields: `patient_account_id` (nullable UUID, references `PatientAccount`) is set when the booking
+belongs to a patient who already has, or is given, an open ledger, for example an admitted inpatient
+being transferred, or an OPD patient whose visit already opened an account. `billable_charge_id`
+(nullable UUID) is set once the fare is known and posted as a normal `BillableCharge`
+(`department: "ambulance"`, `source_module: "ambulance"`, `source_reference_id: ambulance_booking.id`)
+onto that account, exactly like any other department's charge, with no special-cased billing path.
+`referral_id` / `patient_transfer_id` (both nullable) link the booking back to whichever inter-facility
+referral or transfer triggered it, when applicable. A booking can also carry all four new fields null,
+which is the standalone call-out case with no prior clinical record on this platform. See
+`docs/architecture.md`'s "Referral, Transfer & Ambulance Billing" section and `docs/integrations.md`
+§2A for the full design and the standalone-vs-ledger decision tree.
 
 ---
 

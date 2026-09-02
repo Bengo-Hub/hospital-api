@@ -25,7 +25,7 @@ tenant-custom additions do.
 - `POST /{tenant}/hospital/visits/{id}/examination` — record consultation notes + diagnosis. Posts a `BillableCharge` for the visit's consultation fee (Sprint 5) at creation — `collection_mode` defaults to `billing_queue` for Clinic-tier, `direct` for Facility/Hospital tier (see `docs/architecture.md`'s facility-tier defaults table).
 - `GET /{tenant}/hospital/diagnosis-catalog` — merged global + tenant-custom list.
 - `POST /{tenant}/hospital/diagnosis-catalog` — add a tenant-custom entry.
-- `POST /{tenant}/hospital/visits/{id}/refer` — create a `Referral` (schema already added in Sprint 1) to lab or pharmacy or another facility.
+- `POST /{tenant}/hospital/visits/{id}/refer` — create a `Referral` (schema already added in Sprint 1) to lab or pharmacy or another facility. **Note (2026-09-02, planned, not this sprint's scope):** "or another facility" is currently just the free-string `referred_to: "external_facility"` value — a real inter-facility referral (letter content, receiving-facility identity, pre-transfer contact confirmation, counter-referral feedback) is a richer, additive shape designed in `docs/erd.md`/`docs/architecture.md`, landing whenever that work is scheduled (likely alongside or after Sprint 6/9, since it also touches `PatientTransfer` and `AmbulanceBooking`), not shipped by this sprint.
 
 ## Integration Points
 

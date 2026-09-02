@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
@@ -56,6 +57,48 @@ func (s *Service) EnsureAccountForVisit(ctx context.Context, tx *ent.Tx, tenantI
 		Save(ctx)
 }
 
+// EnsureAccountForAdmission returns the running ledger for an inpatient admission, creating it
+// (status "open", settlement_required_before "discharge") on first use — Admission's own
+// counterpart to EnsureAccountForVisit. See docs/architecture.md "Distributed Billing & Patient
+// Accounts".
+func (s *Service) EnsureAccountForAdmission(ctx context.Context, tx *ent.Tx, tenantID, patientID, admissionID uuid.UUID) (*ent.PatientAccount, error) {
+	acct, err := tx.PatientAccount.Query().
+		Where(patientaccount.TenantID(tenantID), patientaccount.AdmissionID(admissionID)).
+		Only(ctx)
+	if err == nil {
+		return acct, nil
+	}
+	if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("billing: query admission account: %w", err)
+	}
+	return tx.PatientAccount.Create().
+		SetTenantID(tenantID).
+		SetPatientID(patientID).
+		SetAdmissionID(admissionID).
+		SetSettlementRequiredBefore(patientaccount.SettlementRequiredBeforeDischarge).
+		Save(ctx)
+}
+
+// activeAdmissionAccount resolves the account a visit-level charge should actually post to: if
+// the visit has a currently-active (non-discharged) inpatient Admission, every department's
+// charges accrue onto that ONE admission account (day-rate, lab, pharmacy, everything) rather than
+// each posting a separate per-visit mini-invoice — the whole point of Sprint 6's design. Returns
+// (nil, nil) when there's no active admission, so callers fall back to the ordinary per-visit
+// account. This is the ONLY place that distinction is made, so triage/consultation/lab/pharmacy
+// never need their own admission-awareness — they just call PostCharge with a visit_id as always.
+func (s *Service) activeAdmissionAccount(ctx context.Context, tx *ent.Tx, tenantID, visitID uuid.UUID) (*ent.PatientAccount, error) {
+	adm, err := tx.Admission.Query().
+		Where(admission.TenantID(tenantID), admission.PatientVisitID(visitID), admission.StatusEQ(admission.StatusActive)).
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("billing: query active admission: %w", err)
+	}
+	return s.EnsureAccountForAdmission(ctx, tx, tenantID, adm.PatientID, adm.ID)
+}
+
 // PostChargeRequest is the input to PostCharge — the primitive every other module (records,
 // triage, consultation, lab, pharmacy) calls at its own billable step, instead of building its
 // own payment logic.
@@ -77,9 +120,15 @@ func (s *Service) PostCharge(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID
 	if req.Amount <= 0 {
 		return nil, fmt.Errorf("billing: amount must be positive")
 	}
-	acct, err := s.EnsureAccountForVisit(ctx, tx, tenantID, req.PatientID, req.VisitID)
+	acct, err := s.activeAdmissionAccount(ctx, tx, tenantID, req.VisitID)
 	if err != nil {
 		return nil, err
+	}
+	if acct == nil {
+		acct, err = s.EnsureAccountForVisit(ctx, tx, tenantID, req.PatientID, req.VisitID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	create := tx.BillableCharge.Create().
@@ -135,6 +184,18 @@ func (s *Service) GetAccount(ctx context.Context, tenantID, accountID uuid.UUID)
 		return nil, nil, fmt.Errorf("billing: list charges: %w", err)
 	}
 	return acct, charges, nil
+}
+
+// GetAccountByAdmission fetches the account for an inpatient admission (Sprint 6) — the
+// admission's own counterpart to GetAccountByVisit, used by the admission detail page.
+func (s *Service) GetAccountByAdmission(ctx context.Context, tenantID, admissionID uuid.UUID) (*ent.PatientAccount, []*ent.BillableCharge, error) {
+	acct, err := s.client.PatientAccount.Query().
+		Where(patientaccount.TenantID(tenantID), patientaccount.AdmissionID(admissionID)).
+		Only(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("billing: account not found for admission: %w", err)
+	}
+	return s.GetAccount(ctx, tenantID, acct.ID)
 }
 
 // GetAccountByVisit fetches the account for a visit (the common lookup for OPD callers).
@@ -587,6 +648,20 @@ func (s *Service) ListBillableItemCatalog(ctx context.Context, tenantID uuid.UUI
 		q = q.Where(billableitemcatalog.IsActive(true))
 	}
 	return q.Order(ent.Asc(billableitemcatalog.FieldDepartment), ent.Asc(billableitemcatalog.FieldCode)).All(ctx)
+}
+
+// GetCatalogItemByCode fetches one active tenant-configured catalog row by department+code —
+// used by other modules (e.g. inpatient's ward/day-rate lookup, see refdata.SeedFacilityBillableItems'
+// WARD_DAY_RATE seed) that need a specific line's current price without listing the whole catalog.
+func (s *Service) GetCatalogItemByCode(ctx context.Context, tenantID uuid.UUID, department, code string) (*ent.BillableItemCatalog, error) {
+	return s.client.BillableItemCatalog.Query().
+		Where(
+			billableitemcatalog.TenantID(tenantID),
+			billableitemcatalog.DepartmentEQ(billableitemcatalog.Department(department)),
+			billableitemcatalog.Code(code),
+			billableitemcatalog.IsActive(true),
+		).
+		Only(ctx)
 }
 
 // CatalogItemInput is the input to CreateBillableItem.

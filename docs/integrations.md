@@ -1,6 +1,9 @@
 # Hospital API — Integration Guide
 
-**Last updated:** 2026-08-29 (§1.7, §2C, §2D, §2E added after a KenyaEMR technical audit and a Kenya
+**Last updated:** 2026-09-02 (§2A.1 and §2D.1 added — deepened ambulance billing linkage and the
+inter-facility referral/transfer shape, planned design only, see the sections themselves and
+`docs/architecture.md`'s new "Referral, Transfer & Ambulance Billing" section). Previously updated
+2026-08-29 (§1.7, §2C, §2D, §2E added after a KenyaEMR technical audit and a Kenya
 national-HIE research pass, see `docs/kenyaemr-technical-reference.md` and `docs/compliance-kenya.md`
 §9-10; later the same day, §1.1-1.3 and §2.1 flipped to "implemented" once Sprint 4/5-core actually
 shipped — see the status note below)
@@ -134,6 +137,41 @@ not a new billing engine.
 **hospital-api does NOT**: store rider/vehicle profiles, dispatch task lifecycle, or pricing rules —
 all of that stays in logistics-api exactly as it does for every other service that dispatches tasks
 (ordering-backend, pos-api).
+
+### 2A.1 Billing linkage (2026-09-02, planned, additive)
+
+**The gap**: `ambulance_booking.fare_amount` (step 5 above) previously had nowhere real to go once
+known — it was never actually posted as a `BillableCharge`. Confirmed via research: St John Kenya runs
+a distinct, named "Patient Transfers" service line separate from its Emergency Ambulance call-out and
+membership products, corroborating that an inter-facility patient transfer is operationally distinct
+from a standalone call-out in the Kenyan private ambulance market, independent of pricing. General
+(non-Kenya-specific) EMS billing literature describes hospital-to-hospital transport of an
+already-admitted inpatient as typically billed to the transferring/receiving facility rather than
+directly to the patient, a materially different flow from a standalone community call. See
+`docs/architecture.md`'s "Referral, Transfer & Ambulance Billing" section for the full sourcing.
+
+**Design**: `AmbulanceBooking` gains `patient_account_id`, `billable_charge_id`, `referral_id`, and
+`patient_transfer_id` (all nullable, see `erd.md`).
+
+- If the booking belongs to a patient with an open `PatientAccount` (an admitted inpatient being
+  transferred, or an OPD patient whose visit already opened an account), the fare posts as a normal
+  `BillableCharge` (`department: "ambulance"`, `source_module: "ambulance"`,
+  `source_reference_id: ambulance_booking.id`) onto that SAME account once the completed task returns
+  a fare, exactly like step 5 already says, just now with a real, wired posting step instead of a
+  dead-end field.
+- If the booking is a standalone call-out with no prior registration (`patient_visit_id` stays
+  nullable for exactly this reason), `patient_account_id`/`billable_charge_id` stay null unless/until
+  the patient is later registered and the charge is posted retroactively. A call that never becomes a
+  hospital-api patient record (dispatched but the patient ends up elsewhere, or a pure community
+  call-out the ambulance operator bills directly) simply never gets these fields populated — hospital-api
+  does not force every booking into a ledger it may not belong in.
+- `referral_id` / `patient_transfer_id` link the booking back to whichever inter-facility referral or
+  transfer (see §2D and `docs/sprints/sprint-6-inpatient.md`) required the ambulance leg, when
+  applicable.
+- **Not confirmed**: a distinct "referral coordination" or "transfer administrative" fee separate from
+  the transport fare itself, in Kenyan private/faith-based facility billing practice. No source for
+  this was found. If a tenant wants one, it is an ordinary tenant-configured `BillableItemCatalog` row
+  (e.g. `department: "records"`, code `REFERRAL_COORDINATION_FEE`), not a new schema concept.
 
 ---
 
@@ -327,6 +365,41 @@ resource shapes as the other Kenya FHIR IGs. **Design implication**: no integrat
 now, but `Referral`'s field shape (`referred_to`, `reason`, `status`) should be kept easy to map onto
 FHIR `ServiceRequest`/`Task` later, rather than designed in a way that would need a rewrite once a
 concrete community-health or national referral integration becomes real work.
+
+### 2D.1 Inter-facility referral and transfer shape (2026-09-02, planned, additive)
+
+A client-facing engineer flagged that this design note, while directionally correct, had not yet been
+turned into an actual field shape for a genuine inter-facility referral (patient physically leaves for
+another facility), as opposed to the internal department hand-off `Referral` already covers well via
+the visit status machine. This round did that, and separately designed the transfer concept (a
+ward/bed move during an ongoing admission, or an inter-facility move of an active inpatient) that did
+not exist in any form before. Full field lists: `erd.md`'s `referral` and new `patient_transfer` rows.
+Full design reasoning and sourcing: `docs/architecture.md`'s "Referral, Transfer & Ambulance Billing"
+section. Summary of what's new:
+
+- `Referral` gains `referral_type` (`internal_department`|`inter_facility`), `referral_summary` (the
+  letter's clinical content), `receiving_facility_name`/`receiving_facility_mfl_code`,
+  `pre_referral_contact_confirmed`, an `ambulance_booking_id` link, and counter-referral fields
+  (`counter_referral_received_at`/`_summary`/`_received_by`). All additive; existing rows and values
+  are unaffected.
+- A new `PatientTransfer` entity (not new fields on `Admission`, see the architecture doc for why)
+  records both intra-facility ward/bed moves and inter-facility transfer-out events, with a
+  `transfer_type` discriminator.
+- Kenya's own 2014 national referral guideline (confirmed via two independent peer-reviewed adherence
+  studies, see the architecture doc) requires a pre-transfer phone confirmation with the receiving
+  facility and an appropriately-equipped ambulance for a transfer, which is exactly why
+  `pre_referral_contact_confirmed` and the ambulance/transfer linkage fields exist, not invented
+  requirements. The same research found real-world adherence to a written referral letter is weak
+  (as low as ~48-49% even under active enforcement at one Kenyan teaching hospital), which is why the
+  design allows a referral/transfer to progress on a phone-confirmed basis before a formal letter
+  exists, rather than gating on one.
+- Kenya's MOH 100 "Community Referral Form" (confirmed real, via the Ministry's own Department of
+  Family Health) is the community-health-worker-to-facility referral, a different direction from a
+  facility-to-facility referral and not to be conflated with the `referral_summary` letter content
+  above. No confirmed MOH form number for a facility-to-facility referral letter was found this round.
+- A national "Kenya Healthcare Referral Policy" is under active MOH stakeholder engagement (per a 2026
+  KBC News report), updating rather than replacing the "still in stakeholder review" note already
+  above. Its final content is not yet settled; nothing in this design assumes a specific outcome.
 
 ## 2E. Laboratory — national batch-referral workflow (design note, 2026-08-29)
 

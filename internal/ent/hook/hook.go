@@ -9,6 +9,30 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 )
 
+// The AdmissionFunc type is an adapter to allow the use of ordinary
+// function as Admission mutator.
+type AdmissionFunc func(context.Context, *ent.AdmissionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AdmissionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AdmissionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AdmissionMutation", m)
+}
+
+// The BedFunc type is an adapter to allow the use of ordinary
+// function as Bed mutator.
+type BedFunc func(context.Context, *ent.BedMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BedFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BedMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BedMutation", m)
+}
+
 // The BillableChargeFunc type is an adapter to allow the use of ordinary
 // function as BillableCharge mutator.
 type BillableChargeFunc func(context.Context, *ent.BillableChargeMutation) (ent.Value, error)
@@ -261,6 +285,18 @@ func (f PatientNextOfKinFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PatientNextOfKinMutation", m)
 }
 
+// The PatientTransferFunc type is an adapter to allow the use of ordinary
+// function as PatientTransfer mutator.
+type PatientTransferFunc func(context.Context, *ent.PatientTransferMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PatientTransferFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PatientTransferMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PatientTransferMutation", m)
+}
+
 // The PatientVisitFunc type is an adapter to allow the use of ordinary
 // function as PatientVisit mutator.
 type PatientVisitFunc func(context.Context, *ent.PatientVisitMutation) (ent.Value, error)
@@ -379,6 +415,18 @@ func (f WalkInSaleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WalkInSaleMutation", m)
+}
+
+// The WardFunc type is an adapter to allow the use of ordinary
+// function as Ward mutator.
+type WardFunc func(context.Context, *ent.WardMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WardFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WardMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WardMutation", m)
 }
 
 // Condition is a hook condition function.

@@ -62,6 +62,8 @@ type Deps struct {
 	AuditLog *handlers.AuditLogHandler
 	// Per-user outlet/branch assignment admin surface (2026-08-30).
 	UserOutlets *handlers.UserOutletsHandler
+	// Sprint 6: ward/bed/admission/transfer/discharge.
+	Inpatient *handlers.InpatientHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -251,6 +253,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
 					Get("/visits/{visitID}/account", d.Billing.GetAccountByVisit)
+			prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+				outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+				Get("/admissions/{admissionID}/account", d.Billing.GetAccountByAdmission)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingCollectAny)).
 					Get("/billing/queue", d.Billing.ListPendingCharges)
@@ -447,6 +452,50 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc,
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/prescriptions/{prescriptionID}/insurance-claim", d.Pharmacy.SubmitInsuranceClaim)
+			}
+
+			// Sprint 6 — Inpatient (ward/bed/admission/transfer/discharge). Gated on
+			// FeatureInpatientModule (already exists — the pricing model's Afya Clinic add-on and
+			// Afya Facility/Hospital core inpatient are the SAME feature code, just enabled at
+			// different tiers). Discharge/transfer-out/ward+bed setup use the stricter
+			// PermInpatientManage; admitting/transferring use PermInpatientAdd/Change; the
+			// balance-override branch inside Transfer/Discharge additionally checks
+			// PermBillingOverrideSettlement in-handler, mirroring Billing's own layered pattern.
+			if d.Inpatient != nil {
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
+					Post("/wards", d.Inpatient.CreateWard)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/wards", d.Inpatient.ListWards)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/wards/{wardID}/occupancy", d.Inpatient.GetWardOccupancy)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
+					Post("/wards/{wardID}/beds", d.Inpatient.CreateBed)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/wards/{wardID}/beds", d.Inpatient.ListBeds)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
+					Patch("/beds/{bedID}/status", d.Inpatient.SetBedStatus)
+
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientAdd)).
+					Post("/admissions", d.Inpatient.Admit)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions", d.Inpatient.ListAdmissions)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions/{admissionID}", d.Inpatient.GetAdmission)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
+					Post("/admissions/{admissionID}/transfer", d.Inpatient.Transfer)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
+					Post("/admissions/{admissionID}/discharge", d.Inpatient.Discharge)
 			}
 
 			// Users / Config admin — tenant staff role-management and a read-only config view.

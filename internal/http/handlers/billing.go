@@ -71,6 +71,27 @@ func (h *BillingHandler) GetAccountByVisit(w http.ResponseWriter, r *http.Reques
 	respondJSON(w, http.StatusOK, map[string]any{"account": acct, "charges": charges})
 }
 
+// GetAccountByAdmission handles GET /{tenant}/hospital/admissions/{admissionID}/account —
+// GetAccountByVisit's Sprint 6 counterpart for an inpatient stay's running ledger.
+func (h *BillingHandler) GetAccountByAdmission(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	admissionID, err := uuid.Parse(chi.URLParam(r, "admissionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid admission ID")
+		return
+	}
+	acct, charges, err := h.svc.GetAccountByAdmission(r.Context(), tenantID, admissionID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"account": acct, "charges": charges})
+}
+
 // ListPendingCharges handles GET /{tenant}/hospital/billing/queue?department=
 func (h *BillingHandler) ListPendingCharges(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

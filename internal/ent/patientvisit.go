@@ -61,9 +61,11 @@ type PatientVisitEdges struct {
 	ExaminationRecords []*ExaminationRecord `json:"examination_records,omitempty"`
 	// LabOrders holds the value of the lab_orders edge.
 	LabOrders []*LabOrder `json:"lab_orders,omitempty"`
+	// Admissions holds the value of the admissions edge.
+	Admissions []*Admission `json:"admissions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // PatientOrErr returns the Patient value or an error if the edge
@@ -111,6 +113,15 @@ func (e PatientVisitEdges) LabOrdersOrErr() ([]*LabOrder, error) {
 		return e.LabOrders, nil
 	}
 	return nil, &NotLoadedError{edge: "lab_orders"}
+}
+
+// AdmissionsOrErr returns the Admissions value or an error if the edge
+// was not loaded in eager-loading.
+func (e PatientVisitEdges) AdmissionsOrErr() ([]*Admission, error) {
+	if e.loadedTypes[5] {
+		return e.Admissions, nil
+	}
+	return nil, &NotLoadedError{edge: "admissions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -257,6 +268,11 @@ func (_m *PatientVisit) QueryExaminationRecords() *ExaminationRecordQuery {
 // QueryLabOrders queries the "lab_orders" edge of the PatientVisit entity.
 func (_m *PatientVisit) QueryLabOrders() *LabOrderQuery {
 	return NewPatientVisitClient(_m.config).QueryLabOrders(_m)
+}
+
+// QueryAdmissions queries the "admissions" edge of the PatientVisit entity.
+func (_m *PatientVisit) QueryAdmissions() *AdmissionQuery {
+	return NewPatientVisitClient(_m.config).QueryAdmissions(_m)
 }
 
 // Update returns a builder for updating this PatientVisit.

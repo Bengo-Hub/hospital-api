@@ -43,7 +43,17 @@ naming which instrument a citation belongs to.
 - [ ] Audit-log middleware wraps every mutating endpoint across every module (not opt-in per
       handler — a cross-cutting concern, applied once at the router level).
 - [ ] Consent capture at patient registration (Sprint 1) and before any data-sharing action
-      (referral to another facility, insurance claim submission).
+      (referral to another facility, insurance claim submission). **Expanded 2026-09-02:** an
+      inter-facility referral or an inter-facility transfer (both planned, see `docs/erd.md`'s
+      `referral`/`patient_transfer` rows and `docs/architecture.md`'s "Referral, Transfer & Ambulance
+      Billing" section) means sharing a patient's clinical summary with a separate data controller,
+      the receiving facility, so it needs the same consent gate as an insurance claim submission, not
+      a lighter one just because it is clinically routine. The `referral_summary`/discharge-summary
+      content handed to the receiving facility should be covered by the same audit-log middleware as
+      every other mutating action (below), and by the Shared Health Record's 24-hour update obligation
+      (`docs/integrations.md` §2C) once DHA certification work begins, since Encounter/discharge data
+      is already in that obligation's resource list, an inter-facility referral/transfer is not a
+      separate carve-out from it.
 - [ ] Retention policy: patient records are never hard-deleted; a tenant-offboarding flow archives
       rather than purges, honoring the 20-year minimum.
 - [ ] Data export/delete-request endpoints for patient-initiated DPA requests (export always

@@ -12,6 +12,10 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// Admission is the client for interacting with the Admission builders.
+	Admission *AdmissionClient
+	// Bed is the client for interacting with the Bed builders.
+	Bed *BedClient
 	// BillableCharge is the client for interacting with the BillableCharge builders.
 	BillableCharge *BillableChargeClient
 	// BillableItemCatalog is the client for interacting with the BillableItemCatalog builders.
@@ -54,6 +58,8 @@ type Tx struct {
 	PatientAccount *PatientAccountClient
 	// PatientNextOfKin is the client for interacting with the PatientNextOfKin builders.
 	PatientNextOfKin *PatientNextOfKinClient
+	// PatientTransfer is the client for interacting with the PatientTransfer builders.
+	PatientTransfer *PatientTransferClient
 	// PatientVisit is the client for interacting with the PatientVisit builders.
 	PatientVisit *PatientVisitClient
 	// Prescription is the client for interacting with the Prescription builders.
@@ -74,6 +80,8 @@ type Tx struct {
 	UserRoleAssignment *UserRoleAssignmentClient
 	// WalkInSale is the client for interacting with the WalkInSale builders.
 	WalkInSale *WalkInSaleClient
+	// Ward is the client for interacting with the Ward builders.
+	Ward *WardClient
 
 	// lazily loaded.
 	client     *Client
@@ -205,6 +213,8 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.Admission = NewAdmissionClient(tx.config)
+	tx.Bed = NewBedClient(tx.config)
 	tx.BillableCharge = NewBillableChargeClient(tx.config)
 	tx.BillableItemCatalog = NewBillableItemCatalogClient(tx.config)
 	tx.ControlledSubstanceLog = NewControlledSubstanceLogClient(tx.config)
@@ -226,6 +236,7 @@ func (tx *Tx) init() {
 	tx.Patient = NewPatientClient(tx.config)
 	tx.PatientAccount = NewPatientAccountClient(tx.config)
 	tx.PatientNextOfKin = NewPatientNextOfKinClient(tx.config)
+	tx.PatientTransfer = NewPatientTransferClient(tx.config)
 	tx.PatientVisit = NewPatientVisitClient(tx.config)
 	tx.Prescription = NewPrescriptionClient(tx.config)
 	tx.PrescriptionLine = NewPrescriptionLineClient(tx.config)
@@ -236,6 +247,7 @@ func (tx *Tx) init() {
 	tx.TriageRecord = NewTriageRecordClient(tx.config)
 	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
 	tx.WalkInSale = NewWalkInSaleClient(tx.config)
+	tx.Ward = NewWardClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -245,7 +257,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: BillableCharge.QueryXXX(), the query will be executed
+// applies a query, for example: Admission.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

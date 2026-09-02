@@ -6,6 +6,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Admission is the predicate function for admission builders.
+type Admission func(*sql.Selector)
+
+// Bed is the predicate function for bed builders.
+type Bed func(*sql.Selector)
+
 // BillableCharge is the predicate function for billablecharge builders.
 type BillableCharge func(*sql.Selector)
 
@@ -69,6 +75,9 @@ type PatientAccount func(*sql.Selector)
 // PatientNextOfKin is the predicate function for patientnextofkin builders.
 type PatientNextOfKin func(*sql.Selector)
 
+// PatientTransfer is the predicate function for patienttransfer builders.
+type PatientTransfer func(*sql.Selector)
+
 // PatientVisit is the predicate function for patientvisit builders.
 type PatientVisit func(*sql.Selector)
 
@@ -98,3 +107,6 @@ type UserRoleAssignment func(*sql.Selector)
 
 // WalkInSale is the predicate function for walkinsale builders.
 type WalkInSale func(*sql.Selector)
+
+// Ward is the predicate function for ward builders.
+type Ward func(*sql.Selector)

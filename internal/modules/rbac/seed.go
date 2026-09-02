@@ -93,7 +93,12 @@ var defaultRoles = []roleDefinition{
 			PermLabView, PermLabAdd,
 			PermPharmacyView, PermPharmacyPrescribe,
 			PermRecordsView,
-			PermInpatientView, PermInpatientChange,
+			// Sprint 6 (2026-09-02): a doctor both admits (clinical decision to admit) and
+			// discharges/transfers-out (Manage — the same permission ward/bed setup uses, a
+			// deliberate simplification since no dedicated "ward setup" code exists separate from
+			// "discharge/manage inpatient", same class of call as SetUserRole's single-role
+			// contract).
+			PermInpatientView, PermInpatientAdd, PermInpatientChange, PermInpatientManage,
 			PermBillingCollectOwn,
 		},
 	},
@@ -103,7 +108,10 @@ var defaultRoles = []roleDefinition{
 		Description: "Triage and inpatient/ward care",
 		Permissions: []string{
 			"hospital.triage.*",
-			PermInpatientView, PermInpatientChange,
+			// Sprint 6 (2026-09-02): nurses admit to a bed and handle intra-facility bed/ward
+			// transfers day-to-day; discharge/transfer-out (PermInpatientManage) stays doctor/
+			// manager-authorized, matching real clinical sign-off practice.
+			PermInpatientView, PermInpatientAdd, PermInpatientChange,
 			PermConsultationView,
 			PermRecordsView,
 			PermBillingCollectOwn,
@@ -170,7 +178,7 @@ var defaultRoles = []roleDefinition{
 			"hospital.billing.*",
 			"hospital.reception.*",
 			PermRecordsView, PermRecordsChange,
-			PermInpatientView, PermInpatientChange,
+			PermInpatientView, PermInpatientAdd, PermInpatientChange, PermInpatientManage,
 			PermTheatreView,
 			PermUsersView,
 			PermConfigView,

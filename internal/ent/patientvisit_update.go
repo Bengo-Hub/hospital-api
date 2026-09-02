@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -249,6 +250,21 @@ func (_u *PatientVisitUpdate) AddLabOrders(v ...*LabOrder) *PatientVisitUpdate {
 	return _u.AddLabOrderIDs(ids...)
 }
 
+// AddAdmissionIDs adds the "admissions" edge to the Admission entity by IDs.
+func (_u *PatientVisitUpdate) AddAdmissionIDs(ids ...uuid.UUID) *PatientVisitUpdate {
+	_u.mutation.AddAdmissionIDs(ids...)
+	return _u
+}
+
+// AddAdmissions adds the "admissions" edges to the Admission entity.
+func (_u *PatientVisitUpdate) AddAdmissions(v ...*Admission) *PatientVisitUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAdmissionIDs(ids...)
+}
+
 // Mutation returns the PatientVisitMutation object of the builder.
 func (_u *PatientVisitUpdate) Mutation() *PatientVisitMutation {
 	return _u.mutation
@@ -342,6 +358,27 @@ func (_u *PatientVisitUpdate) RemoveLabOrders(v ...*LabOrder) *PatientVisitUpdat
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveLabOrderIDs(ids...)
+}
+
+// ClearAdmissions clears all "admissions" edges to the Admission entity.
+func (_u *PatientVisitUpdate) ClearAdmissions() *PatientVisitUpdate {
+	_u.mutation.ClearAdmissions()
+	return _u
+}
+
+// RemoveAdmissionIDs removes the "admissions" edge to Admission entities by IDs.
+func (_u *PatientVisitUpdate) RemoveAdmissionIDs(ids ...uuid.UUID) *PatientVisitUpdate {
+	_u.mutation.RemoveAdmissionIDs(ids...)
+	return _u
+}
+
+// RemoveAdmissions removes "admissions" edges to Admission entities.
+func (_u *PatientVisitUpdate) RemoveAdmissions(v ...*Admission) *PatientVisitUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAdmissionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -660,6 +697,51 @@ func (_u *PatientVisitUpdate) sqlSave(ctx context.Context) (_node int, err error
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.AdmissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAdmissionsIDs(); len(nodes) > 0 && !_u.mutation.AdmissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AdmissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{patientvisit.Label}
@@ -895,6 +977,21 @@ func (_u *PatientVisitUpdateOne) AddLabOrders(v ...*LabOrder) *PatientVisitUpdat
 	return _u.AddLabOrderIDs(ids...)
 }
 
+// AddAdmissionIDs adds the "admissions" edge to the Admission entity by IDs.
+func (_u *PatientVisitUpdateOne) AddAdmissionIDs(ids ...uuid.UUID) *PatientVisitUpdateOne {
+	_u.mutation.AddAdmissionIDs(ids...)
+	return _u
+}
+
+// AddAdmissions adds the "admissions" edges to the Admission entity.
+func (_u *PatientVisitUpdateOne) AddAdmissions(v ...*Admission) *PatientVisitUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAdmissionIDs(ids...)
+}
+
 // Mutation returns the PatientVisitMutation object of the builder.
 func (_u *PatientVisitUpdateOne) Mutation() *PatientVisitMutation {
 	return _u.mutation
@@ -988,6 +1085,27 @@ func (_u *PatientVisitUpdateOne) RemoveLabOrders(v ...*LabOrder) *PatientVisitUp
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveLabOrderIDs(ids...)
+}
+
+// ClearAdmissions clears all "admissions" edges to the Admission entity.
+func (_u *PatientVisitUpdateOne) ClearAdmissions() *PatientVisitUpdateOne {
+	_u.mutation.ClearAdmissions()
+	return _u
+}
+
+// RemoveAdmissionIDs removes the "admissions" edge to Admission entities by IDs.
+func (_u *PatientVisitUpdateOne) RemoveAdmissionIDs(ids ...uuid.UUID) *PatientVisitUpdateOne {
+	_u.mutation.RemoveAdmissionIDs(ids...)
+	return _u
+}
+
+// RemoveAdmissions removes "admissions" edges to Admission entities.
+func (_u *PatientVisitUpdateOne) RemoveAdmissions(v ...*Admission) *PatientVisitUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAdmissionIDs(ids...)
 }
 
 // Where appends a list predicates to the PatientVisitUpdate builder.
@@ -1329,6 +1447,51 @@ func (_u *PatientVisitUpdateOne) sqlSave(ctx context.Context) (_node *PatientVis
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(laborder.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.AdmissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAdmissionsIDs(); len(nodes) > 0 && !_u.mutation.AdmissionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AdmissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   patientvisit.AdmissionsTable,
+			Columns: []string{patientvisit.AdmissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
