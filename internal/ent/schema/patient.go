@@ -27,6 +27,14 @@ func (Patient) Fields() []ent.Field {
 		field.String("sex").Optional(),
 		field.String("phone").Optional(),
 		field.String("id_number").Optional().Comment("National ID / passport"),
+		field.String("identification_type").Optional().
+			Comment("national_id|passport|birth_certificate|maisha_number|alien_id — which scheme id_number came from, null on legacy rows"),
+		field.String("sha_beneficiary_number").Optional().
+			Comment("SHA/SHIF beneficiary number, captured once at registration and auto-populated into billing.CheckEligibility's fields map so it never needs re-typing"),
+		field.String("photo_url").Optional().
+			Comment("Visual-ID aid for chart confirmation at a busy front desk — not a biometric credential"),
+		field.UUID("household_id", uuid.UUID{}).Optional().Nillable().
+			Comment("Pointer only, to a head-of-household Patient row — no edge, mirrors crm_contact_id's loose-reference style. Nothing consumes this yet; added now so Sprint 10 (ANC/PNC) doesn't need a retrofit"),
 		field.String("address").Optional(),
 		field.String("next_of_kin").Optional().
 			Comment("Free-text quick-reference field for the chart — distinct from PatientNextOfKin (Sprint 5), the structured record used to authorize a bill settlement/discharge"),

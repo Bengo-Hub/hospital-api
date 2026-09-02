@@ -53,6 +53,18 @@ Sprint 2 — Consultation & Examination, Diagnosis Catalogue.
 
 ## Gap audit and MVP backlog candidates (2026-09-02)
 
+**Shipped 2026-09-03** (see `docs/mvp-gap-backlog-2026-09-02.md`'s implementation pass): items 1
+(`identification_type`), 2 (`sha_beneficiary_number`, auto-populated into `billing.Service.
+CheckEligibility`'s fields map via the visit's patient), 3a (`Patient.photo_url` + a new
+`POST /media/upload` endpoint), 4a (`patients.Service.CheckPossibleDuplicates`, a non-blocking
+pre-registration lookup), and 6 (`ListVisits` now eager-loads each visit's latest `TriageRecord`
+and sorts the registered/triaged bucket urgent-first) are all live, backend + hospital-ui. Also
+shipped: `Patient.household_id` (schema-only, per item 5's own "not urgent" framing — no UI, still
+nothing consumes it). **Still not built, as originally scoped**: 3b (fingerprint biometric —
+explicitly out of scope), 4b (real patient-merge module — a genuinely separate follow-up), 5's UI
+(family/household linkage has no consuming workflow yet), and 7 (appointment scheduling, unrelated
+to this backlog).
+
 Completeness audit of the shipped Patient registry and OPD queue against real-world HMIS practice
 (KenyaEMR/OpenMRS primarily, plus fresh web research this session), done by reading the actual
 shipped code, not just this sprint doc's own text. Every proposal below is marked **proposed, not

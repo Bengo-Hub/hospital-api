@@ -70,6 +70,10 @@ type Deps struct {
 	// Biomedical Equipment — read-only inventory-api Asset integration, brought forward from
 	// Sprint 9 (see docs/architecture.md's "Biomedical Equipment / Asset Integration" section).
 	Assets *handlers.AssetsHandler
+	// Media upload (2026-09-03, MVP gap backlog) — currently only Patient.photo_url capture.
+	// Mirrors inventory-api's own top-level /media/* static-serve + authenticated upload route.
+	Media     *handlers.MediaHandler
+	MediaRoot string
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -94,6 +98,11 @@ func New(d Deps) http.Handler {
 	r.Get("/healthz", d.Health.Liveness)
 	r.Get("/readyz", d.Health.Readiness)
 	r.Get("/metrics", d.Health.Metrics)
+
+	// Serve uploaded media files (Patient.photo_url) — mirrors inventory-api's identical route.
+	if d.MediaRoot != "" {
+		r.Handle("/media/*", http.StripPrefix("/media", http.FileServer(http.Dir(d.MediaRoot))))
+	}
 
 	r.Route("/api/v1/{tenant}/hospital", func(r chi.Router) {
 		// ── Protected endpoints (auth required) ──────────────────────────────
@@ -184,6 +193,13 @@ func New(d Deps) http.Handler {
 				prot.Get("/auth/me", d.AuthMe.GetMe)
 			}
 
+			// Media upload — authenticated-only, no fine-grained RBAC permission (mirrors
+			// inventory-api's own gate: any authenticated staff member registering a patient can
+			// upload a photo, same posture as /auth/me and /ping).
+			if d.Media != nil {
+				prot.Post("/media/upload", d.Media.Upload)
+			}
+
 			// Placeholder route proving JWKS auth + Trinity middleware chain works end to
 			// end. Sprint 4+ mounts further domain routes (lab, pharmacy, billing, ...) here,
 			// each gated with outletmw.RequireServicePermission(d.RBACSvc, ...).
@@ -203,6 +219,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
 					Get("/patients", d.Patients.ListPatients)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
+					Get("/patients/check-duplicates", d.Patients.CheckDuplicates)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePatientRecords),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermRecordsView)).
 					Get("/patients/{patientID}", d.Patients.GetPatient)

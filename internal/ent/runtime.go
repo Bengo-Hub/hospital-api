@@ -588,19 +588,19 @@ func init() {
 	// patient.FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
 	patient.FullNameValidator = patientDescFullName.Validators[0].(func(string) error)
 	// patientDescAllergyFlags is the schema descriptor for allergy_flags field.
-	patientDescAllergyFlags := patientFields[11].Descriptor()
+	patientDescAllergyFlags := patientFields[15].Descriptor()
 	// patient.DefaultAllergyFlags holds the default value on creation for the allergy_flags field.
 	patient.DefaultAllergyFlags = patientDescAllergyFlags.Default.([]string)
 	// patientDescStatus is the schema descriptor for status field.
-	patientDescStatus := patientFields[14].Descriptor()
+	patientDescStatus := patientFields[18].Descriptor()
 	// patient.DefaultStatus holds the default value on creation for the status field.
 	patient.DefaultStatus = patientDescStatus.Default.(string)
 	// patientDescCreatedAt is the schema descriptor for created_at field.
-	patientDescCreatedAt := patientFields[15].Descriptor()
+	patientDescCreatedAt := patientFields[19].Descriptor()
 	// patient.DefaultCreatedAt holds the default value on creation for the created_at field.
 	patient.DefaultCreatedAt = patientDescCreatedAt.Default.(func() time.Time)
 	// patientDescUpdatedAt is the schema descriptor for updated_at field.
-	patientDescUpdatedAt := patientFields[16].Descriptor()
+	patientDescUpdatedAt := patientFields[20].Descriptor()
 	// patient.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	patient.DefaultUpdatedAt = patientDescUpdatedAt.Default.(func() time.Time)
 	// patient.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

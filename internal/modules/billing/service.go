@@ -21,6 +21,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
+	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
 	"github.com/bengobox/hospital-service/internal/modules/treasury"
@@ -776,11 +777,40 @@ func (s *Service) DeactivateBillableItem(ctx context.Context, tenantID, itemID u
 // the given provider. A transport/config failure is returned as an error — callers (lab/pharmacy
 // insurance-claim actions) must treat that as "unknown, offer cash instead," never as
 // "ineligible," per docs/integrations.md §2.4.
-func (s *Service) CheckEligibility(ctx context.Context, tenantID, providerID uuid.UUID, fields map[string]string) (treasury.EligibilityResult, error) {
+func (s *Service) CheckEligibility(ctx context.Context, tenantID, providerID, visitID uuid.UUID, fields map[string]string) (treasury.EligibilityResult, error) {
 	if !s.treasury.Enabled() {
 		return nil, fmt.Errorf("billing: treasury client not configured")
 	}
+	fields = s.autoPopulateBeneficiaryNumber(ctx, tenantID, visitID, fields)
 	return s.treasury.CheckEligibility(ctx, tenantID, providerID, fields)
+}
+
+// autoPopulateBeneficiaryNumber fills in the "beneficiary_number" eligibility field from the
+// visit's patient's Patient.sha_beneficiary_number when the caller didn't already supply one —
+// so a returning patient's payer lookup never needs re-typing (see mvp-gap-backlog-2026-09-02.md
+// Sprint 5 item 2 / Sprint 1 item 2). Best-effort: a lookup failure (unknown visit, no beneficiary
+// number on file) just means nothing gets auto-filled, never an error — the caller-supplied
+// fields still go through unchanged. "beneficiary_number" is hospital-api's own convention key;
+// a tenant's InsurerConnectorConfig mapping on the treasury-api side decides how it's used.
+func (s *Service) autoPopulateBeneficiaryNumber(ctx context.Context, tenantID, visitID uuid.UUID, fields map[string]string) map[string]string {
+	if visitID == uuid.Nil || fields["beneficiary_number"] != "" {
+		return fields
+	}
+	visit, err := s.client.PatientVisit.Query().
+		Where(patientvisit.ID(visitID), patientvisit.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return fields
+	}
+	pat, err := s.client.Patient.Get(ctx, visit.PatientID)
+	if err != nil || pat.ShaBeneficiaryNumber == "" {
+		return fields
+	}
+	if fields == nil {
+		fields = map[string]string{}
+	}
+	fields["beneficiary_number"] = pat.ShaBeneficiaryNumber
+	return fields
 }
 
 // ListInsuranceProviders lists a tenant's configured insurance providers — the picker source

@@ -35,6 +35,14 @@ type Patient struct {
 	Phone string `json:"phone,omitempty"`
 	// National ID / passport
 	IDNumber string `json:"id_number,omitempty"`
+	// national_id|passport|birth_certificate|maisha_number|alien_id — which scheme id_number came from, null on legacy rows
+	IdentificationType string `json:"identification_type,omitempty"`
+	// SHA/SHIF beneficiary number, captured once at registration and auto-populated into billing.CheckEligibility's fields map so it never needs re-typing
+	ShaBeneficiaryNumber string `json:"sha_beneficiary_number,omitempty"`
+	// Visual-ID aid for chart confirmation at a busy front desk — not a biometric credential
+	PhotoURL string `json:"photo_url,omitempty"`
+	// Pointer only, to a head-of-household Patient row — no edge, mirrors crm_contact_id's loose-reference style. Nothing consumes this yet; added now so Sprint 10 (ANC/PNC) doesn't need a retrofit
+	HouseholdID *uuid.UUID `json:"household_id,omitempty"`
 	// Address holds the value of the "address" field.
 	Address string `json:"address,omitempty"`
 	// Free-text quick-reference field for the chart — distinct from PatientNextOfKin (Sprint 5), the structured record used to authorize a bill settlement/discharge
@@ -80,11 +88,11 @@ func (*Patient) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case patient.FieldCrmContactID:
+		case patient.FieldHouseholdID, patient.FieldCrmContactID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case patient.FieldAllergyFlags:
 			values[i] = new([]byte)
-		case patient.FieldMrn, patient.FieldFullName, patient.FieldSex, patient.FieldPhone, patient.FieldIDNumber, patient.FieldAddress, patient.FieldNextOfKin, patient.FieldClientRegistryID, patient.FieldStatus:
+		case patient.FieldMrn, patient.FieldFullName, patient.FieldSex, patient.FieldPhone, patient.FieldIDNumber, patient.FieldIdentificationType, patient.FieldShaBeneficiaryNumber, patient.FieldPhotoURL, patient.FieldAddress, patient.FieldNextOfKin, patient.FieldClientRegistryID, patient.FieldStatus:
 			values[i] = new(sql.NullString)
 		case patient.FieldDob, patient.FieldCreatedAt, patient.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -159,6 +167,31 @@ func (_m *Patient) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id_number", values[i])
 			} else if value.Valid {
 				_m.IDNumber = value.String
+			}
+		case patient.FieldIdentificationType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field identification_type", values[i])
+			} else if value.Valid {
+				_m.IdentificationType = value.String
+			}
+		case patient.FieldShaBeneficiaryNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field sha_beneficiary_number", values[i])
+			} else if value.Valid {
+				_m.ShaBeneficiaryNumber = value.String
+			}
+		case patient.FieldPhotoURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field photo_url", values[i])
+			} else if value.Valid {
+				_m.PhotoURL = value.String
+			}
+		case patient.FieldHouseholdID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field household_id", values[i])
+			} else if value.Valid {
+				_m.HouseholdID = new(uuid.UUID)
+				*_m.HouseholdID = *value.S.(*uuid.UUID)
 			}
 		case patient.FieldAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -277,6 +310,20 @@ func (_m *Patient) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("id_number=")
 	builder.WriteString(_m.IDNumber)
+	builder.WriteString(", ")
+	builder.WriteString("identification_type=")
+	builder.WriteString(_m.IdentificationType)
+	builder.WriteString(", ")
+	builder.WriteString("sha_beneficiary_number=")
+	builder.WriteString(_m.ShaBeneficiaryNumber)
+	builder.WriteString(", ")
+	builder.WriteString("photo_url=")
+	builder.WriteString(_m.PhotoURL)
+	builder.WriteString(", ")
+	if v := _m.HouseholdID; v != nil {
+		builder.WriteString("household_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("address=")
 	builder.WriteString(_m.Address)

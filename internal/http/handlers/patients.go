@@ -52,15 +52,18 @@ func currentUserID(r *http.Request) uuid.UUID {
 // ── Patients ─────────────────────────────────────────────────────────────────────────────
 
 type registerPatientRequest struct {
-	FullName  string     `json:"full_name"`
-	DOB       *time.Time `json:"dob,omitempty"`
-	Sex       string     `json:"sex,omitempty"`
-	Phone     string     `json:"phone,omitempty"`
-	IDNumber  string     `json:"id_number,omitempty"`
-	Address   string     `json:"address,omitempty"`
-	NextOfKin string     `json:"next_of_kin,omitempty"`
-	Allergies []string   `json:"allergy_flags,omitempty"`
-	OutletID  string     `json:"outlet_id,omitempty"`
+	FullName             string     `json:"full_name"`
+	DOB                  *time.Time `json:"dob,omitempty"`
+	Sex                  string     `json:"sex,omitempty"`
+	Phone                string     `json:"phone,omitempty"`
+	IDNumber             string     `json:"id_number,omitempty"`
+	IdentificationType   string     `json:"identification_type,omitempty"`
+	SHABeneficiaryNumber string     `json:"sha_beneficiary_number,omitempty"`
+	PhotoURL             string     `json:"photo_url,omitempty"`
+	Address              string     `json:"address,omitempty"`
+	NextOfKin            string     `json:"next_of_kin,omitempty"`
+	Allergies            []string   `json:"allergy_flags,omitempty"`
+	OutletID             string     `json:"outlet_id,omitempty"`
 }
 
 // RegisterPatient handles POST /{tenant}/hospital/patients
@@ -83,7 +86,9 @@ func (h *PatientsHandler) RegisterPatient(w http.ResponseWriter, r *http.Request
 	}
 	p, err := h.svc.RegisterPatient(r.Context(), tenantID, patients.RegisterPatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
-		IDNumber: in.IDNumber, Address: in.Address, NextOfKin: in.NextOfKin,
+		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
+		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: in.PhotoURL,
+		Address: in.Address, NextOfKin: in.NextOfKin,
 		Allergies: in.Allergies, OutletID: outletID,
 	})
 	if err != nil {
@@ -131,14 +136,17 @@ func (h *PatientsHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 }
 
 type updatePatientRequest struct {
-	FullName  *string    `json:"full_name,omitempty"`
-	DOB       *time.Time `json:"dob,omitempty"`
-	Sex       *string    `json:"sex,omitempty"`
-	Phone     *string    `json:"phone,omitempty"`
-	IDNumber  *string    `json:"id_number,omitempty"`
-	Address   *string    `json:"address,omitempty"`
-	NextOfKin *string    `json:"next_of_kin,omitempty"`
-	Allergies *[]string  `json:"allergy_flags,omitempty"`
+	FullName             *string    `json:"full_name,omitempty"`
+	DOB                  *time.Time `json:"dob,omitempty"`
+	Sex                  *string    `json:"sex,omitempty"`
+	Phone                *string    `json:"phone,omitempty"`
+	IDNumber             *string    `json:"id_number,omitempty"`
+	IdentificationType   *string    `json:"identification_type,omitempty"`
+	SHABeneficiaryNumber *string    `json:"sha_beneficiary_number,omitempty"`
+	PhotoURL             *string    `json:"photo_url,omitempty"`
+	Address              *string    `json:"address,omitempty"`
+	NextOfKin            *string    `json:"next_of_kin,omitempty"`
+	Allergies            *[]string  `json:"allergy_flags,omitempty"`
 }
 
 // UpdatePatient handles PUT /{tenant}/hospital/patients/{patientID}
@@ -160,13 +168,34 @@ func (h *PatientsHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) 
 	}
 	p, err := h.svc.UpdatePatient(r.Context(), tenantID, patientID, patients.UpdatePatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
-		IDNumber: in.IDNumber, Address: in.Address, NextOfKin: in.NextOfKin, Allergies: in.Allergies,
+		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
+		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: in.PhotoURL,
+		Address: in.Address, NextOfKin: in.NextOfKin, Allergies: in.Allergies,
 	})
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	respondJSON(w, http.StatusOK, p)
+}
+
+// CheckDuplicates handles GET /{tenant}/hospital/patients/check-duplicates?full_name=&phone=&id_number=
+// Non-blocking pre-registration lookup — see patients.Service.CheckPossibleDuplicates.
+func (h *PatientsHandler) CheckDuplicates(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	q := r.URL.Query()
+	matches, err := h.svc.CheckPossibleDuplicates(r.Context(), tenantID, patients.CheckDuplicatesRequest{
+		FullName: q.Get("full_name"), Phone: q.Get("phone"), IDNumber: q.Get("id_number"),
+	})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to check duplicates")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": matches})
 }
 
 // ── Visits ───────────────────────────────────────────────────────────────────────────────

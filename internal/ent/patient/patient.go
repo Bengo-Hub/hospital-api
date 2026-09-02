@@ -31,6 +31,14 @@ const (
 	FieldPhone = "phone"
 	// FieldIDNumber holds the string denoting the id_number field in the database.
 	FieldIDNumber = "id_number"
+	// FieldIdentificationType holds the string denoting the identification_type field in the database.
+	FieldIdentificationType = "identification_type"
+	// FieldShaBeneficiaryNumber holds the string denoting the sha_beneficiary_number field in the database.
+	FieldShaBeneficiaryNumber = "sha_beneficiary_number"
+	// FieldPhotoURL holds the string denoting the photo_url field in the database.
+	FieldPhotoURL = "photo_url"
+	// FieldHouseholdID holds the string denoting the household_id field in the database.
+	FieldHouseholdID = "household_id"
 	// FieldAddress holds the string denoting the address field in the database.
 	FieldAddress = "address"
 	// FieldNextOfKin holds the string denoting the next_of_kin field in the database.
@@ -71,6 +79,10 @@ var Columns = []string{
 	FieldSex,
 	FieldPhone,
 	FieldIDNumber,
+	FieldIdentificationType,
+	FieldShaBeneficiaryNumber,
+	FieldPhotoURL,
+	FieldHouseholdID,
 	FieldAddress,
 	FieldNextOfKin,
 	FieldAllergyFlags,
@@ -156,6 +168,26 @@ func ByPhone(opts ...sql.OrderTermOption) OrderOption {
 // ByIDNumber orders the results by the id_number field.
 func ByIDNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIDNumber, opts...).ToFunc()
+}
+
+// ByIdentificationType orders the results by the identification_type field.
+func ByIdentificationType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdentificationType, opts...).ToFunc()
+}
+
+// ByShaBeneficiaryNumber orders the results by the sha_beneficiary_number field.
+func ByShaBeneficiaryNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldShaBeneficiaryNumber, opts...).ToFunc()
+}
+
+// ByPhotoURL orders the results by the photo_url field.
+func ByPhotoURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPhotoURL, opts...).ToFunc()
+}
+
+// ByHouseholdID orders the results by the household_id field.
+func ByHouseholdID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHouseholdID, opts...).ToFunc()
 }
 
 // ByAddress orders the results by the address field.

@@ -430,7 +430,10 @@ func (h *BillingHandler) CheckEligibility(w http.ResponseWriter, r *http.Request
 		respondError(w, http.StatusBadRequest, "invalid provider_id")
 		return
 	}
-	result, err := h.svc.CheckEligibility(r.Context(), tenantID, providerID, in.Fields)
+	// visitID may be absent/invalid on a caller that doesn't have one yet — CheckEligibility
+	// treats uuid.Nil as "skip beneficiary-number auto-populate", not an error.
+	visitID, _ := uuid.Parse(chi.URLParam(r, "visitID"))
+	result, err := h.svc.CheckEligibility(r.Context(), tenantID, providerID, visitID, in.Fields)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return

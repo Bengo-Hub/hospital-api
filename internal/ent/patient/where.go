@@ -96,6 +96,26 @@ func IDNumber(v string) predicate.Patient {
 	return predicate.Patient(sql.FieldEQ(FieldIDNumber, v))
 }
 
+// IdentificationType applies equality check predicate on the "identification_type" field. It's identical to IdentificationTypeEQ.
+func IdentificationType(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldIdentificationType, v))
+}
+
+// ShaBeneficiaryNumber applies equality check predicate on the "sha_beneficiary_number" field. It's identical to ShaBeneficiaryNumberEQ.
+func ShaBeneficiaryNumber(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldShaBeneficiaryNumber, v))
+}
+
+// PhotoURL applies equality check predicate on the "photo_url" field. It's identical to PhotoURLEQ.
+func PhotoURL(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldPhotoURL, v))
+}
+
+// HouseholdID applies equality check predicate on the "household_id" field. It's identical to HouseholdIDEQ.
+func HouseholdID(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldHouseholdID, v))
+}
+
 // Address applies equality check predicate on the "address" field. It's identical to AddressEQ.
 func Address(v string) predicate.Patient {
 	return predicate.Patient(sql.FieldEQ(FieldAddress, v))
@@ -614,6 +634,281 @@ func IDNumberEqualFold(v string) predicate.Patient {
 // IDNumberContainsFold applies the ContainsFold predicate on the "id_number" field.
 func IDNumberContainsFold(v string) predicate.Patient {
 	return predicate.Patient(sql.FieldContainsFold(FieldIDNumber, v))
+}
+
+// IdentificationTypeEQ applies the EQ predicate on the "identification_type" field.
+func IdentificationTypeEQ(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldIdentificationType, v))
+}
+
+// IdentificationTypeNEQ applies the NEQ predicate on the "identification_type" field.
+func IdentificationTypeNEQ(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldNEQ(FieldIdentificationType, v))
+}
+
+// IdentificationTypeIn applies the In predicate on the "identification_type" field.
+func IdentificationTypeIn(vs ...string) predicate.Patient {
+	return predicate.Patient(sql.FieldIn(FieldIdentificationType, vs...))
+}
+
+// IdentificationTypeNotIn applies the NotIn predicate on the "identification_type" field.
+func IdentificationTypeNotIn(vs ...string) predicate.Patient {
+	return predicate.Patient(sql.FieldNotIn(FieldIdentificationType, vs...))
+}
+
+// IdentificationTypeGT applies the GT predicate on the "identification_type" field.
+func IdentificationTypeGT(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldGT(FieldIdentificationType, v))
+}
+
+// IdentificationTypeGTE applies the GTE predicate on the "identification_type" field.
+func IdentificationTypeGTE(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldGTE(FieldIdentificationType, v))
+}
+
+// IdentificationTypeLT applies the LT predicate on the "identification_type" field.
+func IdentificationTypeLT(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldLT(FieldIdentificationType, v))
+}
+
+// IdentificationTypeLTE applies the LTE predicate on the "identification_type" field.
+func IdentificationTypeLTE(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldLTE(FieldIdentificationType, v))
+}
+
+// IdentificationTypeContains applies the Contains predicate on the "identification_type" field.
+func IdentificationTypeContains(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldContains(FieldIdentificationType, v))
+}
+
+// IdentificationTypeHasPrefix applies the HasPrefix predicate on the "identification_type" field.
+func IdentificationTypeHasPrefix(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldHasPrefix(FieldIdentificationType, v))
+}
+
+// IdentificationTypeHasSuffix applies the HasSuffix predicate on the "identification_type" field.
+func IdentificationTypeHasSuffix(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldHasSuffix(FieldIdentificationType, v))
+}
+
+// IdentificationTypeIsNil applies the IsNil predicate on the "identification_type" field.
+func IdentificationTypeIsNil() predicate.Patient {
+	return predicate.Patient(sql.FieldIsNull(FieldIdentificationType))
+}
+
+// IdentificationTypeNotNil applies the NotNil predicate on the "identification_type" field.
+func IdentificationTypeNotNil() predicate.Patient {
+	return predicate.Patient(sql.FieldNotNull(FieldIdentificationType))
+}
+
+// IdentificationTypeEqualFold applies the EqualFold predicate on the "identification_type" field.
+func IdentificationTypeEqualFold(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEqualFold(FieldIdentificationType, v))
+}
+
+// IdentificationTypeContainsFold applies the ContainsFold predicate on the "identification_type" field.
+func IdentificationTypeContainsFold(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldContainsFold(FieldIdentificationType, v))
+}
+
+// ShaBeneficiaryNumberEQ applies the EQ predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberEQ(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberNEQ applies the NEQ predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberNEQ(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldNEQ(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberIn applies the In predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberIn(vs ...string) predicate.Patient {
+	return predicate.Patient(sql.FieldIn(FieldShaBeneficiaryNumber, vs...))
+}
+
+// ShaBeneficiaryNumberNotIn applies the NotIn predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberNotIn(vs ...string) predicate.Patient {
+	return predicate.Patient(sql.FieldNotIn(FieldShaBeneficiaryNumber, vs...))
+}
+
+// ShaBeneficiaryNumberGT applies the GT predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberGT(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldGT(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberGTE applies the GTE predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberGTE(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldGTE(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberLT applies the LT predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberLT(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldLT(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberLTE applies the LTE predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberLTE(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldLTE(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberContains applies the Contains predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberContains(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldContains(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberHasPrefix applies the HasPrefix predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberHasPrefix(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldHasPrefix(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberHasSuffix applies the HasSuffix predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberHasSuffix(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldHasSuffix(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberIsNil applies the IsNil predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberIsNil() predicate.Patient {
+	return predicate.Patient(sql.FieldIsNull(FieldShaBeneficiaryNumber))
+}
+
+// ShaBeneficiaryNumberNotNil applies the NotNil predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberNotNil() predicate.Patient {
+	return predicate.Patient(sql.FieldNotNull(FieldShaBeneficiaryNumber))
+}
+
+// ShaBeneficiaryNumberEqualFold applies the EqualFold predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberEqualFold(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEqualFold(FieldShaBeneficiaryNumber, v))
+}
+
+// ShaBeneficiaryNumberContainsFold applies the ContainsFold predicate on the "sha_beneficiary_number" field.
+func ShaBeneficiaryNumberContainsFold(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldContainsFold(FieldShaBeneficiaryNumber, v))
+}
+
+// PhotoURLEQ applies the EQ predicate on the "photo_url" field.
+func PhotoURLEQ(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldPhotoURL, v))
+}
+
+// PhotoURLNEQ applies the NEQ predicate on the "photo_url" field.
+func PhotoURLNEQ(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldNEQ(FieldPhotoURL, v))
+}
+
+// PhotoURLIn applies the In predicate on the "photo_url" field.
+func PhotoURLIn(vs ...string) predicate.Patient {
+	return predicate.Patient(sql.FieldIn(FieldPhotoURL, vs...))
+}
+
+// PhotoURLNotIn applies the NotIn predicate on the "photo_url" field.
+func PhotoURLNotIn(vs ...string) predicate.Patient {
+	return predicate.Patient(sql.FieldNotIn(FieldPhotoURL, vs...))
+}
+
+// PhotoURLGT applies the GT predicate on the "photo_url" field.
+func PhotoURLGT(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldGT(FieldPhotoURL, v))
+}
+
+// PhotoURLGTE applies the GTE predicate on the "photo_url" field.
+func PhotoURLGTE(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldGTE(FieldPhotoURL, v))
+}
+
+// PhotoURLLT applies the LT predicate on the "photo_url" field.
+func PhotoURLLT(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldLT(FieldPhotoURL, v))
+}
+
+// PhotoURLLTE applies the LTE predicate on the "photo_url" field.
+func PhotoURLLTE(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldLTE(FieldPhotoURL, v))
+}
+
+// PhotoURLContains applies the Contains predicate on the "photo_url" field.
+func PhotoURLContains(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldContains(FieldPhotoURL, v))
+}
+
+// PhotoURLHasPrefix applies the HasPrefix predicate on the "photo_url" field.
+func PhotoURLHasPrefix(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldHasPrefix(FieldPhotoURL, v))
+}
+
+// PhotoURLHasSuffix applies the HasSuffix predicate on the "photo_url" field.
+func PhotoURLHasSuffix(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldHasSuffix(FieldPhotoURL, v))
+}
+
+// PhotoURLIsNil applies the IsNil predicate on the "photo_url" field.
+func PhotoURLIsNil() predicate.Patient {
+	return predicate.Patient(sql.FieldIsNull(FieldPhotoURL))
+}
+
+// PhotoURLNotNil applies the NotNil predicate on the "photo_url" field.
+func PhotoURLNotNil() predicate.Patient {
+	return predicate.Patient(sql.FieldNotNull(FieldPhotoURL))
+}
+
+// PhotoURLEqualFold applies the EqualFold predicate on the "photo_url" field.
+func PhotoURLEqualFold(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldEqualFold(FieldPhotoURL, v))
+}
+
+// PhotoURLContainsFold applies the ContainsFold predicate on the "photo_url" field.
+func PhotoURLContainsFold(v string) predicate.Patient {
+	return predicate.Patient(sql.FieldContainsFold(FieldPhotoURL, v))
+}
+
+// HouseholdIDEQ applies the EQ predicate on the "household_id" field.
+func HouseholdIDEQ(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldHouseholdID, v))
+}
+
+// HouseholdIDNEQ applies the NEQ predicate on the "household_id" field.
+func HouseholdIDNEQ(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldNEQ(FieldHouseholdID, v))
+}
+
+// HouseholdIDIn applies the In predicate on the "household_id" field.
+func HouseholdIDIn(vs ...uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldIn(FieldHouseholdID, vs...))
+}
+
+// HouseholdIDNotIn applies the NotIn predicate on the "household_id" field.
+func HouseholdIDNotIn(vs ...uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldNotIn(FieldHouseholdID, vs...))
+}
+
+// HouseholdIDGT applies the GT predicate on the "household_id" field.
+func HouseholdIDGT(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldGT(FieldHouseholdID, v))
+}
+
+// HouseholdIDGTE applies the GTE predicate on the "household_id" field.
+func HouseholdIDGTE(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldGTE(FieldHouseholdID, v))
+}
+
+// HouseholdIDLT applies the LT predicate on the "household_id" field.
+func HouseholdIDLT(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldLT(FieldHouseholdID, v))
+}
+
+// HouseholdIDLTE applies the LTE predicate on the "household_id" field.
+func HouseholdIDLTE(v uuid.UUID) predicate.Patient {
+	return predicate.Patient(sql.FieldLTE(FieldHouseholdID, v))
+}
+
+// HouseholdIDIsNil applies the IsNil predicate on the "household_id" field.
+func HouseholdIDIsNil() predicate.Patient {
+	return predicate.Patient(sql.FieldIsNull(FieldHouseholdID))
+}
+
+// HouseholdIDNotNil applies the NotNil predicate on the "household_id" field.
+func HouseholdIDNotNil() predicate.Patient {
+	return predicate.Patient(sql.FieldNotNull(FieldHouseholdID))
 }
 
 // AddressEQ applies the EQ predicate on the "address" field.

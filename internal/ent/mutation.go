@@ -20253,33 +20253,37 @@ func (m *OutletMutation) ResetEdge(name string) error {
 // PatientMutation represents an operation that mutates the Patient nodes in the graph.
 type PatientMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *uuid.UUID
-	tenant_id           *uuid.UUID
-	outlet_id           *uuid.UUID
-	mrn                 *string
-	full_name           *string
-	dob                 *time.Time
-	sex                 *string
-	phone               *string
-	id_number           *string
-	address             *string
-	next_of_kin         *string
-	allergy_flags       *[]string
-	appendallergy_flags []string
-	client_registry_id  *string
-	crm_contact_id      *uuid.UUID
-	status              *string
-	created_at          *time.Time
-	updated_at          *time.Time
-	clearedFields       map[string]struct{}
-	visits              map[uuid.UUID]struct{}
-	removedvisits       map[uuid.UUID]struct{}
-	clearedvisits       bool
-	done                bool
-	oldValue            func(context.Context) (*Patient, error)
-	predicates          []predicate.Patient
+	op                     Op
+	typ                    string
+	id                     *uuid.UUID
+	tenant_id              *uuid.UUID
+	outlet_id              *uuid.UUID
+	mrn                    *string
+	full_name              *string
+	dob                    *time.Time
+	sex                    *string
+	phone                  *string
+	id_number              *string
+	identification_type    *string
+	sha_beneficiary_number *string
+	photo_url              *string
+	household_id           *uuid.UUID
+	address                *string
+	next_of_kin            *string
+	allergy_flags          *[]string
+	appendallergy_flags    []string
+	client_registry_id     *string
+	crm_contact_id         *uuid.UUID
+	status                 *string
+	created_at             *time.Time
+	updated_at             *time.Time
+	clearedFields          map[string]struct{}
+	visits                 map[uuid.UUID]struct{}
+	removedvisits          map[uuid.UUID]struct{}
+	clearedvisits          bool
+	done                   bool
+	oldValue               func(context.Context) (*Patient, error)
+	predicates             []predicate.Patient
 }
 
 var _ ent.Mutation = (*PatientMutation)(nil)
@@ -20724,6 +20728,202 @@ func (m *PatientMutation) IDNumberCleared() bool {
 func (m *PatientMutation) ResetIDNumber() {
 	m.id_number = nil
 	delete(m.clearedFields, patient.FieldIDNumber)
+}
+
+// SetIdentificationType sets the "identification_type" field.
+func (m *PatientMutation) SetIdentificationType(s string) {
+	m.identification_type = &s
+}
+
+// IdentificationType returns the value of the "identification_type" field in the mutation.
+func (m *PatientMutation) IdentificationType() (r string, exists bool) {
+	v := m.identification_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentificationType returns the old "identification_type" field's value of the Patient entity.
+// If the Patient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PatientMutation) OldIdentificationType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentificationType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentificationType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentificationType: %w", err)
+	}
+	return oldValue.IdentificationType, nil
+}
+
+// ClearIdentificationType clears the value of the "identification_type" field.
+func (m *PatientMutation) ClearIdentificationType() {
+	m.identification_type = nil
+	m.clearedFields[patient.FieldIdentificationType] = struct{}{}
+}
+
+// IdentificationTypeCleared returns if the "identification_type" field was cleared in this mutation.
+func (m *PatientMutation) IdentificationTypeCleared() bool {
+	_, ok := m.clearedFields[patient.FieldIdentificationType]
+	return ok
+}
+
+// ResetIdentificationType resets all changes to the "identification_type" field.
+func (m *PatientMutation) ResetIdentificationType() {
+	m.identification_type = nil
+	delete(m.clearedFields, patient.FieldIdentificationType)
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (m *PatientMutation) SetShaBeneficiaryNumber(s string) {
+	m.sha_beneficiary_number = &s
+}
+
+// ShaBeneficiaryNumber returns the value of the "sha_beneficiary_number" field in the mutation.
+func (m *PatientMutation) ShaBeneficiaryNumber() (r string, exists bool) {
+	v := m.sha_beneficiary_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldShaBeneficiaryNumber returns the old "sha_beneficiary_number" field's value of the Patient entity.
+// If the Patient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PatientMutation) OldShaBeneficiaryNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldShaBeneficiaryNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldShaBeneficiaryNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldShaBeneficiaryNumber: %w", err)
+	}
+	return oldValue.ShaBeneficiaryNumber, nil
+}
+
+// ClearShaBeneficiaryNumber clears the value of the "sha_beneficiary_number" field.
+func (m *PatientMutation) ClearShaBeneficiaryNumber() {
+	m.sha_beneficiary_number = nil
+	m.clearedFields[patient.FieldShaBeneficiaryNumber] = struct{}{}
+}
+
+// ShaBeneficiaryNumberCleared returns if the "sha_beneficiary_number" field was cleared in this mutation.
+func (m *PatientMutation) ShaBeneficiaryNumberCleared() bool {
+	_, ok := m.clearedFields[patient.FieldShaBeneficiaryNumber]
+	return ok
+}
+
+// ResetShaBeneficiaryNumber resets all changes to the "sha_beneficiary_number" field.
+func (m *PatientMutation) ResetShaBeneficiaryNumber() {
+	m.sha_beneficiary_number = nil
+	delete(m.clearedFields, patient.FieldShaBeneficiaryNumber)
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (m *PatientMutation) SetPhotoURL(s string) {
+	m.photo_url = &s
+}
+
+// PhotoURL returns the value of the "photo_url" field in the mutation.
+func (m *PatientMutation) PhotoURL() (r string, exists bool) {
+	v := m.photo_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhotoURL returns the old "photo_url" field's value of the Patient entity.
+// If the Patient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PatientMutation) OldPhotoURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhotoURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhotoURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhotoURL: %w", err)
+	}
+	return oldValue.PhotoURL, nil
+}
+
+// ClearPhotoURL clears the value of the "photo_url" field.
+func (m *PatientMutation) ClearPhotoURL() {
+	m.photo_url = nil
+	m.clearedFields[patient.FieldPhotoURL] = struct{}{}
+}
+
+// PhotoURLCleared returns if the "photo_url" field was cleared in this mutation.
+func (m *PatientMutation) PhotoURLCleared() bool {
+	_, ok := m.clearedFields[patient.FieldPhotoURL]
+	return ok
+}
+
+// ResetPhotoURL resets all changes to the "photo_url" field.
+func (m *PatientMutation) ResetPhotoURL() {
+	m.photo_url = nil
+	delete(m.clearedFields, patient.FieldPhotoURL)
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (m *PatientMutation) SetHouseholdID(u uuid.UUID) {
+	m.household_id = &u
+}
+
+// HouseholdID returns the value of the "household_id" field in the mutation.
+func (m *PatientMutation) HouseholdID() (r uuid.UUID, exists bool) {
+	v := m.household_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHouseholdID returns the old "household_id" field's value of the Patient entity.
+// If the Patient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PatientMutation) OldHouseholdID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHouseholdID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHouseholdID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHouseholdID: %w", err)
+	}
+	return oldValue.HouseholdID, nil
+}
+
+// ClearHouseholdID clears the value of the "household_id" field.
+func (m *PatientMutation) ClearHouseholdID() {
+	m.household_id = nil
+	m.clearedFields[patient.FieldHouseholdID] = struct{}{}
+}
+
+// HouseholdIDCleared returns if the "household_id" field was cleared in this mutation.
+func (m *PatientMutation) HouseholdIDCleared() bool {
+	_, ok := m.clearedFields[patient.FieldHouseholdID]
+	return ok
+}
+
+// ResetHouseholdID resets all changes to the "household_id" field.
+func (m *PatientMutation) ResetHouseholdID() {
+	m.household_id = nil
+	delete(m.clearedFields, patient.FieldHouseholdID)
 }
 
 // SetAddress sets the "address" field.
@@ -21183,7 +21383,7 @@ func (m *PatientMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PatientMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 20)
 	if m.tenant_id != nil {
 		fields = append(fields, patient.FieldTenantID)
 	}
@@ -21207,6 +21407,18 @@ func (m *PatientMutation) Fields() []string {
 	}
 	if m.id_number != nil {
 		fields = append(fields, patient.FieldIDNumber)
+	}
+	if m.identification_type != nil {
+		fields = append(fields, patient.FieldIdentificationType)
+	}
+	if m.sha_beneficiary_number != nil {
+		fields = append(fields, patient.FieldShaBeneficiaryNumber)
+	}
+	if m.photo_url != nil {
+		fields = append(fields, patient.FieldPhotoURL)
+	}
+	if m.household_id != nil {
+		fields = append(fields, patient.FieldHouseholdID)
 	}
 	if m.address != nil {
 		fields = append(fields, patient.FieldAddress)
@@ -21256,6 +21468,14 @@ func (m *PatientMutation) Field(name string) (ent.Value, bool) {
 		return m.Phone()
 	case patient.FieldIDNumber:
 		return m.IDNumber()
+	case patient.FieldIdentificationType:
+		return m.IdentificationType()
+	case patient.FieldShaBeneficiaryNumber:
+		return m.ShaBeneficiaryNumber()
+	case patient.FieldPhotoURL:
+		return m.PhotoURL()
+	case patient.FieldHouseholdID:
+		return m.HouseholdID()
 	case patient.FieldAddress:
 		return m.Address()
 	case patient.FieldNextOfKin:
@@ -21297,6 +21517,14 @@ func (m *PatientMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldPhone(ctx)
 	case patient.FieldIDNumber:
 		return m.OldIDNumber(ctx)
+	case patient.FieldIdentificationType:
+		return m.OldIdentificationType(ctx)
+	case patient.FieldShaBeneficiaryNumber:
+		return m.OldShaBeneficiaryNumber(ctx)
+	case patient.FieldPhotoURL:
+		return m.OldPhotoURL(ctx)
+	case patient.FieldHouseholdID:
+		return m.OldHouseholdID(ctx)
 	case patient.FieldAddress:
 		return m.OldAddress(ctx)
 	case patient.FieldNextOfKin:
@@ -21377,6 +21605,34 @@ func (m *PatientMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIDNumber(v)
+		return nil
+	case patient.FieldIdentificationType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentificationType(v)
+		return nil
+	case patient.FieldShaBeneficiaryNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetShaBeneficiaryNumber(v)
+		return nil
+	case patient.FieldPhotoURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhotoURL(v)
+		return nil
+	case patient.FieldHouseholdID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHouseholdID(v)
 		return nil
 	case patient.FieldAddress:
 		v, ok := value.(string)
@@ -21476,6 +21732,18 @@ func (m *PatientMutation) ClearedFields() []string {
 	if m.FieldCleared(patient.FieldIDNumber) {
 		fields = append(fields, patient.FieldIDNumber)
 	}
+	if m.FieldCleared(patient.FieldIdentificationType) {
+		fields = append(fields, patient.FieldIdentificationType)
+	}
+	if m.FieldCleared(patient.FieldShaBeneficiaryNumber) {
+		fields = append(fields, patient.FieldShaBeneficiaryNumber)
+	}
+	if m.FieldCleared(patient.FieldPhotoURL) {
+		fields = append(fields, patient.FieldPhotoURL)
+	}
+	if m.FieldCleared(patient.FieldHouseholdID) {
+		fields = append(fields, patient.FieldHouseholdID)
+	}
 	if m.FieldCleared(patient.FieldAddress) {
 		fields = append(fields, patient.FieldAddress)
 	}
@@ -21516,6 +21784,18 @@ func (m *PatientMutation) ClearField(name string) error {
 		return nil
 	case patient.FieldIDNumber:
 		m.ClearIDNumber()
+		return nil
+	case patient.FieldIdentificationType:
+		m.ClearIdentificationType()
+		return nil
+	case patient.FieldShaBeneficiaryNumber:
+		m.ClearShaBeneficiaryNumber()
+		return nil
+	case patient.FieldPhotoURL:
+		m.ClearPhotoURL()
+		return nil
+	case patient.FieldHouseholdID:
+		m.ClearHouseholdID()
 		return nil
 	case patient.FieldAddress:
 		m.ClearAddress()
@@ -21563,6 +21843,18 @@ func (m *PatientMutation) ResetField(name string) error {
 		return nil
 	case patient.FieldIDNumber:
 		m.ResetIDNumber()
+		return nil
+	case patient.FieldIdentificationType:
+		m.ResetIdentificationType()
+		return nil
+	case patient.FieldShaBeneficiaryNumber:
+		m.ResetShaBeneficiaryNumber()
+		return nil
+	case patient.FieldPhotoURL:
+		m.ResetPhotoURL()
+		return nil
+	case patient.FieldHouseholdID:
+		m.ResetHouseholdID()
 		return nil
 	case patient.FieldAddress:
 		m.ResetAddress()

@@ -167,6 +167,86 @@ func (_u *PatientUpdate) ClearIDNumber() *PatientUpdate {
 	return _u
 }
 
+// SetIdentificationType sets the "identification_type" field.
+func (_u *PatientUpdate) SetIdentificationType(v string) *PatientUpdate {
+	_u.mutation.SetIdentificationType(v)
+	return _u
+}
+
+// SetNillableIdentificationType sets the "identification_type" field if the given value is not nil.
+func (_u *PatientUpdate) SetNillableIdentificationType(v *string) *PatientUpdate {
+	if v != nil {
+		_u.SetIdentificationType(*v)
+	}
+	return _u
+}
+
+// ClearIdentificationType clears the value of the "identification_type" field.
+func (_u *PatientUpdate) ClearIdentificationType() *PatientUpdate {
+	_u.mutation.ClearIdentificationType()
+	return _u
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (_u *PatientUpdate) SetShaBeneficiaryNumber(v string) *PatientUpdate {
+	_u.mutation.SetShaBeneficiaryNumber(v)
+	return _u
+}
+
+// SetNillableShaBeneficiaryNumber sets the "sha_beneficiary_number" field if the given value is not nil.
+func (_u *PatientUpdate) SetNillableShaBeneficiaryNumber(v *string) *PatientUpdate {
+	if v != nil {
+		_u.SetShaBeneficiaryNumber(*v)
+	}
+	return _u
+}
+
+// ClearShaBeneficiaryNumber clears the value of the "sha_beneficiary_number" field.
+func (_u *PatientUpdate) ClearShaBeneficiaryNumber() *PatientUpdate {
+	_u.mutation.ClearShaBeneficiaryNumber()
+	return _u
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (_u *PatientUpdate) SetPhotoURL(v string) *PatientUpdate {
+	_u.mutation.SetPhotoURL(v)
+	return _u
+}
+
+// SetNillablePhotoURL sets the "photo_url" field if the given value is not nil.
+func (_u *PatientUpdate) SetNillablePhotoURL(v *string) *PatientUpdate {
+	if v != nil {
+		_u.SetPhotoURL(*v)
+	}
+	return _u
+}
+
+// ClearPhotoURL clears the value of the "photo_url" field.
+func (_u *PatientUpdate) ClearPhotoURL() *PatientUpdate {
+	_u.mutation.ClearPhotoURL()
+	return _u
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (_u *PatientUpdate) SetHouseholdID(v uuid.UUID) *PatientUpdate {
+	_u.mutation.SetHouseholdID(v)
+	return _u
+}
+
+// SetNillableHouseholdID sets the "household_id" field if the given value is not nil.
+func (_u *PatientUpdate) SetNillableHouseholdID(v *uuid.UUID) *PatientUpdate {
+	if v != nil {
+		_u.SetHouseholdID(*v)
+	}
+	return _u
+}
+
+// ClearHouseholdID clears the value of the "household_id" field.
+func (_u *PatientUpdate) ClearHouseholdID() *PatientUpdate {
+	_u.mutation.ClearHouseholdID()
+	return _u
+}
+
 // SetAddress sets the "address" field.
 func (_u *PatientUpdate) SetAddress(v string) *PatientUpdate {
 	_u.mutation.SetAddress(v)
@@ -425,6 +505,30 @@ func (_u *PatientUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.IDNumberCleared() {
 		_spec.ClearField(patient.FieldIDNumber, field.TypeString)
 	}
+	if value, ok := _u.mutation.IdentificationType(); ok {
+		_spec.SetField(patient.FieldIdentificationType, field.TypeString, value)
+	}
+	if _u.mutation.IdentificationTypeCleared() {
+		_spec.ClearField(patient.FieldIdentificationType, field.TypeString)
+	}
+	if value, ok := _u.mutation.ShaBeneficiaryNumber(); ok {
+		_spec.SetField(patient.FieldShaBeneficiaryNumber, field.TypeString, value)
+	}
+	if _u.mutation.ShaBeneficiaryNumberCleared() {
+		_spec.ClearField(patient.FieldShaBeneficiaryNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.PhotoURL(); ok {
+		_spec.SetField(patient.FieldPhotoURL, field.TypeString, value)
+	}
+	if _u.mutation.PhotoURLCleared() {
+		_spec.ClearField(patient.FieldPhotoURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.HouseholdID(); ok {
+		_spec.SetField(patient.FieldHouseholdID, field.TypeUUID, value)
+	}
+	if _u.mutation.HouseholdIDCleared() {
+		_spec.ClearField(patient.FieldHouseholdID, field.TypeUUID)
+	}
 	if value, ok := _u.mutation.Address(); ok {
 		_spec.SetField(patient.FieldAddress, field.TypeString, value)
 	}
@@ -664,6 +768,86 @@ func (_u *PatientUpdateOne) SetNillableIDNumber(v *string) *PatientUpdateOne {
 // ClearIDNumber clears the value of the "id_number" field.
 func (_u *PatientUpdateOne) ClearIDNumber() *PatientUpdateOne {
 	_u.mutation.ClearIDNumber()
+	return _u
+}
+
+// SetIdentificationType sets the "identification_type" field.
+func (_u *PatientUpdateOne) SetIdentificationType(v string) *PatientUpdateOne {
+	_u.mutation.SetIdentificationType(v)
+	return _u
+}
+
+// SetNillableIdentificationType sets the "identification_type" field if the given value is not nil.
+func (_u *PatientUpdateOne) SetNillableIdentificationType(v *string) *PatientUpdateOne {
+	if v != nil {
+		_u.SetIdentificationType(*v)
+	}
+	return _u
+}
+
+// ClearIdentificationType clears the value of the "identification_type" field.
+func (_u *PatientUpdateOne) ClearIdentificationType() *PatientUpdateOne {
+	_u.mutation.ClearIdentificationType()
+	return _u
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (_u *PatientUpdateOne) SetShaBeneficiaryNumber(v string) *PatientUpdateOne {
+	_u.mutation.SetShaBeneficiaryNumber(v)
+	return _u
+}
+
+// SetNillableShaBeneficiaryNumber sets the "sha_beneficiary_number" field if the given value is not nil.
+func (_u *PatientUpdateOne) SetNillableShaBeneficiaryNumber(v *string) *PatientUpdateOne {
+	if v != nil {
+		_u.SetShaBeneficiaryNumber(*v)
+	}
+	return _u
+}
+
+// ClearShaBeneficiaryNumber clears the value of the "sha_beneficiary_number" field.
+func (_u *PatientUpdateOne) ClearShaBeneficiaryNumber() *PatientUpdateOne {
+	_u.mutation.ClearShaBeneficiaryNumber()
+	return _u
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (_u *PatientUpdateOne) SetPhotoURL(v string) *PatientUpdateOne {
+	_u.mutation.SetPhotoURL(v)
+	return _u
+}
+
+// SetNillablePhotoURL sets the "photo_url" field if the given value is not nil.
+func (_u *PatientUpdateOne) SetNillablePhotoURL(v *string) *PatientUpdateOne {
+	if v != nil {
+		_u.SetPhotoURL(*v)
+	}
+	return _u
+}
+
+// ClearPhotoURL clears the value of the "photo_url" field.
+func (_u *PatientUpdateOne) ClearPhotoURL() *PatientUpdateOne {
+	_u.mutation.ClearPhotoURL()
+	return _u
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (_u *PatientUpdateOne) SetHouseholdID(v uuid.UUID) *PatientUpdateOne {
+	_u.mutation.SetHouseholdID(v)
+	return _u
+}
+
+// SetNillableHouseholdID sets the "household_id" field if the given value is not nil.
+func (_u *PatientUpdateOne) SetNillableHouseholdID(v *uuid.UUID) *PatientUpdateOne {
+	if v != nil {
+		_u.SetHouseholdID(*v)
+	}
+	return _u
+}
+
+// ClearHouseholdID clears the value of the "household_id" field.
+func (_u *PatientUpdateOne) ClearHouseholdID() *PatientUpdateOne {
+	_u.mutation.ClearHouseholdID()
 	return _u
 }
 
@@ -954,6 +1138,30 @@ func (_u *PatientUpdateOne) sqlSave(ctx context.Context) (_node *Patient, err er
 	}
 	if _u.mutation.IDNumberCleared() {
 		_spec.ClearField(patient.FieldIDNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.IdentificationType(); ok {
+		_spec.SetField(patient.FieldIdentificationType, field.TypeString, value)
+	}
+	if _u.mutation.IdentificationTypeCleared() {
+		_spec.ClearField(patient.FieldIdentificationType, field.TypeString)
+	}
+	if value, ok := _u.mutation.ShaBeneficiaryNumber(); ok {
+		_spec.SetField(patient.FieldShaBeneficiaryNumber, field.TypeString, value)
+	}
+	if _u.mutation.ShaBeneficiaryNumberCleared() {
+		_spec.ClearField(patient.FieldShaBeneficiaryNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.PhotoURL(); ok {
+		_spec.SetField(patient.FieldPhotoURL, field.TypeString, value)
+	}
+	if _u.mutation.PhotoURLCleared() {
+		_spec.ClearField(patient.FieldPhotoURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.HouseholdID(); ok {
+		_spec.SetField(patient.FieldHouseholdID, field.TypeUUID, value)
+	}
+	if _u.mutation.HouseholdIDCleared() {
+		_spec.ClearField(patient.FieldHouseholdID, field.TypeUUID)
 	}
 	if value, ok := _u.mutation.Address(); ok {
 		_spec.SetField(patient.FieldAddress, field.TypeString, value)

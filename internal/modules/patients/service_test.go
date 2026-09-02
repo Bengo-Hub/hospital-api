@@ -2,7 +2,9 @@ package patients
 
 import (
 	"testing"
+	"time"
 
+	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 )
@@ -72,6 +74,88 @@ func TestRegistrationAppliesTo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAcuityRank(t *testing.T) {
+	cases := []struct {
+		name     string
+		priority string
+		want     int
+	}{
+		{"ESI 1 is most urgent", "1", 0},
+		{"emergency word-scale matches ESI 1", "emergency", 0},
+		{"Emergency is case-insensitive", "Emergency", 0},
+		{"ESI 2", "2", 1},
+		{"urgent word-scale matches ESI 2", "urgent", 1},
+		{"ESI 5 is least urgent", "5", 4},
+		{"routine word-scale matches ESI 5", "routine", 4},
+		{"unrecognised value ranks last", "garbage", 99},
+		{"empty (not yet triaged) ranks last", "", 99},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := acuityRank(tc.priority); got != tc.want {
+				t.Errorf("acuityRank(%q) = %d, want %d", tc.priority, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSortVisitsByAcuity(t *testing.T) {
+	mk := func(status patientvisit.Status, priority string) *ent.PatientVisit {
+		v := &ent.PatientVisit{Status: status}
+		if priority != "" {
+			v.Edges.TriageRecords = []*ent.TriageRecord{{Priority: priority, TakenAt: time.Now()}}
+		}
+		return v
+	}
+
+	t.Run("urgent-first within the registered/triaged bucket, FIFO otherwise", func(t *testing.T) {
+		routine := mk(patientvisit.StatusTriaged, "routine")
+		untriaged := mk(patientvisit.StatusRegistered, "")
+		emergency := mk(patientvisit.StatusTriaged, "emergency")
+		visits := []*ent.PatientVisit{routine, untriaged, emergency}
+
+		sortVisitsByAcuity(visits)
+
+		if visits[0] != emergency {
+			t.Errorf("expected emergency visit first, got status=%s", visits[0].Status)
+		}
+		if visits[1] != routine {
+			t.Errorf("expected routine (triaged, lower acuity) second, got status=%s", visits[1].Status)
+		}
+		if visits[2] != untriaged {
+			t.Errorf("expected untriaged (no data, ranks last) third, got status=%s", visits[2].Status)
+		}
+	})
+
+	t.Run("visits past triage keep their original slot, never reordered", func(t *testing.T) {
+		emergency := mk(patientvisit.StatusTriaged, "emergency")
+		inExam := mk(patientvisit.StatusInExamination, "")
+		routine := mk(patientvisit.StatusTriaged, "routine")
+		visits := []*ent.PatientVisit{routine, inExam, emergency}
+
+		sortVisitsByAcuity(visits)
+
+		if visits[1] != inExam {
+			t.Errorf("in_examination visit must stay in its original slot 1, got status=%s", visits[1].Status)
+		}
+		if visits[0] != emergency || visits[2] != routine {
+			t.Errorf("registered/triaged bucket (slots 0,2) should be urgent-first: got %s, %s", visits[0].Status, visits[2].Status)
+		}
+	})
+
+	t.Run("fewer than 2 reorderable visits is a no-op", func(t *testing.T) {
+		inExam := mk(patientvisit.StatusInExamination, "")
+		emergency := mk(patientvisit.StatusTriaged, "emergency")
+		visits := []*ent.PatientVisit{inExam, emergency}
+
+		sortVisitsByAcuity(visits)
+
+		if visits[0] != inExam || visits[1] != emergency {
+			t.Error("order must be unchanged when only one visit is in the reorderable bucket")
+		}
+	})
 }
 
 // NOTE: RegisterPatient's and CheckInVisit's own required-field checks (full_name / patient_id

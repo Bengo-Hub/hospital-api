@@ -34,12 +34,12 @@ matching section (frontend).
 
 | Gap | Effort | Notes |
 |---|---|---|
-| `identification_type` enum missing on `Patient` (national_id/passport/birth_certificate/maisha_number/alien_id) | Quick, additive field | This sprint's own doc already described this field; it was never actually built. Doc/code drift, corrected by this audit. |
-| No SHA/SHIF beneficiary number captured at registration | Quick, additive field | Currently re-typed ad hoc at every eligibility check via a free-form map. |
-| No patient photo/biometric capture | Quick (photo), large (fingerprint) | SHA moved to mandatory fingerprint biometric claim approval in Aug 2026. Photo is a cheap first step; fingerprint is a real hardware and API integration, explicitly not scoped this pass. |
-| No duplicate-patient detection or merge, despite `Patient.status` already listing `merged` as a legal value | Quick (duplicate warning), new module (real merge) | OpenMRS treats real patient-merge as a full module in its own right, not a quick fix. |
-| No family/household linkage | Deferred, not urgent | Flagged now so Sprint 10 (ANC/PNC) doesn't have to retrofit it later. |
-| OPD/consultation queue is pure FIFO by check-in time; `TriageRecord.priority` (ESI-style acuity) is captured but never read back into queue ordering | Quick, query and UI change, no schema change | The data already exists; only the read-side ordering and a UI badge are missing. |
+| `identification_type` enum missing on `Patient` (national_id/passport/birth_certificate/maisha_number/alien_id) | Quick, additive field | **Shipped 2026-09-03.** This sprint's own doc already described this field; it was never actually built. Doc/code drift, corrected by this audit. |
+| No SHA/SHIF beneficiary number captured at registration | Quick, additive field | **Shipped 2026-09-03.** Auto-populated into `billing.Service.CheckEligibility`'s fields map via the visit's patient. |
+| No patient photo/biometric capture | Quick (photo), large (fingerprint) | **Photo shipped 2026-09-03** (`Patient.photo_url` + new `POST /media/upload`). SHA moved to mandatory fingerprint biometric claim approval in Aug 2026 — fingerprint remains a real hardware and API integration, explicitly not scoped this pass. |
+| No duplicate-patient detection or merge, despite `Patient.status` already listing `merged` as a legal value | Quick (duplicate warning), new module (real merge) | **Duplicate warning shipped 2026-09-03** (`CheckPossibleDuplicates` + a non-blocking UI confirm). Real merge (reassigning visits/prescriptions) remains its own, larger, not-yet-built follow-up, as OpenMRS treats it as a full module in its own right. |
+| No family/household linkage | Deferred, not urgent | `Patient.household_id` schema field shipped 2026-09-03 (no UI, nothing consumes it yet) so Sprint 10 (ANC/PNC) doesn't have to retrofit it later. |
+| OPD/consultation queue is pure FIFO by check-in time; `TriageRecord.priority` (ESI-style acuity) is captured but never read back into queue ordering | Quick, query and UI change, no schema change | **Shipped 2026-09-03.** `ListVisits` sorts the registered/triaged bucket urgent-first; the consultation queue shows a priority badge. |
 | Appointment scheduling | N/A | Confirmed still `comingSoon` with zero backend. Already tracked, not re-researched this pass. |
 
 ## Sprint 2: Consultation & Examination

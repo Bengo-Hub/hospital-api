@@ -19,6 +19,14 @@ type Config struct {
 	Events   EventsConfig
 	Auth     AuthConfig
 	Services ServicesConfig
+	Media    MediaConfig
+}
+
+// MediaConfig mirrors inventory-api's own MediaConfig (internal/config/config.go there) — same
+// upload-root/URL-base shape, reused here for Patient.photo_url uploads.
+type MediaConfig struct {
+	Root    string `envconfig:"MEDIA_ROOT" default:"./media"`
+	URLBase string `envconfig:"MEDIA_URL_BASE" default:""`
 }
 
 type AppConfig struct {

@@ -246,6 +246,12 @@ func New(ctx context.Context) (*App, error) {
 	// pharmacy drug-search already wired.
 	assetsHandler := handlers.NewAssetsHandler(inventorySvc)
 
+	// Media upload (2026-09-03) — Patient.photo_url capture, mirrors inventory-api's MediaHandler.
+	var mediaHandler *handlers.MediaHandler
+	if cfg.Media.Root != "" {
+		mediaHandler = handlers.NewMediaHandler(log, cfg.Media)
+	}
+
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
@@ -278,6 +284,8 @@ func New(ctx context.Context) (*App, error) {
 		ICU:            icuHandler,
 		Assets:         assetsHandler,
 		TenantSyncer:   tenantSyncer,
+		Media:          mediaHandler,
+		MediaRoot:      cfg.Media.Root,
 	}
 	chiRouter := router.New(deps)
 

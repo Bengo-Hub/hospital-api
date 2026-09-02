@@ -105,6 +105,62 @@ func (_c *PatientCreate) SetNillableIDNumber(v *string) *PatientCreate {
 	return _c
 }
 
+// SetIdentificationType sets the "identification_type" field.
+func (_c *PatientCreate) SetIdentificationType(v string) *PatientCreate {
+	_c.mutation.SetIdentificationType(v)
+	return _c
+}
+
+// SetNillableIdentificationType sets the "identification_type" field if the given value is not nil.
+func (_c *PatientCreate) SetNillableIdentificationType(v *string) *PatientCreate {
+	if v != nil {
+		_c.SetIdentificationType(*v)
+	}
+	return _c
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (_c *PatientCreate) SetShaBeneficiaryNumber(v string) *PatientCreate {
+	_c.mutation.SetShaBeneficiaryNumber(v)
+	return _c
+}
+
+// SetNillableShaBeneficiaryNumber sets the "sha_beneficiary_number" field if the given value is not nil.
+func (_c *PatientCreate) SetNillableShaBeneficiaryNumber(v *string) *PatientCreate {
+	if v != nil {
+		_c.SetShaBeneficiaryNumber(*v)
+	}
+	return _c
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (_c *PatientCreate) SetPhotoURL(v string) *PatientCreate {
+	_c.mutation.SetPhotoURL(v)
+	return _c
+}
+
+// SetNillablePhotoURL sets the "photo_url" field if the given value is not nil.
+func (_c *PatientCreate) SetNillablePhotoURL(v *string) *PatientCreate {
+	if v != nil {
+		_c.SetPhotoURL(*v)
+	}
+	return _c
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (_c *PatientCreate) SetHouseholdID(v uuid.UUID) *PatientCreate {
+	_c.mutation.SetHouseholdID(v)
+	return _c
+}
+
+// SetNillableHouseholdID sets the "household_id" field if the given value is not nil.
+func (_c *PatientCreate) SetNillableHouseholdID(v *uuid.UUID) *PatientCreate {
+	if v != nil {
+		_c.SetHouseholdID(*v)
+	}
+	return _c
+}
+
 // SetAddress sets the "address" field.
 func (_c *PatientCreate) SetAddress(v string) *PatientCreate {
 	_c.mutation.SetAddress(v)
@@ -396,6 +452,22 @@ func (_c *PatientCreate) createSpec() (*Patient, *sqlgraph.CreateSpec) {
 		_spec.SetField(patient.FieldIDNumber, field.TypeString, value)
 		_node.IDNumber = value
 	}
+	if value, ok := _c.mutation.IdentificationType(); ok {
+		_spec.SetField(patient.FieldIdentificationType, field.TypeString, value)
+		_node.IdentificationType = value
+	}
+	if value, ok := _c.mutation.ShaBeneficiaryNumber(); ok {
+		_spec.SetField(patient.FieldShaBeneficiaryNumber, field.TypeString, value)
+		_node.ShaBeneficiaryNumber = value
+	}
+	if value, ok := _c.mutation.PhotoURL(); ok {
+		_spec.SetField(patient.FieldPhotoURL, field.TypeString, value)
+		_node.PhotoURL = value
+	}
+	if value, ok := _c.mutation.HouseholdID(); ok {
+		_spec.SetField(patient.FieldHouseholdID, field.TypeUUID, value)
+		_node.HouseholdID = &value
+	}
 	if value, ok := _c.mutation.Address(); ok {
 		_spec.SetField(patient.FieldAddress, field.TypeString, value)
 		_node.Address = value
@@ -613,6 +685,78 @@ func (u *PatientUpsert) UpdateIDNumber() *PatientUpsert {
 // ClearIDNumber clears the value of the "id_number" field.
 func (u *PatientUpsert) ClearIDNumber() *PatientUpsert {
 	u.SetNull(patient.FieldIDNumber)
+	return u
+}
+
+// SetIdentificationType sets the "identification_type" field.
+func (u *PatientUpsert) SetIdentificationType(v string) *PatientUpsert {
+	u.Set(patient.FieldIdentificationType, v)
+	return u
+}
+
+// UpdateIdentificationType sets the "identification_type" field to the value that was provided on create.
+func (u *PatientUpsert) UpdateIdentificationType() *PatientUpsert {
+	u.SetExcluded(patient.FieldIdentificationType)
+	return u
+}
+
+// ClearIdentificationType clears the value of the "identification_type" field.
+func (u *PatientUpsert) ClearIdentificationType() *PatientUpsert {
+	u.SetNull(patient.FieldIdentificationType)
+	return u
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (u *PatientUpsert) SetShaBeneficiaryNumber(v string) *PatientUpsert {
+	u.Set(patient.FieldShaBeneficiaryNumber, v)
+	return u
+}
+
+// UpdateShaBeneficiaryNumber sets the "sha_beneficiary_number" field to the value that was provided on create.
+func (u *PatientUpsert) UpdateShaBeneficiaryNumber() *PatientUpsert {
+	u.SetExcluded(patient.FieldShaBeneficiaryNumber)
+	return u
+}
+
+// ClearShaBeneficiaryNumber clears the value of the "sha_beneficiary_number" field.
+func (u *PatientUpsert) ClearShaBeneficiaryNumber() *PatientUpsert {
+	u.SetNull(patient.FieldShaBeneficiaryNumber)
+	return u
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (u *PatientUpsert) SetPhotoURL(v string) *PatientUpsert {
+	u.Set(patient.FieldPhotoURL, v)
+	return u
+}
+
+// UpdatePhotoURL sets the "photo_url" field to the value that was provided on create.
+func (u *PatientUpsert) UpdatePhotoURL() *PatientUpsert {
+	u.SetExcluded(patient.FieldPhotoURL)
+	return u
+}
+
+// ClearPhotoURL clears the value of the "photo_url" field.
+func (u *PatientUpsert) ClearPhotoURL() *PatientUpsert {
+	u.SetNull(patient.FieldPhotoURL)
+	return u
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (u *PatientUpsert) SetHouseholdID(v uuid.UUID) *PatientUpsert {
+	u.Set(patient.FieldHouseholdID, v)
+	return u
+}
+
+// UpdateHouseholdID sets the "household_id" field to the value that was provided on create.
+func (u *PatientUpsert) UpdateHouseholdID() *PatientUpsert {
+	u.SetExcluded(patient.FieldHouseholdID)
+	return u
+}
+
+// ClearHouseholdID clears the value of the "household_id" field.
+func (u *PatientUpsert) ClearHouseholdID() *PatientUpsert {
+	u.SetNull(patient.FieldHouseholdID)
 	return u
 }
 
@@ -918,6 +1062,90 @@ func (u *PatientUpsertOne) UpdateIDNumber() *PatientUpsertOne {
 func (u *PatientUpsertOne) ClearIDNumber() *PatientUpsertOne {
 	return u.Update(func(s *PatientUpsert) {
 		s.ClearIDNumber()
+	})
+}
+
+// SetIdentificationType sets the "identification_type" field.
+func (u *PatientUpsertOne) SetIdentificationType(v string) *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetIdentificationType(v)
+	})
+}
+
+// UpdateIdentificationType sets the "identification_type" field to the value that was provided on create.
+func (u *PatientUpsertOne) UpdateIdentificationType() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateIdentificationType()
+	})
+}
+
+// ClearIdentificationType clears the value of the "identification_type" field.
+func (u *PatientUpsertOne) ClearIdentificationType() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearIdentificationType()
+	})
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (u *PatientUpsertOne) SetShaBeneficiaryNumber(v string) *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetShaBeneficiaryNumber(v)
+	})
+}
+
+// UpdateShaBeneficiaryNumber sets the "sha_beneficiary_number" field to the value that was provided on create.
+func (u *PatientUpsertOne) UpdateShaBeneficiaryNumber() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateShaBeneficiaryNumber()
+	})
+}
+
+// ClearShaBeneficiaryNumber clears the value of the "sha_beneficiary_number" field.
+func (u *PatientUpsertOne) ClearShaBeneficiaryNumber() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearShaBeneficiaryNumber()
+	})
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (u *PatientUpsertOne) SetPhotoURL(v string) *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetPhotoURL(v)
+	})
+}
+
+// UpdatePhotoURL sets the "photo_url" field to the value that was provided on create.
+func (u *PatientUpsertOne) UpdatePhotoURL() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdatePhotoURL()
+	})
+}
+
+// ClearPhotoURL clears the value of the "photo_url" field.
+func (u *PatientUpsertOne) ClearPhotoURL() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearPhotoURL()
+	})
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (u *PatientUpsertOne) SetHouseholdID(v uuid.UUID) *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetHouseholdID(v)
+	})
+}
+
+// UpdateHouseholdID sets the "household_id" field to the value that was provided on create.
+func (u *PatientUpsertOne) UpdateHouseholdID() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateHouseholdID()
+	})
+}
+
+// ClearHouseholdID clears the value of the "household_id" field.
+func (u *PatientUpsertOne) ClearHouseholdID() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearHouseholdID()
 	})
 }
 
@@ -1409,6 +1637,90 @@ func (u *PatientUpsertBulk) UpdateIDNumber() *PatientUpsertBulk {
 func (u *PatientUpsertBulk) ClearIDNumber() *PatientUpsertBulk {
 	return u.Update(func(s *PatientUpsert) {
 		s.ClearIDNumber()
+	})
+}
+
+// SetIdentificationType sets the "identification_type" field.
+func (u *PatientUpsertBulk) SetIdentificationType(v string) *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetIdentificationType(v)
+	})
+}
+
+// UpdateIdentificationType sets the "identification_type" field to the value that was provided on create.
+func (u *PatientUpsertBulk) UpdateIdentificationType() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateIdentificationType()
+	})
+}
+
+// ClearIdentificationType clears the value of the "identification_type" field.
+func (u *PatientUpsertBulk) ClearIdentificationType() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearIdentificationType()
+	})
+}
+
+// SetShaBeneficiaryNumber sets the "sha_beneficiary_number" field.
+func (u *PatientUpsertBulk) SetShaBeneficiaryNumber(v string) *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetShaBeneficiaryNumber(v)
+	})
+}
+
+// UpdateShaBeneficiaryNumber sets the "sha_beneficiary_number" field to the value that was provided on create.
+func (u *PatientUpsertBulk) UpdateShaBeneficiaryNumber() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateShaBeneficiaryNumber()
+	})
+}
+
+// ClearShaBeneficiaryNumber clears the value of the "sha_beneficiary_number" field.
+func (u *PatientUpsertBulk) ClearShaBeneficiaryNumber() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearShaBeneficiaryNumber()
+	})
+}
+
+// SetPhotoURL sets the "photo_url" field.
+func (u *PatientUpsertBulk) SetPhotoURL(v string) *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetPhotoURL(v)
+	})
+}
+
+// UpdatePhotoURL sets the "photo_url" field to the value that was provided on create.
+func (u *PatientUpsertBulk) UpdatePhotoURL() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdatePhotoURL()
+	})
+}
+
+// ClearPhotoURL clears the value of the "photo_url" field.
+func (u *PatientUpsertBulk) ClearPhotoURL() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearPhotoURL()
+	})
+}
+
+// SetHouseholdID sets the "household_id" field.
+func (u *PatientUpsertBulk) SetHouseholdID(v uuid.UUID) *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetHouseholdID(v)
+	})
+}
+
+// UpdateHouseholdID sets the "household_id" field to the value that was provided on create.
+func (u *PatientUpsertBulk) UpdateHouseholdID() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateHouseholdID()
+	})
+}
+
+// ClearHouseholdID clears the value of the "household_id" field.
+func (u *PatientUpsertBulk) ClearHouseholdID() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearHouseholdID()
 	})
 }
 

@@ -7,6 +7,8 @@ package patients
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +19,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	events "github.com/bengobox/hospital-service/internal/events"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
@@ -36,15 +39,18 @@ func NewService(client *ent.Client, billingSvc *billing.Service, log *zap.Logger
 
 // RegisterPatientRequest is the input to RegisterPatient.
 type RegisterPatientRequest struct {
-	FullName  string
-	DOB       *time.Time
-	Sex       string
-	Phone     string
-	IDNumber  string
-	Address   string
-	NextOfKin string
-	Allergies []string
-	OutletID  uuid.UUID
+	FullName             string
+	DOB                  *time.Time
+	Sex                  string
+	Phone                string
+	IDNumber             string
+	IdentificationType   string
+	SHABeneficiaryNumber string
+	PhotoURL             string
+	Address              string
+	NextOfKin            string
+	Allergies            []string
+	OutletID             uuid.UUID
 }
 
 // RegisterPatient creates a new Patient with a sequence-allocated MRN.
@@ -75,6 +81,9 @@ func (s *Service) RegisterPatient(ctx context.Context, tenantID uuid.UUID, req R
 		SetSex(req.Sex).
 		SetPhone(req.Phone).
 		SetIDNumber(req.IDNumber).
+		SetIdentificationType(req.IdentificationType).
+		SetShaBeneficiaryNumber(req.SHABeneficiaryNumber).
+		SetPhotoURL(req.PhotoURL).
 		SetAddress(req.Address).
 		SetNextOfKin(req.NextOfKin)
 	if req.DOB != nil {
@@ -278,11 +287,133 @@ func (s *Service) ListVisits(ctx context.Context, tenantID uuid.UUID, req ListVi
 	if limit <= 0 || limit > 200 {
 		limit = 100
 	}
-	order := ent.Asc(patientvisit.FieldCreatedAt)
 	if req.PatientID != nil {
-		order = ent.Desc(patientvisit.FieldCreatedAt) // history: newest first
+		// Chart history view: newest first, no acuity reordering — that's an OPD-queue concept.
+		return q.Order(ent.Desc(patientvisit.FieldCreatedAt)).Limit(limit).All(ctx)
 	}
-	return q.Order(order).Limit(limit).All(ctx)
+	visits, err := q.WithTriageRecords().Order(ent.Asc(patientvisit.FieldCreatedAt)).Limit(limit).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sortVisitsByAcuity(visits)
+	return visits, nil
+}
+
+// sortVisitsByAcuity reorders the registered/triaged subsequence of an otherwise-FIFO visit list
+// urgent-first, using each visit's latest TriageRecord.priority — a visit already past triage
+// (in_examination and beyond) is left exactly where check-in order put it, since it no longer
+// needs acuity-based queue placement. Every non-reorderable visit keeps its original slot; only
+// the reorderable ones are redistributed among the positions they already occupied, so this never
+// changes where a non-triage-bucket visit sits relative to its neighbours.
+func sortVisitsByAcuity(visits []*ent.PatientVisit) {
+	var positions []int
+	var subset []*ent.PatientVisit
+	for i, v := range visits {
+		if v.Status == patientvisit.StatusRegistered || v.Status == patientvisit.StatusTriaged {
+			positions = append(positions, i)
+			subset = append(subset, v)
+		}
+	}
+	if len(subset) < 2 {
+		return
+	}
+	sort.SliceStable(subset, func(i, j int) bool {
+		return acuityRank(latestTriagePriority(subset[i])) < acuityRank(latestTriagePriority(subset[j]))
+	})
+	for k, pos := range positions {
+		visits[pos] = subset[k]
+	}
+}
+
+// latestTriagePriority returns the priority string from the visit's latest (by taken_at)
+// eager-loaded TriageRecord, or "" if the visit hasn't been triaged yet (still registered).
+func latestTriagePriority(v *ent.PatientVisit) string {
+	var latest *ent.TriageRecord
+	for _, t := range v.Edges.TriageRecords {
+		if latest == nil || t.TakenAt.After(latest.TakenAt) {
+			latest = t
+		}
+	}
+	if latest == nil {
+		return ""
+	}
+	return latest.Priority
+}
+
+// acuityRank maps a free-form TriageRecord.priority value to a sort rank, lower = more urgent.
+// TriageRecord.priority is deliberately free-form ("so a facility can adopt its own scale" per
+// its own schema comment) — this defensively handles both the ESI-style numeric convention
+// ("1".."5", 1=most urgent) documented there and hospital-ui's own triage form's word scale
+// (routine|urgent|emergency). Anything unrecognized, including no triage at all yet, ranks last
+// so it never jumps ahead of a genuinely triaged patient.
+func acuityRank(priority string) int {
+	switch strings.ToLower(strings.TrimSpace(priority)) {
+	case "1", "emergency":
+		return 0
+	case "2", "urgent":
+		return 1
+	case "3":
+		return 2
+	case "4":
+		return 3
+	case "5", "routine":
+		return 4
+	default:
+		return 99
+	}
+}
+
+// CheckDuplicatesRequest is the input to CheckPossibleDuplicates.
+type CheckDuplicatesRequest struct {
+	FullName string
+	Phone    string
+	IDNumber string
+}
+
+// PatientSummary is a lightweight projection of a possibly-duplicate Patient, enough for a
+// front-desk clerk to recognise "is this the same person" without a full patient fetch.
+type PatientSummary struct {
+	ID       uuid.UUID `json:"id"`
+	Mrn      string    `json:"mrn"`
+	FullName string    `json:"full_name"`
+	Phone    string    `json:"phone,omitempty"`
+	IDNumber string    `json:"id_number,omitempty"`
+	Dob      *time.Time `json:"dob,omitempty"`
+}
+
+// CheckPossibleDuplicates is a non-blocking pre-registration lookup: does a patient matching
+// this name/phone/id_number already exist for this tenant? Queries the existing (tenant_id,phone)
+// / (tenant_id,id_number) / (tenant_id,full_name) indexes — no new index needed. Called by the UI
+// before the final "Register" submit, surfaced as a "continue anyway?" warning, never a hard
+// block: a genuinely new patient who happens to share a name/phone with someone else must never
+// be prevented from registering. Real merge of an actual duplicate is a separate, larger,
+// not-yet-built follow-up (see mvp-gap-backlog-2026-09-02.md Sprint 1 item 4b).
+func (s *Service) CheckPossibleDuplicates(ctx context.Context, tenantID uuid.UUID, req CheckDuplicatesRequest) ([]PatientSummary, error) {
+	if req.FullName == "" && req.Phone == "" && req.IDNumber == "" {
+		return nil, nil
+	}
+	var filters []predicate.Patient
+	if req.Phone != "" {
+		filters = append(filters, patient.PhoneEQ(req.Phone))
+	}
+	if req.IDNumber != "" {
+		filters = append(filters, patient.IDNumberEQ(req.IDNumber))
+	}
+	if req.FullName != "" {
+		filters = append(filters, patient.FullNameEqualFold(req.FullName))
+	}
+	matches, err := s.client.Patient.Query().
+		Where(patient.TenantID(tenantID), patient.Or(filters...)).
+		Limit(10).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("patients: check duplicates: %w", err)
+	}
+	out := make([]PatientSummary, 0, len(matches))
+	for _, m := range matches {
+		out = append(out, PatientSummary{ID: m.ID, Mrn: m.Mrn, FullName: m.FullName, Phone: m.Phone, IDNumber: m.IDNumber, Dob: m.Dob})
+	}
+	return out, nil
 }
 
 // UpdatePatientRequest is the input to UpdatePatient — every field is a pointer so only fields
@@ -290,14 +421,17 @@ func (s *Service) ListVisits(ctx context.Context, tenantID uuid.UUID, req ListVi
 // here: MRN is the sequence-generated business identifier, the registering outlet is historical,
 // and status (active/inactive/merged) needs its own audited action, not a plain field edit.
 type UpdatePatientRequest struct {
-	FullName  *string
-	DOB       *time.Time
-	Sex       *string
-	Phone     *string
-	IDNumber  *string
-	Address   *string
-	NextOfKin *string
-	Allergies *[]string
+	FullName             *string
+	DOB                  *time.Time
+	Sex                  *string
+	Phone                *string
+	IDNumber             *string
+	IdentificationType   *string
+	SHABeneficiaryNumber *string
+	PhotoURL             *string
+	Address              *string
+	NextOfKin            *string
+	Allergies            *[]string
 }
 
 // UpdatePatient applies a partial update to a patient's demographic/chart fields.
@@ -326,6 +460,15 @@ func (s *Service) UpdatePatient(ctx context.Context, tenantID, patientID uuid.UU
 	}
 	if req.IDNumber != nil {
 		upd = upd.SetIDNumber(*req.IDNumber)
+	}
+	if req.IdentificationType != nil {
+		upd = upd.SetIdentificationType(*req.IdentificationType)
+	}
+	if req.SHABeneficiaryNumber != nil {
+		upd = upd.SetShaBeneficiaryNumber(*req.SHABeneficiaryNumber)
+	}
+	if req.PhotoURL != nil {
+		upd = upd.SetPhotoURL(*req.PhotoURL)
 	}
 	if req.Address != nil {
 		upd = upd.SetAddress(*req.Address)
