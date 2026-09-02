@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
 	"github.com/google/uuid"
@@ -192,6 +193,21 @@ func (_c *PrescriptionLineCreate) SetNillableID(v *uuid.UUID) *PrescriptionLineC
 // SetPrescription sets the "prescription" edge to the Prescription entity.
 func (_c *PrescriptionLineCreate) SetPrescription(v *Prescription) *PrescriptionLineCreate {
 	return _c.SetPrescriptionID(v.ID)
+}
+
+// AddMedicationAdministrationIDs adds the "medication_administrations" edge to the MedicationAdministration entity by IDs.
+func (_c *PrescriptionLineCreate) AddMedicationAdministrationIDs(ids ...uuid.UUID) *PrescriptionLineCreate {
+	_c.mutation.AddMedicationAdministrationIDs(ids...)
+	return _c
+}
+
+// AddMedicationAdministrations adds the "medication_administrations" edges to the MedicationAdministration entity.
+func (_c *PrescriptionLineCreate) AddMedicationAdministrations(v ...*MedicationAdministration) *PrescriptionLineCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddMedicationAdministrationIDs(ids...)
 }
 
 // Mutation returns the PrescriptionLineMutation object of the builder.
@@ -387,6 +403,22 @@ func (_c *PrescriptionLineCreate) createSpec() (*PrescriptionLine, *sqlgraph.Cre
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.PrescriptionID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.MedicationAdministrationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescriptionline.MedicationAdministrationsTable,
+			Columns: []string{prescriptionline.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

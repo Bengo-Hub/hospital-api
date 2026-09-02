@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
@@ -21,12 +23,13 @@ import (
 // PrescriptionLineQuery is the builder for querying PrescriptionLine entities.
 type PrescriptionLineQuery struct {
 	config
-	ctx              *QueryContext
-	order            []prescriptionline.OrderOption
-	inters           []Interceptor
-	predicates       []predicate.PrescriptionLine
-	withPrescription *PrescriptionQuery
-	modifiers        []func(*sql.Selector)
+	ctx                           *QueryContext
+	order                         []prescriptionline.OrderOption
+	inters                        []Interceptor
+	predicates                    []predicate.PrescriptionLine
+	withPrescription              *PrescriptionQuery
+	withMedicationAdministrations *MedicationAdministrationQuery
+	modifiers                     []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +81,28 @@ func (_q *PrescriptionLineQuery) QueryPrescription() *PrescriptionQuery {
 			sqlgraph.From(prescriptionline.Table, prescriptionline.FieldID, selector),
 			sqlgraph.To(prescription.Table, prescription.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, prescriptionline.PrescriptionTable, prescriptionline.PrescriptionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMedicationAdministrations chains the current query on the "medication_administrations" edge.
+func (_q *PrescriptionLineQuery) QueryMedicationAdministrations() *MedicationAdministrationQuery {
+	query := (&MedicationAdministrationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prescriptionline.Table, prescriptionline.FieldID, selector),
+			sqlgraph.To(medicationadministration.Table, medicationadministration.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prescriptionline.MedicationAdministrationsTable, prescriptionline.MedicationAdministrationsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -272,12 +297,13 @@ func (_q *PrescriptionLineQuery) Clone() *PrescriptionLineQuery {
 		return nil
 	}
 	return &PrescriptionLineQuery{
-		config:           _q.config,
-		ctx:              _q.ctx.Clone(),
-		order:            append([]prescriptionline.OrderOption{}, _q.order...),
-		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.PrescriptionLine{}, _q.predicates...),
-		withPrescription: _q.withPrescription.Clone(),
+		config:                        _q.config,
+		ctx:                           _q.ctx.Clone(),
+		order:                         append([]prescriptionline.OrderOption{}, _q.order...),
+		inters:                        append([]Interceptor{}, _q.inters...),
+		predicates:                    append([]predicate.PrescriptionLine{}, _q.predicates...),
+		withPrescription:              _q.withPrescription.Clone(),
+		withMedicationAdministrations: _q.withMedicationAdministrations.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -292,6 +318,17 @@ func (_q *PrescriptionLineQuery) WithPrescription(opts ...func(*PrescriptionQuer
 		opt(query)
 	}
 	_q.withPrescription = query
+	return _q
+}
+
+// WithMedicationAdministrations tells the query-builder to eager-load the nodes that are connected to
+// the "medication_administrations" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PrescriptionLineQuery) WithMedicationAdministrations(opts ...func(*MedicationAdministrationQuery)) *PrescriptionLineQuery {
+	query := (&MedicationAdministrationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withMedicationAdministrations = query
 	return _q
 }
 
@@ -373,8 +410,9 @@ func (_q *PrescriptionLineQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*PrescriptionLine{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withPrescription != nil,
+			_q.withMedicationAdministrations != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -401,6 +439,15 @@ func (_q *PrescriptionLineQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := _q.withPrescription; query != nil {
 		if err := _q.loadPrescription(ctx, query, nodes, nil,
 			func(n *PrescriptionLine, e *Prescription) { n.Edges.Prescription = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withMedicationAdministrations; query != nil {
+		if err := _q.loadMedicationAdministrations(ctx, query, nodes,
+			func(n *PrescriptionLine) { n.Edges.MedicationAdministrations = []*MedicationAdministration{} },
+			func(n *PrescriptionLine, e *MedicationAdministration) {
+				n.Edges.MedicationAdministrations = append(n.Edges.MedicationAdministrations, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -433,6 +480,36 @@ func (_q *PrescriptionLineQuery) loadPrescription(ctx context.Context, query *Pr
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (_q *PrescriptionLineQuery) loadMedicationAdministrations(ctx context.Context, query *MedicationAdministrationQuery, nodes []*PrescriptionLine, init func(*PrescriptionLine), assign func(*PrescriptionLine, *MedicationAdministration)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*PrescriptionLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(medicationadministration.FieldPrescriptionLineID)
+	}
+	query.Where(predicate.MedicationAdministration(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(prescriptionline.MedicationAdministrationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PrescriptionLineID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "prescription_line_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

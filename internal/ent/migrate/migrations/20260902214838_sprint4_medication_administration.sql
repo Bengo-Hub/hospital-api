@@ -1,0 +1,6 @@
+-- Create "medication_administrations" table
+CREATE TABLE "medication_administrations" ("id" uuid NOT NULL, "tenant_id" uuid NOT NULL, "scheduled_time" timestamptz NOT NULL, "administered_at" timestamptz NULL, "administered_by" uuid NULL, "status" character varying NOT NULL DEFAULT 'scheduled', "notes" character varying NULL, "created_at" timestamptz NOT NULL, "admission_id" uuid NOT NULL, "prescription_line_id" uuid NOT NULL, PRIMARY KEY ("id"), CONSTRAINT "medication_administrations_adm_1137aa0aa5387c455f94a528cc795a0c" FOREIGN KEY ("admission_id") REFERENCES "admissions" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT "medication_administrations_pre_de4e44fec0ec3a1a09ac78c63af77e4a" FOREIGN KEY ("prescription_line_id") REFERENCES "prescription_lines" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION);
+-- Create index "medicationadministration_tenant_id_admission_id" to table: "medication_administrations"
+CREATE INDEX "medicationadministration_tenant_id_admission_id" ON "medication_administrations" ("tenant_id", "admission_id");
+-- Create index "medicationadministration_tenant_id_prescription_line_id" to table: "medication_administrations"
+CREATE INDEX "medicationadministration_tenant_id_prescription_line_id" ON "medication_administrations" ("tenant_id", "prescription_line_id");

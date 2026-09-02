@@ -177,6 +177,106 @@ func (s *Service) CreatePrescription(ctx context.Context, tenantID uuid.UUID, re
 	return s.GetPrescription(ctx, tenantID, rx.ID)
 }
 
+// CreateRefill clones an original prescription's lines into a new pending prescription for the
+// prescriber to confirm, rather than re-typing a chronic patient's regular regimen from scratch.
+// Mirrors CreatePrescription's own tx-scoped sequence-allocation shape; the new row's
+// repeat_of_prescription_id points back at the original, and it still runs the same
+// allergy/interaction check any fresh prescription does (a chronic patient's allergy profile can
+// change between refills, so this is deliberately NOT skipped just because it's a repeat).
+func (s *Service) CreateRefill(ctx context.Context, tenantID, originalRxID uuid.UUID) (*ent.Prescription, error) {
+	original, err := s.GetPrescription(ctx, tenantID, originalRxID)
+	if err != nil {
+		return nil, fmt.Errorf("pharmacy: original prescription not found: %w", err)
+	}
+	if len(original.Edges.Lines) == 0 {
+		return nil, fmt.Errorf("pharmacy: original prescription has no lines to refill")
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("pharmacy: begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	rxNo, err := sequence.Next(ctx, tx, tenantID, "prescription_number", "RX", 6)
+	if err != nil {
+		return nil, fmt.Errorf("pharmacy: allocate prescription_number: %w", err)
+	}
+
+	create := tx.Prescription.Create().
+		SetTenantID(tenantID).
+		SetOutletID(original.OutletID).
+		SetPrescriptionNumber(rxNo).
+		SetRepeatOfPrescriptionID(originalRxID).
+		SetExternalFacilityName(original.ExternalFacilityName).
+		SetPrescriberName(original.PrescriberName).
+		SetPrescriberLicense(original.PrescriberLicense).
+		SetPatientName(original.PatientName).
+		SetPatientIDNumber(original.PatientIDNumber).
+		SetMetadata(map[string]any{"allergy_flags": original.Metadata["allergy_flags"]})
+	if original.PatientID != nil {
+		create = create.SetPatientID(*original.PatientID)
+	}
+	if original.VisitID != nil {
+		create = create.SetVisitID(*original.VisitID)
+	}
+	rx, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("pharmacy: create refill: %w", err)
+	}
+
+	skus := make([]string, 0, len(original.Edges.Lines))
+	for _, l := range original.Edges.Lines {
+		if _, lerr := tx.PrescriptionLine.Create().
+			SetTenantID(tenantID).
+			SetPrescriptionID(rx.ID).
+			SetInventoryItemSku(l.InventoryItemSku).
+			SetDrugName(l.DrugName).
+			SetDosage(l.Dosage).
+			SetForm(l.Form).
+			SetInstructions(l.Instructions).
+			SetQuantityPrescribed(l.QuantityPrescribed).
+			SetUnitPrice(l.UnitPrice).
+			Save(ctx); lerr != nil {
+			err = lerr
+			return nil, fmt.Errorf("pharmacy: create refill line: %w", lerr)
+		}
+		if l.InventoryItemSku != "" {
+			skus = append(skus, l.InventoryItemSku)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("pharmacy: commit refill: %w", err)
+	}
+
+	if len(skus) > 0 && s.inventory.Enabled() {
+		s.runInteractionCheck(ctx, tenantID, rx.ID, skus, allergyFlagsFromMetadata(original.Metadata))
+	}
+	return s.GetPrescription(ctx, tenantID, rx.ID)
+}
+
+// allergyFlagsFromMetadata extracts Prescription.metadata["allergy_flags"] back into []string —
+// ent's JSON map[string]any field round-trips a []string as []any of string values, mirroring the
+// same conversion RecheckInteractions already does inline.
+func allergyFlagsFromMetadata(metadata map[string]any) []string {
+	raw, ok := metadata["allergy_flags"].([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(raw))
+	for _, v := range raw {
+		if s, ok := v.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // runInteractionCheck calls inventory-api's interaction engine and, on any finding, flags the
 // prescription for review. Best-effort: a transport failure is logged, not fatal — dispensing
 // safety checks should degrade to "needs manual review," never silently vanish.

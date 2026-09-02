@@ -63,6 +63,9 @@ type LabTestCatalogDefault func(*sql.Selector)
 // LabTestCatalogEntry is the predicate function for labtestcatalogentry builders.
 type LabTestCatalogEntry func(*sql.Selector)
 
+// MedicationAdministration is the predicate function for medicationadministration builders.
+type MedicationAdministration func(*sql.Selector)
+
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 

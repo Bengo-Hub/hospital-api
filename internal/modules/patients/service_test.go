@@ -76,6 +76,28 @@ func TestRegistrationAppliesTo(t *testing.T) {
 	}
 }
 
+func TestAllergyFlagsEqual(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b []string
+		want bool
+	}{
+		{"both empty", nil, []string{}, true},
+		{"identical order", []string{"penicillin", "latex"}, []string{"penicillin", "latex"}, true},
+		{"same set, different order", []string{"penicillin", "latex"}, []string{"latex", "penicillin"}, true},
+		{"a genuinely new allergy added", []string{"penicillin"}, []string{"penicillin", "latex"}, false},
+		{"an allergy removed", []string{"penicillin", "latex"}, []string{"penicillin"}, false},
+		{"different length, same total count (dup collapses)", []string{"penicillin", "penicillin"}, []string{"penicillin"}, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := allergyFlagsEqual(tc.a, tc.b); got != tc.want {
+				t.Errorf("allergyFlagsEqual(%v, %v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestAcuityRank(t *testing.T) {
 	cases := []struct {
 		name     string

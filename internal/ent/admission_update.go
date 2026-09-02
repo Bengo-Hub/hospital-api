@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/bed"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/google/uuid"
@@ -259,6 +260,21 @@ func (_u *AdmissionUpdate) SetBed(v *Bed) *AdmissionUpdate {
 	return _u.SetBedID(v.ID)
 }
 
+// AddMedicationAdministrationIDs adds the "medication_administrations" edge to the MedicationAdministration entity by IDs.
+func (_u *AdmissionUpdate) AddMedicationAdministrationIDs(ids ...uuid.UUID) *AdmissionUpdate {
+	_u.mutation.AddMedicationAdministrationIDs(ids...)
+	return _u
+}
+
+// AddMedicationAdministrations adds the "medication_administrations" edges to the MedicationAdministration entity.
+func (_u *AdmissionUpdate) AddMedicationAdministrations(v ...*MedicationAdministration) *AdmissionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMedicationAdministrationIDs(ids...)
+}
+
 // Mutation returns the AdmissionMutation object of the builder.
 func (_u *AdmissionUpdate) Mutation() *AdmissionMutation {
 	return _u.mutation
@@ -274,6 +290,27 @@ func (_u *AdmissionUpdate) ClearVisit() *AdmissionUpdate {
 func (_u *AdmissionUpdate) ClearBed() *AdmissionUpdate {
 	_u.mutation.ClearBed()
 	return _u
+}
+
+// ClearMedicationAdministrations clears all "medication_administrations" edges to the MedicationAdministration entity.
+func (_u *AdmissionUpdate) ClearMedicationAdministrations() *AdmissionUpdate {
+	_u.mutation.ClearMedicationAdministrations()
+	return _u
+}
+
+// RemoveMedicationAdministrationIDs removes the "medication_administrations" edge to MedicationAdministration entities by IDs.
+func (_u *AdmissionUpdate) RemoveMedicationAdministrationIDs(ids ...uuid.UUID) *AdmissionUpdate {
+	_u.mutation.RemoveMedicationAdministrationIDs(ids...)
+	return _u
+}
+
+// RemoveMedicationAdministrations removes "medication_administrations" edges to MedicationAdministration entities.
+func (_u *AdmissionUpdate) RemoveMedicationAdministrations(v ...*MedicationAdministration) *AdmissionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMedicationAdministrationIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -444,6 +481,51 @@ func (_u *AdmissionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(bed.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.MedicationAdministrationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMedicationAdministrationsIDs(); len(nodes) > 0 && !_u.mutation.MedicationAdministrationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MedicationAdministrationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -699,6 +781,21 @@ func (_u *AdmissionUpdateOne) SetBed(v *Bed) *AdmissionUpdateOne {
 	return _u.SetBedID(v.ID)
 }
 
+// AddMedicationAdministrationIDs adds the "medication_administrations" edge to the MedicationAdministration entity by IDs.
+func (_u *AdmissionUpdateOne) AddMedicationAdministrationIDs(ids ...uuid.UUID) *AdmissionUpdateOne {
+	_u.mutation.AddMedicationAdministrationIDs(ids...)
+	return _u
+}
+
+// AddMedicationAdministrations adds the "medication_administrations" edges to the MedicationAdministration entity.
+func (_u *AdmissionUpdateOne) AddMedicationAdministrations(v ...*MedicationAdministration) *AdmissionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMedicationAdministrationIDs(ids...)
+}
+
 // Mutation returns the AdmissionMutation object of the builder.
 func (_u *AdmissionUpdateOne) Mutation() *AdmissionMutation {
 	return _u.mutation
@@ -714,6 +811,27 @@ func (_u *AdmissionUpdateOne) ClearVisit() *AdmissionUpdateOne {
 func (_u *AdmissionUpdateOne) ClearBed() *AdmissionUpdateOne {
 	_u.mutation.ClearBed()
 	return _u
+}
+
+// ClearMedicationAdministrations clears all "medication_administrations" edges to the MedicationAdministration entity.
+func (_u *AdmissionUpdateOne) ClearMedicationAdministrations() *AdmissionUpdateOne {
+	_u.mutation.ClearMedicationAdministrations()
+	return _u
+}
+
+// RemoveMedicationAdministrationIDs removes the "medication_administrations" edge to MedicationAdministration entities by IDs.
+func (_u *AdmissionUpdateOne) RemoveMedicationAdministrationIDs(ids ...uuid.UUID) *AdmissionUpdateOne {
+	_u.mutation.RemoveMedicationAdministrationIDs(ids...)
+	return _u
+}
+
+// RemoveMedicationAdministrations removes "medication_administrations" edges to MedicationAdministration entities.
+func (_u *AdmissionUpdateOne) RemoveMedicationAdministrations(v ...*MedicationAdministration) *AdmissionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMedicationAdministrationIDs(ids...)
 }
 
 // Where appends a list predicates to the AdmissionUpdate builder.
@@ -914,6 +1032,51 @@ func (_u *AdmissionUpdateOne) sqlSave(ctx context.Context) (_node *Admission, er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(bed.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.MedicationAdministrationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMedicationAdministrationsIDs(); len(nodes) > 0 && !_u.mutation.MedicationAdministrationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MedicationAdministrationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

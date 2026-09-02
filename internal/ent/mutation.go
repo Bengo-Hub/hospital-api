@@ -31,6 +31,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -63,73 +64,77 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAdmission               = "Admission"
-	TypeBed                     = "Bed"
-	TypeBillableCharge          = "BillableCharge"
-	TypeBillableItemCatalog     = "BillableItemCatalog"
-	TypeControlledSubstanceLog  = "ControlledSubstanceLog"
-	TypeDiagnosisCatalogDefault = "DiagnosisCatalogDefault"
-	TypeDiagnosisCatalogEntry   = "DiagnosisCatalogEntry"
-	TypeDocumentSequence        = "DocumentSequence"
-	TypeDrugInteractionCheck    = "DrugInteractionCheck"
-	TypeExaminationRecord       = "ExaminationRecord"
-	TypeHospitalPermission      = "HospitalPermission"
-	TypeHospitalRole            = "HospitalRole"
-	TypeHospitalUser            = "HospitalUser"
-	TypeHospitalUserOutlet      = "HospitalUserOutlet"
-	TypeICUEpisode              = "ICUEpisode"
-	TypeLabOrder                = "LabOrder"
-	TypeLabOrderLine            = "LabOrderLine"
-	TypeLabTestCatalogDefault   = "LabTestCatalogDefault"
-	TypeLabTestCatalogEntry     = "LabTestCatalogEntry"
-	TypeOutboxEvent             = "OutboxEvent"
-	TypeOutlet                  = "Outlet"
-	TypePatient                 = "Patient"
-	TypePatientAccount          = "PatientAccount"
-	TypePatientNextOfKin        = "PatientNextOfKin"
-	TypePatientTransfer         = "PatientTransfer"
-	TypePatientVisit            = "PatientVisit"
-	TypePrescription            = "Prescription"
-	TypePrescriptionLine        = "PrescriptionLine"
-	TypeRbacAuditLog            = "RbacAuditLog"
-	TypeReferral                = "Referral"
-	TypeRolePermission          = "RolePermission"
-	TypeTenant                  = "Tenant"
-	TypeTheatreBooking          = "TheatreBooking"
-	TypeTriageRecord            = "TriageRecord"
-	TypeUserRoleAssignment      = "UserRoleAssignment"
-	TypeWalkInSale              = "WalkInSale"
-	TypeWard                    = "Ward"
+	TypeAdmission                = "Admission"
+	TypeBed                      = "Bed"
+	TypeBillableCharge           = "BillableCharge"
+	TypeBillableItemCatalog      = "BillableItemCatalog"
+	TypeControlledSubstanceLog   = "ControlledSubstanceLog"
+	TypeDiagnosisCatalogDefault  = "DiagnosisCatalogDefault"
+	TypeDiagnosisCatalogEntry    = "DiagnosisCatalogEntry"
+	TypeDocumentSequence         = "DocumentSequence"
+	TypeDrugInteractionCheck     = "DrugInteractionCheck"
+	TypeExaminationRecord        = "ExaminationRecord"
+	TypeHospitalPermission       = "HospitalPermission"
+	TypeHospitalRole             = "HospitalRole"
+	TypeHospitalUser             = "HospitalUser"
+	TypeHospitalUserOutlet       = "HospitalUserOutlet"
+	TypeICUEpisode               = "ICUEpisode"
+	TypeLabOrder                 = "LabOrder"
+	TypeLabOrderLine             = "LabOrderLine"
+	TypeLabTestCatalogDefault    = "LabTestCatalogDefault"
+	TypeLabTestCatalogEntry      = "LabTestCatalogEntry"
+	TypeMedicationAdministration = "MedicationAdministration"
+	TypeOutboxEvent              = "OutboxEvent"
+	TypeOutlet                   = "Outlet"
+	TypePatient                  = "Patient"
+	TypePatientAccount           = "PatientAccount"
+	TypePatientNextOfKin         = "PatientNextOfKin"
+	TypePatientTransfer          = "PatientTransfer"
+	TypePatientVisit             = "PatientVisit"
+	TypePrescription             = "Prescription"
+	TypePrescriptionLine         = "PrescriptionLine"
+	TypeRbacAuditLog             = "RbacAuditLog"
+	TypeReferral                 = "Referral"
+	TypeRolePermission           = "RolePermission"
+	TypeTenant                   = "Tenant"
+	TypeTheatreBooking           = "TheatreBooking"
+	TypeTriageRecord             = "TriageRecord"
+	TypeUserRoleAssignment       = "UserRoleAssignment"
+	TypeWalkInSale               = "WalkInSale"
+	TypeWard                     = "Ward"
 )
 
 // AdmissionMutation represents an operation that mutates the Admission nodes in the graph.
 type AdmissionMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *uuid.UUID
-	tenant_id          *uuid.UUID
-	outlet_id          *uuid.UUID
-	patient_id         *uuid.UUID
-	admission_number   *string
-	ward_id            *uuid.UUID
-	status             *admission.Status
-	admitted_by        *uuid.UUID
-	admitted_at        *time.Time
-	discharged_at      *time.Time
-	discharged_by      *uuid.UUID
-	discharge_summary  *string
-	ward_charge_posted *bool
-	created_at         *time.Time
-	updated_at         *time.Time
-	clearedFields      map[string]struct{}
-	visit              *uuid.UUID
-	clearedvisit       bool
-	bed                *uuid.UUID
-	clearedbed         bool
-	done               bool
-	oldValue           func(context.Context) (*Admission, error)
-	predicates         []predicate.Admission
+	op                                Op
+	typ                               string
+	id                                *uuid.UUID
+	tenant_id                         *uuid.UUID
+	outlet_id                         *uuid.UUID
+	patient_id                        *uuid.UUID
+	admission_number                  *string
+	ward_id                           *uuid.UUID
+	status                            *admission.Status
+	admitted_by                       *uuid.UUID
+	admitted_at                       *time.Time
+	discharged_at                     *time.Time
+	discharged_by                     *uuid.UUID
+	discharge_summary                 *string
+	ward_charge_posted                *bool
+	created_at                        *time.Time
+	updated_at                        *time.Time
+	clearedFields                     map[string]struct{}
+	visit                             *uuid.UUID
+	clearedvisit                      bool
+	bed                               *uuid.UUID
+	clearedbed                        bool
+	medication_administrations        map[uuid.UUID]struct{}
+	removedmedication_administrations map[uuid.UUID]struct{}
+	clearedmedication_administrations bool
+	done                              bool
+	oldValue                          func(context.Context) (*Admission, error)
+	predicates                        []predicate.Admission
 }
 
 var _ ent.Mutation = (*AdmissionMutation)(nil)
@@ -931,6 +936,60 @@ func (m *AdmissionMutation) ResetBed() {
 	m.clearedbed = false
 }
 
+// AddMedicationAdministrationIDs adds the "medication_administrations" edge to the MedicationAdministration entity by ids.
+func (m *AdmissionMutation) AddMedicationAdministrationIDs(ids ...uuid.UUID) {
+	if m.medication_administrations == nil {
+		m.medication_administrations = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.medication_administrations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMedicationAdministrations clears the "medication_administrations" edge to the MedicationAdministration entity.
+func (m *AdmissionMutation) ClearMedicationAdministrations() {
+	m.clearedmedication_administrations = true
+}
+
+// MedicationAdministrationsCleared reports if the "medication_administrations" edge to the MedicationAdministration entity was cleared.
+func (m *AdmissionMutation) MedicationAdministrationsCleared() bool {
+	return m.clearedmedication_administrations
+}
+
+// RemoveMedicationAdministrationIDs removes the "medication_administrations" edge to the MedicationAdministration entity by IDs.
+func (m *AdmissionMutation) RemoveMedicationAdministrationIDs(ids ...uuid.UUID) {
+	if m.removedmedication_administrations == nil {
+		m.removedmedication_administrations = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.medication_administrations, ids[i])
+		m.removedmedication_administrations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMedicationAdministrations returns the removed IDs of the "medication_administrations" edge to the MedicationAdministration entity.
+func (m *AdmissionMutation) RemovedMedicationAdministrationsIDs() (ids []uuid.UUID) {
+	for id := range m.removedmedication_administrations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MedicationAdministrationsIDs returns the "medication_administrations" edge IDs in the mutation.
+func (m *AdmissionMutation) MedicationAdministrationsIDs() (ids []uuid.UUID) {
+	for id := range m.medication_administrations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMedicationAdministrations resets all changes to the "medication_administrations" edge.
+func (m *AdmissionMutation) ResetMedicationAdministrations() {
+	m.medication_administrations = nil
+	m.clearedmedication_administrations = false
+	m.removedmedication_administrations = nil
+}
+
 // Where appends a list predicates to the AdmissionMutation builder.
 func (m *AdmissionMutation) Where(ps ...predicate.Admission) {
 	m.predicates = append(m.predicates, ps...)
@@ -1346,12 +1405,15 @@ func (m *AdmissionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AdmissionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.visit != nil {
 		edges = append(edges, admission.EdgeVisit)
 	}
 	if m.bed != nil {
 		edges = append(edges, admission.EdgeBed)
+	}
+	if m.medication_administrations != nil {
+		edges = append(edges, admission.EdgeMedicationAdministrations)
 	}
 	return edges
 }
@@ -1368,30 +1430,50 @@ func (m *AdmissionMutation) AddedIDs(name string) []ent.Value {
 		if id := m.bed; id != nil {
 			return []ent.Value{*id}
 		}
+	case admission.EdgeMedicationAdministrations:
+		ids := make([]ent.Value, 0, len(m.medication_administrations))
+		for id := range m.medication_administrations {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AdmissionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.removedmedication_administrations != nil {
+		edges = append(edges, admission.EdgeMedicationAdministrations)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *AdmissionMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case admission.EdgeMedicationAdministrations:
+		ids := make([]ent.Value, 0, len(m.removedmedication_administrations))
+		for id := range m.removedmedication_administrations {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AdmissionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedvisit {
 		edges = append(edges, admission.EdgeVisit)
 	}
 	if m.clearedbed {
 		edges = append(edges, admission.EdgeBed)
+	}
+	if m.clearedmedication_administrations {
+		edges = append(edges, admission.EdgeMedicationAdministrations)
 	}
 	return edges
 }
@@ -1404,6 +1486,8 @@ func (m *AdmissionMutation) EdgeCleared(name string) bool {
 		return m.clearedvisit
 	case admission.EdgeBed:
 		return m.clearedbed
+	case admission.EdgeMedicationAdministrations:
+		return m.clearedmedication_administrations
 	}
 	return false
 }
@@ -1431,6 +1515,9 @@ func (m *AdmissionMutation) ResetEdge(name string) error {
 		return nil
 	case admission.EdgeBed:
 		m.ResetBed()
+		return nil
+	case admission.EdgeMedicationAdministrations:
+		m.ResetMedicationAdministrations()
 		return nil
 	}
 	return fmt.Errorf("unknown Admission edge %s", name)
@@ -18809,6 +18896,930 @@ func (m *LabTestCatalogEntryMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown LabTestCatalogEntry edge %s", name)
 }
 
+// MedicationAdministrationMutation represents an operation that mutates the MedicationAdministration nodes in the graph.
+type MedicationAdministrationMutation struct {
+	config
+	op                       Op
+	typ                      string
+	id                       *uuid.UUID
+	tenant_id                *uuid.UUID
+	scheduled_time           *time.Time
+	administered_at          *time.Time
+	administered_by          *uuid.UUID
+	status                   *medicationadministration.Status
+	notes                    *string
+	created_at               *time.Time
+	clearedFields            map[string]struct{}
+	admission                *uuid.UUID
+	clearedadmission         bool
+	prescription_line        *uuid.UUID
+	clearedprescription_line bool
+	done                     bool
+	oldValue                 func(context.Context) (*MedicationAdministration, error)
+	predicates               []predicate.MedicationAdministration
+}
+
+var _ ent.Mutation = (*MedicationAdministrationMutation)(nil)
+
+// medicationadministrationOption allows management of the mutation configuration using functional options.
+type medicationadministrationOption func(*MedicationAdministrationMutation)
+
+// newMedicationAdministrationMutation creates new mutation for the MedicationAdministration entity.
+func newMedicationAdministrationMutation(c config, op Op, opts ...medicationadministrationOption) *MedicationAdministrationMutation {
+	m := &MedicationAdministrationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMedicationAdministration,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMedicationAdministrationID sets the ID field of the mutation.
+func withMedicationAdministrationID(id uuid.UUID) medicationadministrationOption {
+	return func(m *MedicationAdministrationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MedicationAdministration
+		)
+		m.oldValue = func(ctx context.Context) (*MedicationAdministration, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MedicationAdministration.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMedicationAdministration sets the old MedicationAdministration of the mutation.
+func withMedicationAdministration(node *MedicationAdministration) medicationadministrationOption {
+	return func(m *MedicationAdministrationMutation) {
+		m.oldValue = func(context.Context) (*MedicationAdministration, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MedicationAdministrationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MedicationAdministrationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of MedicationAdministration entities.
+func (m *MedicationAdministrationMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MedicationAdministrationMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MedicationAdministrationMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MedicationAdministration.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *MedicationAdministrationMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *MedicationAdministrationMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *MedicationAdministrationMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetAdmissionID sets the "admission_id" field.
+func (m *MedicationAdministrationMutation) SetAdmissionID(u uuid.UUID) {
+	m.admission = &u
+}
+
+// AdmissionID returns the value of the "admission_id" field in the mutation.
+func (m *MedicationAdministrationMutation) AdmissionID() (r uuid.UUID, exists bool) {
+	v := m.admission
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdmissionID returns the old "admission_id" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldAdmissionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdmissionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdmissionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdmissionID: %w", err)
+	}
+	return oldValue.AdmissionID, nil
+}
+
+// ResetAdmissionID resets all changes to the "admission_id" field.
+func (m *MedicationAdministrationMutation) ResetAdmissionID() {
+	m.admission = nil
+}
+
+// SetPrescriptionLineID sets the "prescription_line_id" field.
+func (m *MedicationAdministrationMutation) SetPrescriptionLineID(u uuid.UUID) {
+	m.prescription_line = &u
+}
+
+// PrescriptionLineID returns the value of the "prescription_line_id" field in the mutation.
+func (m *MedicationAdministrationMutation) PrescriptionLineID() (r uuid.UUID, exists bool) {
+	v := m.prescription_line
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrescriptionLineID returns the old "prescription_line_id" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldPrescriptionLineID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrescriptionLineID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrescriptionLineID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrescriptionLineID: %w", err)
+	}
+	return oldValue.PrescriptionLineID, nil
+}
+
+// ResetPrescriptionLineID resets all changes to the "prescription_line_id" field.
+func (m *MedicationAdministrationMutation) ResetPrescriptionLineID() {
+	m.prescription_line = nil
+}
+
+// SetScheduledTime sets the "scheduled_time" field.
+func (m *MedicationAdministrationMutation) SetScheduledTime(t time.Time) {
+	m.scheduled_time = &t
+}
+
+// ScheduledTime returns the value of the "scheduled_time" field in the mutation.
+func (m *MedicationAdministrationMutation) ScheduledTime() (r time.Time, exists bool) {
+	v := m.scheduled_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScheduledTime returns the old "scheduled_time" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldScheduledTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScheduledTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScheduledTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScheduledTime: %w", err)
+	}
+	return oldValue.ScheduledTime, nil
+}
+
+// ResetScheduledTime resets all changes to the "scheduled_time" field.
+func (m *MedicationAdministrationMutation) ResetScheduledTime() {
+	m.scheduled_time = nil
+}
+
+// SetAdministeredAt sets the "administered_at" field.
+func (m *MedicationAdministrationMutation) SetAdministeredAt(t time.Time) {
+	m.administered_at = &t
+}
+
+// AdministeredAt returns the value of the "administered_at" field in the mutation.
+func (m *MedicationAdministrationMutation) AdministeredAt() (r time.Time, exists bool) {
+	v := m.administered_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdministeredAt returns the old "administered_at" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldAdministeredAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdministeredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdministeredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdministeredAt: %w", err)
+	}
+	return oldValue.AdministeredAt, nil
+}
+
+// ClearAdministeredAt clears the value of the "administered_at" field.
+func (m *MedicationAdministrationMutation) ClearAdministeredAt() {
+	m.administered_at = nil
+	m.clearedFields[medicationadministration.FieldAdministeredAt] = struct{}{}
+}
+
+// AdministeredAtCleared returns if the "administered_at" field was cleared in this mutation.
+func (m *MedicationAdministrationMutation) AdministeredAtCleared() bool {
+	_, ok := m.clearedFields[medicationadministration.FieldAdministeredAt]
+	return ok
+}
+
+// ResetAdministeredAt resets all changes to the "administered_at" field.
+func (m *MedicationAdministrationMutation) ResetAdministeredAt() {
+	m.administered_at = nil
+	delete(m.clearedFields, medicationadministration.FieldAdministeredAt)
+}
+
+// SetAdministeredBy sets the "administered_by" field.
+func (m *MedicationAdministrationMutation) SetAdministeredBy(u uuid.UUID) {
+	m.administered_by = &u
+}
+
+// AdministeredBy returns the value of the "administered_by" field in the mutation.
+func (m *MedicationAdministrationMutation) AdministeredBy() (r uuid.UUID, exists bool) {
+	v := m.administered_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdministeredBy returns the old "administered_by" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldAdministeredBy(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdministeredBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdministeredBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdministeredBy: %w", err)
+	}
+	return oldValue.AdministeredBy, nil
+}
+
+// ClearAdministeredBy clears the value of the "administered_by" field.
+func (m *MedicationAdministrationMutation) ClearAdministeredBy() {
+	m.administered_by = nil
+	m.clearedFields[medicationadministration.FieldAdministeredBy] = struct{}{}
+}
+
+// AdministeredByCleared returns if the "administered_by" field was cleared in this mutation.
+func (m *MedicationAdministrationMutation) AdministeredByCleared() bool {
+	_, ok := m.clearedFields[medicationadministration.FieldAdministeredBy]
+	return ok
+}
+
+// ResetAdministeredBy resets all changes to the "administered_by" field.
+func (m *MedicationAdministrationMutation) ResetAdministeredBy() {
+	m.administered_by = nil
+	delete(m.clearedFields, medicationadministration.FieldAdministeredBy)
+}
+
+// SetStatus sets the "status" field.
+func (m *MedicationAdministrationMutation) SetStatus(value medicationadministration.Status) {
+	m.status = &value
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *MedicationAdministrationMutation) Status() (r medicationadministration.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldStatus(ctx context.Context) (v medicationadministration.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *MedicationAdministrationMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetNotes sets the "notes" field.
+func (m *MedicationAdministrationMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *MedicationAdministrationMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ClearNotes clears the value of the "notes" field.
+func (m *MedicationAdministrationMutation) ClearNotes() {
+	m.notes = nil
+	m.clearedFields[medicationadministration.FieldNotes] = struct{}{}
+}
+
+// NotesCleared returns if the "notes" field was cleared in this mutation.
+func (m *MedicationAdministrationMutation) NotesCleared() bool {
+	_, ok := m.clearedFields[medicationadministration.FieldNotes]
+	return ok
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *MedicationAdministrationMutation) ResetNotes() {
+	m.notes = nil
+	delete(m.clearedFields, medicationadministration.FieldNotes)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *MedicationAdministrationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *MedicationAdministrationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the MedicationAdministration entity.
+// If the MedicationAdministration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MedicationAdministrationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *MedicationAdministrationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearAdmission clears the "admission" edge to the Admission entity.
+func (m *MedicationAdministrationMutation) ClearAdmission() {
+	m.clearedadmission = true
+	m.clearedFields[medicationadministration.FieldAdmissionID] = struct{}{}
+}
+
+// AdmissionCleared reports if the "admission" edge to the Admission entity was cleared.
+func (m *MedicationAdministrationMutation) AdmissionCleared() bool {
+	return m.clearedadmission
+}
+
+// AdmissionIDs returns the "admission" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AdmissionID instead. It exists only for internal usage by the builders.
+func (m *MedicationAdministrationMutation) AdmissionIDs() (ids []uuid.UUID) {
+	if id := m.admission; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAdmission resets all changes to the "admission" edge.
+func (m *MedicationAdministrationMutation) ResetAdmission() {
+	m.admission = nil
+	m.clearedadmission = false
+}
+
+// ClearPrescriptionLine clears the "prescription_line" edge to the PrescriptionLine entity.
+func (m *MedicationAdministrationMutation) ClearPrescriptionLine() {
+	m.clearedprescription_line = true
+	m.clearedFields[medicationadministration.FieldPrescriptionLineID] = struct{}{}
+}
+
+// PrescriptionLineCleared reports if the "prescription_line" edge to the PrescriptionLine entity was cleared.
+func (m *MedicationAdministrationMutation) PrescriptionLineCleared() bool {
+	return m.clearedprescription_line
+}
+
+// PrescriptionLineIDs returns the "prescription_line" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PrescriptionLineID instead. It exists only for internal usage by the builders.
+func (m *MedicationAdministrationMutation) PrescriptionLineIDs() (ids []uuid.UUID) {
+	if id := m.prescription_line; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPrescriptionLine resets all changes to the "prescription_line" edge.
+func (m *MedicationAdministrationMutation) ResetPrescriptionLine() {
+	m.prescription_line = nil
+	m.clearedprescription_line = false
+}
+
+// Where appends a list predicates to the MedicationAdministrationMutation builder.
+func (m *MedicationAdministrationMutation) Where(ps ...predicate.MedicationAdministration) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MedicationAdministrationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MedicationAdministrationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MedicationAdministration, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MedicationAdministrationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MedicationAdministrationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MedicationAdministration).
+func (m *MedicationAdministrationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MedicationAdministrationMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.tenant_id != nil {
+		fields = append(fields, medicationadministration.FieldTenantID)
+	}
+	if m.admission != nil {
+		fields = append(fields, medicationadministration.FieldAdmissionID)
+	}
+	if m.prescription_line != nil {
+		fields = append(fields, medicationadministration.FieldPrescriptionLineID)
+	}
+	if m.scheduled_time != nil {
+		fields = append(fields, medicationadministration.FieldScheduledTime)
+	}
+	if m.administered_at != nil {
+		fields = append(fields, medicationadministration.FieldAdministeredAt)
+	}
+	if m.administered_by != nil {
+		fields = append(fields, medicationadministration.FieldAdministeredBy)
+	}
+	if m.status != nil {
+		fields = append(fields, medicationadministration.FieldStatus)
+	}
+	if m.notes != nil {
+		fields = append(fields, medicationadministration.FieldNotes)
+	}
+	if m.created_at != nil {
+		fields = append(fields, medicationadministration.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MedicationAdministrationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case medicationadministration.FieldTenantID:
+		return m.TenantID()
+	case medicationadministration.FieldAdmissionID:
+		return m.AdmissionID()
+	case medicationadministration.FieldPrescriptionLineID:
+		return m.PrescriptionLineID()
+	case medicationadministration.FieldScheduledTime:
+		return m.ScheduledTime()
+	case medicationadministration.FieldAdministeredAt:
+		return m.AdministeredAt()
+	case medicationadministration.FieldAdministeredBy:
+		return m.AdministeredBy()
+	case medicationadministration.FieldStatus:
+		return m.Status()
+	case medicationadministration.FieldNotes:
+		return m.Notes()
+	case medicationadministration.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MedicationAdministrationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case medicationadministration.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case medicationadministration.FieldAdmissionID:
+		return m.OldAdmissionID(ctx)
+	case medicationadministration.FieldPrescriptionLineID:
+		return m.OldPrescriptionLineID(ctx)
+	case medicationadministration.FieldScheduledTime:
+		return m.OldScheduledTime(ctx)
+	case medicationadministration.FieldAdministeredAt:
+		return m.OldAdministeredAt(ctx)
+	case medicationadministration.FieldAdministeredBy:
+		return m.OldAdministeredBy(ctx)
+	case medicationadministration.FieldStatus:
+		return m.OldStatus(ctx)
+	case medicationadministration.FieldNotes:
+		return m.OldNotes(ctx)
+	case medicationadministration.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown MedicationAdministration field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MedicationAdministrationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case medicationadministration.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case medicationadministration.FieldAdmissionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdmissionID(v)
+		return nil
+	case medicationadministration.FieldPrescriptionLineID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrescriptionLineID(v)
+		return nil
+	case medicationadministration.FieldScheduledTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScheduledTime(v)
+		return nil
+	case medicationadministration.FieldAdministeredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdministeredAt(v)
+		return nil
+	case medicationadministration.FieldAdministeredBy:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdministeredBy(v)
+		return nil
+	case medicationadministration.FieldStatus:
+		v, ok := value.(medicationadministration.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case medicationadministration.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	case medicationadministration.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MedicationAdministration field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MedicationAdministrationMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MedicationAdministrationMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MedicationAdministrationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown MedicationAdministration numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MedicationAdministrationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(medicationadministration.FieldAdministeredAt) {
+		fields = append(fields, medicationadministration.FieldAdministeredAt)
+	}
+	if m.FieldCleared(medicationadministration.FieldAdministeredBy) {
+		fields = append(fields, medicationadministration.FieldAdministeredBy)
+	}
+	if m.FieldCleared(medicationadministration.FieldNotes) {
+		fields = append(fields, medicationadministration.FieldNotes)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MedicationAdministrationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MedicationAdministrationMutation) ClearField(name string) error {
+	switch name {
+	case medicationadministration.FieldAdministeredAt:
+		m.ClearAdministeredAt()
+		return nil
+	case medicationadministration.FieldAdministeredBy:
+		m.ClearAdministeredBy()
+		return nil
+	case medicationadministration.FieldNotes:
+		m.ClearNotes()
+		return nil
+	}
+	return fmt.Errorf("unknown MedicationAdministration nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MedicationAdministrationMutation) ResetField(name string) error {
+	switch name {
+	case medicationadministration.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case medicationadministration.FieldAdmissionID:
+		m.ResetAdmissionID()
+		return nil
+	case medicationadministration.FieldPrescriptionLineID:
+		m.ResetPrescriptionLineID()
+		return nil
+	case medicationadministration.FieldScheduledTime:
+		m.ResetScheduledTime()
+		return nil
+	case medicationadministration.FieldAdministeredAt:
+		m.ResetAdministeredAt()
+		return nil
+	case medicationadministration.FieldAdministeredBy:
+		m.ResetAdministeredBy()
+		return nil
+	case medicationadministration.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case medicationadministration.FieldNotes:
+		m.ResetNotes()
+		return nil
+	case medicationadministration.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown MedicationAdministration field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MedicationAdministrationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.admission != nil {
+		edges = append(edges, medicationadministration.EdgeAdmission)
+	}
+	if m.prescription_line != nil {
+		edges = append(edges, medicationadministration.EdgePrescriptionLine)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MedicationAdministrationMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case medicationadministration.EdgeAdmission:
+		if id := m.admission; id != nil {
+			return []ent.Value{*id}
+		}
+	case medicationadministration.EdgePrescriptionLine:
+		if id := m.prescription_line; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MedicationAdministrationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MedicationAdministrationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MedicationAdministrationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedadmission {
+		edges = append(edges, medicationadministration.EdgeAdmission)
+	}
+	if m.clearedprescription_line {
+		edges = append(edges, medicationadministration.EdgePrescriptionLine)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MedicationAdministrationMutation) EdgeCleared(name string) bool {
+	switch name {
+	case medicationadministration.EdgeAdmission:
+		return m.clearedadmission
+	case medicationadministration.EdgePrescriptionLine:
+		return m.clearedprescription_line
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MedicationAdministrationMutation) ClearEdge(name string) error {
+	switch name {
+	case medicationadministration.EdgeAdmission:
+		m.ClearAdmission()
+		return nil
+	case medicationadministration.EdgePrescriptionLine:
+		m.ClearPrescriptionLine()
+		return nil
+	}
+	return fmt.Errorf("unknown MedicationAdministration unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MedicationAdministrationMutation) ResetEdge(name string) error {
+	switch name {
+	case medicationadministration.EdgeAdmission:
+		m.ResetAdmission()
+		return nil
+	case medicationadministration.EdgePrescriptionLine:
+		m.ResetPrescriptionLine()
+		return nil
+	}
+	return fmt.Errorf("unknown MedicationAdministration edge %s", name)
+}
+
 // OutboxEventMutation represents an operation that mutates the OutboxEvent nodes in the graph.
 type OutboxEventMutation struct {
 	config
@@ -27078,38 +28089,39 @@ func (m *PatientVisitMutation) ResetEdge(name string) error {
 // PrescriptionMutation represents an operation that mutates the Prescription nodes in the graph.
 type PrescriptionMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *uuid.UUID
-	tenant_id              *uuid.UUID
-	outlet_id              *uuid.UUID
-	patient_id             *uuid.UUID
-	visit_id               *uuid.UUID
-	examination_id         *uuid.UUID
-	external_facility_name *string
-	prescription_number    *string
-	prescriber_name        *string
-	prescriber_license     *string
-	patient_name           *string
-	patient_dob            *time.Time
-	patient_id_number      *string
-	status                 *prescription.Status
-	notes                  *string
-	dispensed_at           *time.Time
-	dispensed_by           *uuid.UUID
-	metadata               *map[string]interface{}
-	created_at             *time.Time
-	updated_at             *time.Time
-	clearedFields          map[string]struct{}
-	lines                  map[uuid.UUID]struct{}
-	removedlines           map[uuid.UUID]struct{}
-	clearedlines           bool
-	walk_in_sales          map[uuid.UUID]struct{}
-	removedwalk_in_sales   map[uuid.UUID]struct{}
-	clearedwalk_in_sales   bool
-	done                   bool
-	oldValue               func(context.Context) (*Prescription, error)
-	predicates             []predicate.Prescription
+	op                        Op
+	typ                       string
+	id                        *uuid.UUID
+	tenant_id                 *uuid.UUID
+	outlet_id                 *uuid.UUID
+	patient_id                *uuid.UUID
+	visit_id                  *uuid.UUID
+	examination_id            *uuid.UUID
+	external_facility_name    *string
+	prescription_number       *string
+	prescriber_name           *string
+	prescriber_license        *string
+	repeat_of_prescription_id *uuid.UUID
+	patient_name              *string
+	patient_dob               *time.Time
+	patient_id_number         *string
+	status                    *prescription.Status
+	notes                     *string
+	dispensed_at              *time.Time
+	dispensed_by              *uuid.UUID
+	metadata                  *map[string]interface{}
+	created_at                *time.Time
+	updated_at                *time.Time
+	clearedFields             map[string]struct{}
+	lines                     map[uuid.UUID]struct{}
+	removedlines              map[uuid.UUID]struct{}
+	clearedlines              bool
+	walk_in_sales             map[uuid.UUID]struct{}
+	removedwalk_in_sales      map[uuid.UUID]struct{}
+	clearedwalk_in_sales      bool
+	done                      bool
+	oldValue                  func(context.Context) (*Prescription, error)
+	predicates                []predicate.Prescription
 }
 
 var _ ent.Mutation = (*PrescriptionMutation)(nil)
@@ -27616,6 +28628,55 @@ func (m *PrescriptionMutation) PrescriberLicenseCleared() bool {
 func (m *PrescriptionMutation) ResetPrescriberLicense() {
 	m.prescriber_license = nil
 	delete(m.clearedFields, prescription.FieldPrescriberLicense)
+}
+
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (m *PrescriptionMutation) SetRepeatOfPrescriptionID(u uuid.UUID) {
+	m.repeat_of_prescription_id = &u
+}
+
+// RepeatOfPrescriptionID returns the value of the "repeat_of_prescription_id" field in the mutation.
+func (m *PrescriptionMutation) RepeatOfPrescriptionID() (r uuid.UUID, exists bool) {
+	v := m.repeat_of_prescription_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRepeatOfPrescriptionID returns the old "repeat_of_prescription_id" field's value of the Prescription entity.
+// If the Prescription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PrescriptionMutation) OldRepeatOfPrescriptionID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRepeatOfPrescriptionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRepeatOfPrescriptionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRepeatOfPrescriptionID: %w", err)
+	}
+	return oldValue.RepeatOfPrescriptionID, nil
+}
+
+// ClearRepeatOfPrescriptionID clears the value of the "repeat_of_prescription_id" field.
+func (m *PrescriptionMutation) ClearRepeatOfPrescriptionID() {
+	m.repeat_of_prescription_id = nil
+	m.clearedFields[prescription.FieldRepeatOfPrescriptionID] = struct{}{}
+}
+
+// RepeatOfPrescriptionIDCleared returns if the "repeat_of_prescription_id" field was cleared in this mutation.
+func (m *PrescriptionMutation) RepeatOfPrescriptionIDCleared() bool {
+	_, ok := m.clearedFields[prescription.FieldRepeatOfPrescriptionID]
+	return ok
+}
+
+// ResetRepeatOfPrescriptionID resets all changes to the "repeat_of_prescription_id" field.
+func (m *PrescriptionMutation) ResetRepeatOfPrescriptionID() {
+	m.repeat_of_prescription_id = nil
+	delete(m.clearedFields, prescription.FieldRepeatOfPrescriptionID)
 }
 
 // SetPatientName sets the "patient_name" field.
@@ -28211,7 +29272,7 @@ func (m *PrescriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PrescriptionMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.tenant_id != nil {
 		fields = append(fields, prescription.FieldTenantID)
 	}
@@ -28238,6 +29299,9 @@ func (m *PrescriptionMutation) Fields() []string {
 	}
 	if m.prescriber_license != nil {
 		fields = append(fields, prescription.FieldPrescriberLicense)
+	}
+	if m.repeat_of_prescription_id != nil {
+		fields = append(fields, prescription.FieldRepeatOfPrescriptionID)
 	}
 	if m.patient_name != nil {
 		fields = append(fields, prescription.FieldPatientName)
@@ -28295,6 +29359,8 @@ func (m *PrescriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.PrescriberName()
 	case prescription.FieldPrescriberLicense:
 		return m.PrescriberLicense()
+	case prescription.FieldRepeatOfPrescriptionID:
+		return m.RepeatOfPrescriptionID()
 	case prescription.FieldPatientName:
 		return m.PatientName()
 	case prescription.FieldPatientDob:
@@ -28342,6 +29408,8 @@ func (m *PrescriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPrescriberName(ctx)
 	case prescription.FieldPrescriberLicense:
 		return m.OldPrescriberLicense(ctx)
+	case prescription.FieldRepeatOfPrescriptionID:
+		return m.OldRepeatOfPrescriptionID(ctx)
 	case prescription.FieldPatientName:
 		return m.OldPatientName(ctx)
 	case prescription.FieldPatientDob:
@@ -28433,6 +29501,13 @@ func (m *PrescriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPrescriberLicense(v)
+		return nil
+	case prescription.FieldRepeatOfPrescriptionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRepeatOfPrescriptionID(v)
 		return nil
 	case prescription.FieldPatientName:
 		v, ok := value.(string)
@@ -28552,6 +29627,9 @@ func (m *PrescriptionMutation) ClearedFields() []string {
 	if m.FieldCleared(prescription.FieldPrescriberLicense) {
 		fields = append(fields, prescription.FieldPrescriberLicense)
 	}
+	if m.FieldCleared(prescription.FieldRepeatOfPrescriptionID) {
+		fields = append(fields, prescription.FieldRepeatOfPrescriptionID)
+	}
 	if m.FieldCleared(prescription.FieldPatientName) {
 		fields = append(fields, prescription.FieldPatientName)
 	}
@@ -28604,6 +29682,9 @@ func (m *PrescriptionMutation) ClearField(name string) error {
 		return nil
 	case prescription.FieldPrescriberLicense:
 		m.ClearPrescriberLicense()
+		return nil
+	case prescription.FieldRepeatOfPrescriptionID:
+		m.ClearRepeatOfPrescriptionID()
 		return nil
 	case prescription.FieldPatientName:
 		m.ClearPatientName()
@@ -28660,6 +29741,9 @@ func (m *PrescriptionMutation) ResetField(name string) error {
 		return nil
 	case prescription.FieldPrescriberLicense:
 		m.ResetPrescriberLicense()
+		return nil
+	case prescription.FieldRepeatOfPrescriptionID:
+		m.ResetRepeatOfPrescriptionID()
 		return nil
 	case prescription.FieldPatientName:
 		m.ResetPatientName()
@@ -28808,30 +29892,33 @@ func (m *PrescriptionMutation) ResetEdge(name string) error {
 // PrescriptionLineMutation represents an operation that mutates the PrescriptionLine nodes in the graph.
 type PrescriptionLineMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *uuid.UUID
-	tenant_id              *uuid.UUID
-	inventory_item_sku     *string
-	drug_name              *string
-	dosage                 *string
-	form                   *string
-	instructions           *string
-	quantity_prescribed    *float64
-	addquantity_prescribed *float64
-	quantity_dispensed     *float64
-	addquantity_dispensed  *float64
-	unit_price             *float64
-	addunit_price          *float64
-	lot_number             *string
-	expiry_date            *time.Time
-	status                 *prescriptionline.Status
-	clearedFields          map[string]struct{}
-	prescription           *uuid.UUID
-	clearedprescription    bool
-	done                   bool
-	oldValue               func(context.Context) (*PrescriptionLine, error)
-	predicates             []predicate.PrescriptionLine
+	op                                Op
+	typ                               string
+	id                                *uuid.UUID
+	tenant_id                         *uuid.UUID
+	inventory_item_sku                *string
+	drug_name                         *string
+	dosage                            *string
+	form                              *string
+	instructions                      *string
+	quantity_prescribed               *float64
+	addquantity_prescribed            *float64
+	quantity_dispensed                *float64
+	addquantity_dispensed             *float64
+	unit_price                        *float64
+	addunit_price                     *float64
+	lot_number                        *string
+	expiry_date                       *time.Time
+	status                            *prescriptionline.Status
+	clearedFields                     map[string]struct{}
+	prescription                      *uuid.UUID
+	clearedprescription               bool
+	medication_administrations        map[uuid.UUID]struct{}
+	removedmedication_administrations map[uuid.UUID]struct{}
+	clearedmedication_administrations bool
+	done                              bool
+	oldValue                          func(context.Context) (*PrescriptionLine, error)
+	predicates                        []predicate.PrescriptionLine
 }
 
 var _ ent.Mutation = (*PrescriptionLineMutation)(nil)
@@ -29571,6 +30658,60 @@ func (m *PrescriptionLineMutation) ResetPrescription() {
 	m.clearedprescription = false
 }
 
+// AddMedicationAdministrationIDs adds the "medication_administrations" edge to the MedicationAdministration entity by ids.
+func (m *PrescriptionLineMutation) AddMedicationAdministrationIDs(ids ...uuid.UUID) {
+	if m.medication_administrations == nil {
+		m.medication_administrations = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.medication_administrations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMedicationAdministrations clears the "medication_administrations" edge to the MedicationAdministration entity.
+func (m *PrescriptionLineMutation) ClearMedicationAdministrations() {
+	m.clearedmedication_administrations = true
+}
+
+// MedicationAdministrationsCleared reports if the "medication_administrations" edge to the MedicationAdministration entity was cleared.
+func (m *PrescriptionLineMutation) MedicationAdministrationsCleared() bool {
+	return m.clearedmedication_administrations
+}
+
+// RemoveMedicationAdministrationIDs removes the "medication_administrations" edge to the MedicationAdministration entity by IDs.
+func (m *PrescriptionLineMutation) RemoveMedicationAdministrationIDs(ids ...uuid.UUID) {
+	if m.removedmedication_administrations == nil {
+		m.removedmedication_administrations = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.medication_administrations, ids[i])
+		m.removedmedication_administrations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMedicationAdministrations returns the removed IDs of the "medication_administrations" edge to the MedicationAdministration entity.
+func (m *PrescriptionLineMutation) RemovedMedicationAdministrationsIDs() (ids []uuid.UUID) {
+	for id := range m.removedmedication_administrations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MedicationAdministrationsIDs returns the "medication_administrations" edge IDs in the mutation.
+func (m *PrescriptionLineMutation) MedicationAdministrationsIDs() (ids []uuid.UUID) {
+	for id := range m.medication_administrations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMedicationAdministrations resets all changes to the "medication_administrations" edge.
+func (m *PrescriptionLineMutation) ResetMedicationAdministrations() {
+	m.medication_administrations = nil
+	m.clearedmedication_administrations = false
+	m.removedmedication_administrations = nil
+}
+
 // Where appends a list predicates to the PrescriptionLineMutation builder.
 func (m *PrescriptionLineMutation) Where(ps ...predicate.PrescriptionLine) {
 	m.predicates = append(m.predicates, ps...)
@@ -29986,9 +31127,12 @@ func (m *PrescriptionLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PrescriptionLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.prescription != nil {
 		edges = append(edges, prescriptionline.EdgePrescription)
+	}
+	if m.medication_administrations != nil {
+		edges = append(edges, prescriptionline.EdgeMedicationAdministrations)
 	}
 	return edges
 }
@@ -30001,27 +31145,47 @@ func (m *PrescriptionLineMutation) AddedIDs(name string) []ent.Value {
 		if id := m.prescription; id != nil {
 			return []ent.Value{*id}
 		}
+	case prescriptionline.EdgeMedicationAdministrations:
+		ids := make([]ent.Value, 0, len(m.medication_administrations))
+		for id := range m.medication_administrations {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PrescriptionLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.removedmedication_administrations != nil {
+		edges = append(edges, prescriptionline.EdgeMedicationAdministrations)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *PrescriptionLineMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case prescriptionline.EdgeMedicationAdministrations:
+		ids := make([]ent.Value, 0, len(m.removedmedication_administrations))
+		for id := range m.removedmedication_administrations {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PrescriptionLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedprescription {
 		edges = append(edges, prescriptionline.EdgePrescription)
+	}
+	if m.clearedmedication_administrations {
+		edges = append(edges, prescriptionline.EdgeMedicationAdministrations)
 	}
 	return edges
 }
@@ -30032,6 +31196,8 @@ func (m *PrescriptionLineMutation) EdgeCleared(name string) bool {
 	switch name {
 	case prescriptionline.EdgePrescription:
 		return m.clearedprescription
+	case prescriptionline.EdgeMedicationAdministrations:
+		return m.clearedmedication_administrations
 	}
 	return false
 }
@@ -30053,6 +31219,9 @@ func (m *PrescriptionLineMutation) ResetEdge(name string) error {
 	switch name {
 	case prescriptionline.EdgePrescription:
 		m.ResetPrescription()
+		return nil
+	case prescriptionline.EdgeMedicationAdministrations:
+		m.ResetMedicationAdministrations()
 		return nil
 	}
 	return fmt.Errorf("unknown PrescriptionLine edge %s", name)

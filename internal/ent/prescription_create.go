@@ -128,6 +128,20 @@ func (_c *PrescriptionCreate) SetNillablePrescriberLicense(v *string) *Prescript
 	return _c
 }
 
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (_c *PrescriptionCreate) SetRepeatOfPrescriptionID(v uuid.UUID) *PrescriptionCreate {
+	_c.mutation.SetRepeatOfPrescriptionID(v)
+	return _c
+}
+
+// SetNillableRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field if the given value is not nil.
+func (_c *PrescriptionCreate) SetNillableRepeatOfPrescriptionID(v *uuid.UUID) *PrescriptionCreate {
+	if v != nil {
+		_c.SetRepeatOfPrescriptionID(*v)
+	}
+	return _c
+}
+
 // SetPatientName sets the "patient_name" field.
 func (_c *PrescriptionCreate) SetPatientName(v string) *PrescriptionCreate {
 	_c.mutation.SetPatientName(v)
@@ -459,6 +473,10 @@ func (_c *PrescriptionCreate) createSpec() (*Prescription, *sqlgraph.CreateSpec)
 		_spec.SetField(prescription.FieldPrescriberLicense, field.TypeString, value)
 		_node.PrescriberLicense = value
 	}
+	if value, ok := _c.mutation.RepeatOfPrescriptionID(); ok {
+		_spec.SetField(prescription.FieldRepeatOfPrescriptionID, field.TypeUUID, value)
+		_node.RepeatOfPrescriptionID = &value
+	}
 	if value, ok := _c.mutation.PatientName(); ok {
 		_spec.SetField(prescription.FieldPatientName, field.TypeString, value)
 		_node.PatientName = value
@@ -724,6 +742,24 @@ func (u *PrescriptionUpsert) UpdatePrescriberLicense() *PrescriptionUpsert {
 // ClearPrescriberLicense clears the value of the "prescriber_license" field.
 func (u *PrescriptionUpsert) ClearPrescriberLicense() *PrescriptionUpsert {
 	u.SetNull(prescription.FieldPrescriberLicense)
+	return u
+}
+
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (u *PrescriptionUpsert) SetRepeatOfPrescriptionID(v uuid.UUID) *PrescriptionUpsert {
+	u.Set(prescription.FieldRepeatOfPrescriptionID, v)
+	return u
+}
+
+// UpdateRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field to the value that was provided on create.
+func (u *PrescriptionUpsert) UpdateRepeatOfPrescriptionID() *PrescriptionUpsert {
+	u.SetExcluded(prescription.FieldRepeatOfPrescriptionID)
+	return u
+}
+
+// ClearRepeatOfPrescriptionID clears the value of the "repeat_of_prescription_id" field.
+func (u *PrescriptionUpsert) ClearRepeatOfPrescriptionID() *PrescriptionUpsert {
+	u.SetNull(prescription.FieldRepeatOfPrescriptionID)
 	return u
 }
 
@@ -1093,6 +1129,27 @@ func (u *PrescriptionUpsertOne) UpdatePrescriberLicense() *PrescriptionUpsertOne
 func (u *PrescriptionUpsertOne) ClearPrescriberLicense() *PrescriptionUpsertOne {
 	return u.Update(func(s *PrescriptionUpsert) {
 		s.ClearPrescriberLicense()
+	})
+}
+
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (u *PrescriptionUpsertOne) SetRepeatOfPrescriptionID(v uuid.UUID) *PrescriptionUpsertOne {
+	return u.Update(func(s *PrescriptionUpsert) {
+		s.SetRepeatOfPrescriptionID(v)
+	})
+}
+
+// UpdateRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field to the value that was provided on create.
+func (u *PrescriptionUpsertOne) UpdateRepeatOfPrescriptionID() *PrescriptionUpsertOne {
+	return u.Update(func(s *PrescriptionUpsert) {
+		s.UpdateRepeatOfPrescriptionID()
+	})
+}
+
+// ClearRepeatOfPrescriptionID clears the value of the "repeat_of_prescription_id" field.
+func (u *PrescriptionUpsertOne) ClearRepeatOfPrescriptionID() *PrescriptionUpsertOne {
+	return u.Update(func(s *PrescriptionUpsert) {
+		s.ClearRepeatOfPrescriptionID()
 	})
 }
 
@@ -1654,6 +1711,27 @@ func (u *PrescriptionUpsertBulk) UpdatePrescriberLicense() *PrescriptionUpsertBu
 func (u *PrescriptionUpsertBulk) ClearPrescriberLicense() *PrescriptionUpsertBulk {
 	return u.Update(func(s *PrescriptionUpsert) {
 		s.ClearPrescriberLicense()
+	})
+}
+
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (u *PrescriptionUpsertBulk) SetRepeatOfPrescriptionID(v uuid.UUID) *PrescriptionUpsertBulk {
+	return u.Update(func(s *PrescriptionUpsert) {
+		s.SetRepeatOfPrescriptionID(v)
+	})
+}
+
+// UpdateRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field to the value that was provided on create.
+func (u *PrescriptionUpsertBulk) UpdateRepeatOfPrescriptionID() *PrescriptionUpsertBulk {
+	return u.Update(func(s *PrescriptionUpsert) {
+		s.UpdateRepeatOfPrescriptionID()
+	})
+}
+
+// ClearRepeatOfPrescriptionID clears the value of the "repeat_of_prescription_id" field.
+func (u *PrescriptionUpsertBulk) ClearRepeatOfPrescriptionID() *PrescriptionUpsertBulk {
+	return u.Update(func(s *PrescriptionUpsert) {
+		s.ClearRepeatOfPrescriptionID()
 	})
 }
 

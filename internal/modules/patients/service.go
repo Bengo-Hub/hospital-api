@@ -20,21 +20,32 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
+	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	events "github.com/bengobox/hospital-service/internal/events"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
+	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
 )
 
 // Service implements patient/visit/triage business logic.
 type Service struct {
-	client  *ent.Client
-	billing *billing.Service
-	log     *zap.Logger
+	client   *ent.Client
+	billing  *billing.Service
+	pharmacy *pharmacy.Service
+	log      *zap.Logger
 }
 
 // NewService creates a new patients service.
 func NewService(client *ent.Client, billingSvc *billing.Service, log *zap.Logger) *Service {
 	return &Service{client: client, billing: billingSvc, log: log.Named("patients.service")}
+}
+
+// SetPharmacyService wires the pharmacy service used by UpdatePatient's allergy-recheck
+// auto-trigger. Late-bound (mirrors identity.Service.SetRBACService/SetAuditWriter) because
+// pharmacy.Service is constructed after patients.Service in app.go — optional and always-safe:
+// UpdatePatient simply skips the recheck when nil (e.g. in a partially-wired test setup).
+func (s *Service) SetPharmacyService(svc *pharmacy.Service) {
+	s.pharmacy = svc
 }
 
 // RegisterPatientRequest is the input to RegisterPatient.
@@ -483,7 +494,63 @@ func (s *Service) UpdatePatient(ctx context.Context, tenantID, patientID uuid.UU
 	if err != nil {
 		return nil, fmt.Errorf("patients: update patient: %w", err)
 	}
+
+	if req.Allergies != nil && !allergyFlagsEqual(existing.AllergyFlags, *req.Allergies) {
+		s.recheckOpenPrescriptions(ctx, tenantID, patientID, *req.Allergies)
+	}
 	return updated, nil
+}
+
+// allergyFlagsEqual reports whether two allergy-flag sets are the same, order-insensitive.
+func allergyFlagsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[string]int, len(a))
+	for _, v := range a {
+		seen[v]++
+	}
+	for _, v := range b {
+		seen[v]--
+	}
+	for _, count := range seen {
+		if count != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// recheckOpenPrescriptions auto-triggers pharmacy.Service.RecheckInteractions for every
+// pre-dispense prescription this patient still has open, whenever UpdatePatient changes their
+// allergy flags — closing the wiring gap flagged in mvp-gap-backlog-2026-09-02.md Sprint 4 item 3
+// (the recheck mechanism itself was already correct, it just never fired automatically on the
+// upstream allergy change, only when someone manually triggered it on a specific prescription).
+// Best-effort: never lets a recheck failure surface as an UpdatePatient error, same convention as
+// every other post-save side effect in this codebase (chargeRegistrationFee etc.).
+func (s *Service) recheckOpenPrescriptions(ctx context.Context, tenantID, patientID uuid.UUID, allergyFlags []string) {
+	if s.pharmacy == nil {
+		return
+	}
+	rxIDs, err := s.client.Prescription.Query().
+		Where(
+			prescription.TenantID(tenantID),
+			prescription.PatientID(patientID),
+			prescription.StatusIn(
+				prescription.StatusPending, prescription.StatusFlagged, prescription.StatusPharmacistReview,
+				prescription.StatusApproved, prescription.StatusLocked,
+			),
+		).
+		IDs(ctx)
+	if err != nil {
+		s.log.Warn("allergy recheck: list open prescriptions failed", zap.Error(err))
+		return
+	}
+	for _, rxID := range rxIDs {
+		if _, _, rerr := s.pharmacy.RecheckInteractions(ctx, tenantID, rxID, allergyFlags); rerr != nil {
+			s.log.Warn("allergy recheck: RecheckInteractions failed", zap.String("prescription_id", rxID.String()), zap.Error(rerr))
+		}
+	}
 }
 
 // RecordTriageRequest is the input to RecordTriage.

@@ -43,6 +43,8 @@ const (
 	FieldStatus = "status"
 	// EdgePrescription holds the string denoting the prescription edge name in mutations.
 	EdgePrescription = "prescription"
+	// EdgeMedicationAdministrations holds the string denoting the medication_administrations edge name in mutations.
+	EdgeMedicationAdministrations = "medication_administrations"
 	// Table holds the table name of the prescriptionline in the database.
 	Table = "prescription_lines"
 	// PrescriptionTable is the table that holds the prescription relation/edge.
@@ -52,6 +54,13 @@ const (
 	PrescriptionInverseTable = "prescriptions"
 	// PrescriptionColumn is the table column denoting the prescription relation/edge.
 	PrescriptionColumn = "prescription_id"
+	// MedicationAdministrationsTable is the table that holds the medication_administrations relation/edge.
+	MedicationAdministrationsTable = "medication_administrations"
+	// MedicationAdministrationsInverseTable is the table name for the MedicationAdministration entity.
+	// It exists in this package in order to avoid circular dependency with the "medicationadministration" package.
+	MedicationAdministrationsInverseTable = "medication_administrations"
+	// MedicationAdministrationsColumn is the table column denoting the medication_administrations relation/edge.
+	MedicationAdministrationsColumn = "prescription_line_id"
 )
 
 // Columns holds all SQL columns for prescriptionline fields.
@@ -202,10 +211,31 @@ func ByPrescriptionField(field string, opts ...sql.OrderTermOption) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newPrescriptionStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByMedicationAdministrationsCount orders the results by medication_administrations count.
+func ByMedicationAdministrationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMedicationAdministrationsStep(), opts...)
+	}
+}
+
+// ByMedicationAdministrations orders the results by medication_administrations terms.
+func ByMedicationAdministrations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMedicationAdministrationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPrescriptionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PrescriptionInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, PrescriptionTable, PrescriptionColumn),
+	)
+}
+func newMedicationAdministrationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MedicationAdministrationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MedicationAdministrationsTable, MedicationAdministrationsColumn),
 	)
 }

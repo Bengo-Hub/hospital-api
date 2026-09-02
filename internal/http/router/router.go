@@ -74,6 +74,8 @@ type Deps struct {
 	// Mirrors inventory-api's own top-level /media/* static-serve + authenticated upload route.
 	Media     *handlers.MediaHandler
 	MediaRoot string
+	// Medication Administration Record (2026-09-03, MVP gap backlog Sprint 4).
+	MAR *handlers.MARHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -438,6 +440,9 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/lock", d.Pharmacy.LockPrescription)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyPrescribe)).
+					Post("/prescriptions/{prescriptionID}/refill", d.Pharmacy.CreateRefill)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Post("/prescriptions/{prescriptionID}/reject", d.Pharmacy.RejectPrescription)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
@@ -530,6 +535,22 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
 					Post("/admissions/{admissionID}/discharge", d.Inpatient.Discharge)
+			}
+
+			// Medication Administration Record (MAR, 2026-09-03) — nurse-charted per-dose record
+			// for an admission, distinct from pharmacy's own dispense event. Reuses the inpatient
+			// module's own feature gate/permissions rather than minting a new permission set,
+			// since MAR is squarely "things that happen during an inpatient stay."
+			if d.MAR != nil {
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientAdd)).
+					Post("/admissions/{admissionID}/mar", d.MAR.ChartDose)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions/{admissionID}/mar", d.MAR.ListByAdmission)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions/{admissionID}/mar/prescriptions", d.MAR.ListActivePrescriptions)
 			}
 
 			// Sprint 7 — Theatre/OT scheduling. Gated on FeatureTheatreModule (Afya Hospital tier).

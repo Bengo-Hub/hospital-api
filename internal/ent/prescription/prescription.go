@@ -34,6 +34,8 @@ const (
 	FieldPrescriberName = "prescriber_name"
 	// FieldPrescriberLicense holds the string denoting the prescriber_license field in the database.
 	FieldPrescriberLicense = "prescriber_license"
+	// FieldRepeatOfPrescriptionID holds the string denoting the repeat_of_prescription_id field in the database.
+	FieldRepeatOfPrescriptionID = "repeat_of_prescription_id"
 	// FieldPatientName holds the string denoting the patient_name field in the database.
 	FieldPatientName = "patient_name"
 	// FieldPatientDob holds the string denoting the patient_dob field in the database.
@@ -88,6 +90,7 @@ var Columns = []string{
 	FieldPrescriptionNumber,
 	FieldPrescriberName,
 	FieldPrescriberLicense,
+	FieldRepeatOfPrescriptionID,
 	FieldPatientName,
 	FieldPatientDob,
 	FieldPatientIDNumber,
@@ -207,6 +210,11 @@ func ByPrescriberName(opts ...sql.OrderTermOption) OrderOption {
 // ByPrescriberLicense orders the results by the prescriber_license field.
 func ByPrescriberLicense(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrescriberLicense, opts...).ToFunc()
+}
+
+// ByRepeatOfPrescriptionID orders the results by the repeat_of_prescription_id field.
+func ByRepeatOfPrescriptionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRepeatOfPrescriptionID, opts...).ToFunc()
 }
 
 // ByPatientName orders the results by the patient_name field.

@@ -31,6 +31,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/icu"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
 	"github.com/bengobox/hospital-service/internal/modules/inpatient"
+	"github.com/bengobox/hospital-service/internal/modules/mar"
 	inventoryclient "github.com/bengobox/hospital-service/internal/modules/inventory"
 	"github.com/bengobox/hospital-service/internal/modules/lab"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
@@ -230,10 +231,17 @@ func New(ctx context.Context) (*App, error) {
 	}
 	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log, authAPIClient, validator, rbacService, witnessTokenSecret)
 	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc, rbacService)
+	// Late-bound: patientsSvc is constructed before pharmacySvc exists (see NewService's own doc
+	// comment) — wires UpdatePatient's allergy-recheck auto-trigger (mvp-gap-backlog Sprint 4 #3).
+	patientsSvc.SetPharmacyService(pharmacySvc)
 
 	// ── Sprint 6: inpatient (ward/bed/admission/transfer/discharge) ───────
 	inpatientSvc := inpatient.NewService(ormClient, billingSvc, log)
 	inpatientHandler := handlers.NewInpatientHandler(inpatientSvc, rbacService)
+
+	// ── MAR: Medication Administration Record (2026-09-03, MVP gap backlog) ──
+	marSvc := mar.NewService(ormClient, log)
+	marHandler := handlers.NewMARHandler(marSvc)
 
 	// ── Sprint 7: theatre/OT scheduling + ICU critical-care monitoring ────
 	theatreSvc := theatre.NewService(ormClient, billingSvc, log)
@@ -286,6 +294,7 @@ func New(ctx context.Context) (*App, error) {
 		TenantSyncer:   tenantSyncer,
 		Media:          mediaHandler,
 		MediaRoot:      cfg.Media.Root,
+		MAR:            marHandler,
 	}
 	chiRouter := router.New(deps)
 

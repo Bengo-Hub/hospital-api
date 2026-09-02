@@ -817,6 +817,29 @@ func HasBedWith(preds ...predicate.Bed) predicate.Admission {
 	})
 }
 
+// HasMedicationAdministrations applies the HasEdge predicate on the "medication_administrations" edge.
+func HasMedicationAdministrations() predicate.Admission {
+	return predicate.Admission(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, MedicationAdministrationsTable, MedicationAdministrationsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasMedicationAdministrationsWith applies the HasEdge predicate on the "medication_administrations" edge with a given conditions (other predicates).
+func HasMedicationAdministrationsWith(preds ...predicate.MedicationAdministration) predicate.Admission {
+	return predicate.Admission(func(s *sql.Selector) {
+		step := newMedicationAdministrationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Admission) predicate.Admission {
 	return predicate.Admission(sql.AndPredicates(predicates...))

@@ -53,6 +53,7 @@ func (Admission) Edges() []ent.Edge {
 			Field("bed_id").
 			Unique().
 			Required(),
+		edge.To("medication_administrations", MedicationAdministration.Type),
 	}
 }
 

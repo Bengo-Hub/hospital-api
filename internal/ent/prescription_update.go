@@ -193,6 +193,26 @@ func (_u *PrescriptionUpdate) ClearPrescriberLicense() *PrescriptionUpdate {
 	return _u
 }
 
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (_u *PrescriptionUpdate) SetRepeatOfPrescriptionID(v uuid.UUID) *PrescriptionUpdate {
+	_u.mutation.SetRepeatOfPrescriptionID(v)
+	return _u
+}
+
+// SetNillableRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field if the given value is not nil.
+func (_u *PrescriptionUpdate) SetNillableRepeatOfPrescriptionID(v *uuid.UUID) *PrescriptionUpdate {
+	if v != nil {
+		_u.SetRepeatOfPrescriptionID(*v)
+	}
+	return _u
+}
+
+// ClearRepeatOfPrescriptionID clears the value of the "repeat_of_prescription_id" field.
+func (_u *PrescriptionUpdate) ClearRepeatOfPrescriptionID() *PrescriptionUpdate {
+	_u.mutation.ClearRepeatOfPrescriptionID()
+	return _u
+}
+
 // SetPatientName sets the "patient_name" field.
 func (_u *PrescriptionUpdate) SetPatientName(v string) *PrescriptionUpdate {
 	_u.mutation.SetPatientName(v)
@@ -530,6 +550,12 @@ func (_u *PrescriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.PrescriberLicenseCleared() {
 		_spec.ClearField(prescription.FieldPrescriberLicense, field.TypeString)
 	}
+	if value, ok := _u.mutation.RepeatOfPrescriptionID(); ok {
+		_spec.SetField(prescription.FieldRepeatOfPrescriptionID, field.TypeUUID, value)
+	}
+	if _u.mutation.RepeatOfPrescriptionIDCleared() {
+		_spec.ClearField(prescription.FieldRepeatOfPrescriptionID, field.TypeUUID)
+	}
 	if value, ok := _u.mutation.PatientName(); ok {
 		_spec.SetField(prescription.FieldPatientName, field.TypeString, value)
 	}
@@ -847,6 +873,26 @@ func (_u *PrescriptionUpdateOne) SetNillablePrescriberLicense(v *string) *Prescr
 // ClearPrescriberLicense clears the value of the "prescriber_license" field.
 func (_u *PrescriptionUpdateOne) ClearPrescriberLicense() *PrescriptionUpdateOne {
 	_u.mutation.ClearPrescriberLicense()
+	return _u
+}
+
+// SetRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field.
+func (_u *PrescriptionUpdateOne) SetRepeatOfPrescriptionID(v uuid.UUID) *PrescriptionUpdateOne {
+	_u.mutation.SetRepeatOfPrescriptionID(v)
+	return _u
+}
+
+// SetNillableRepeatOfPrescriptionID sets the "repeat_of_prescription_id" field if the given value is not nil.
+func (_u *PrescriptionUpdateOne) SetNillableRepeatOfPrescriptionID(v *uuid.UUID) *PrescriptionUpdateOne {
+	if v != nil {
+		_u.SetRepeatOfPrescriptionID(*v)
+	}
+	return _u
+}
+
+// ClearRepeatOfPrescriptionID clears the value of the "repeat_of_prescription_id" field.
+func (_u *PrescriptionUpdateOne) ClearRepeatOfPrescriptionID() *PrescriptionUpdateOne {
+	_u.mutation.ClearRepeatOfPrescriptionID()
 	return _u
 }
 
@@ -1216,6 +1262,12 @@ func (_u *PrescriptionUpdateOne) sqlSave(ctx context.Context) (_node *Prescripti
 	}
 	if _u.mutation.PrescriberLicenseCleared() {
 		_spec.ClearField(prescription.FieldPrescriberLicense, field.TypeString)
+	}
+	if value, ok := _u.mutation.RepeatOfPrescriptionID(); ok {
+		_spec.SetField(prescription.FieldRepeatOfPrescriptionID, field.TypeUUID, value)
+	}
+	if _u.mutation.RepeatOfPrescriptionIDCleared() {
+		_spec.ClearField(prescription.FieldRepeatOfPrescriptionID, field.TypeUUID)
 	}
 	if value, ok := _u.mutation.PatientName(); ok {
 		_spec.SetField(prescription.FieldPatientName, field.TypeString, value)

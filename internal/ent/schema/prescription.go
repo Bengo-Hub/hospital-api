@@ -34,6 +34,8 @@ func (Prescription) Fields() []ent.Field {
 		field.String("prescription_number").NotEmpty().Comment("Sequence-generated per tenant"),
 		field.String("prescriber_name").Optional(),
 		field.String("prescriber_license").Optional(),
+		field.UUID("repeat_of_prescription_id", uuid.UUID{}).Optional().Nillable().
+			Comment("Set on a refill created via CreateRefill — points at the original prescription this repeats, for a chronic patient's regular regimen"),
 		field.String("patient_name").Optional().Comment("Free-text fallback when patient_id is nil (walk-in)"),
 		field.Time("patient_dob").Optional().Nillable(),
 		field.String("patient_id_number").Optional(),
@@ -64,5 +66,6 @@ func (Prescription) Indexes() []ent.Index {
 		index.Fields("tenant_id", "status"),
 		index.Fields("tenant_id", "patient_id"),
 		index.Fields("tenant_id", "visit_id"),
+		index.Fields("tenant_id", "repeat_of_prescription_id"),
 	}
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -511,6 +512,20 @@ func init() {
 	labtestcatalogentryDescID := labtestcatalogentryFields[0].Descriptor()
 	// labtestcatalogentry.DefaultID holds the default value on creation for the id field.
 	labtestcatalogentry.DefaultID = labtestcatalogentryDescID.Default.(func() uuid.UUID)
+	medicationadministrationFields := schema.MedicationAdministration{}.Fields()
+	_ = medicationadministrationFields
+	// medicationadministrationDescScheduledTime is the schema descriptor for scheduled_time field.
+	medicationadministrationDescScheduledTime := medicationadministrationFields[4].Descriptor()
+	// medicationadministration.DefaultScheduledTime holds the default value on creation for the scheduled_time field.
+	medicationadministration.DefaultScheduledTime = medicationadministrationDescScheduledTime.Default.(func() time.Time)
+	// medicationadministrationDescCreatedAt is the schema descriptor for created_at field.
+	medicationadministrationDescCreatedAt := medicationadministrationFields[9].Descriptor()
+	// medicationadministration.DefaultCreatedAt holds the default value on creation for the created_at field.
+	medicationadministration.DefaultCreatedAt = medicationadministrationDescCreatedAt.Default.(func() time.Time)
+	// medicationadministrationDescID is the schema descriptor for id field.
+	medicationadministrationDescID := medicationadministrationFields[0].Descriptor()
+	// medicationadministration.DefaultID holds the default value on creation for the id field.
+	medicationadministration.DefaultID = medicationadministrationDescID.Default.(func() uuid.UUID)
 	outboxeventFields := schema.OutboxEvent{}.Fields()
 	_ = outboxeventFields
 	// outboxeventDescAggregateType is the schema descriptor for aggregate_type field.
@@ -702,11 +717,11 @@ func init() {
 	// prescription.PrescriptionNumberValidator is a validator for the "prescription_number" field. It is called by the builders before save.
 	prescription.PrescriptionNumberValidator = prescriptionDescPrescriptionNumber.Validators[0].(func(string) error)
 	// prescriptionDescCreatedAt is the schema descriptor for created_at field.
-	prescriptionDescCreatedAt := prescriptionFields[18].Descriptor()
+	prescriptionDescCreatedAt := prescriptionFields[19].Descriptor()
 	// prescription.DefaultCreatedAt holds the default value on creation for the created_at field.
 	prescription.DefaultCreatedAt = prescriptionDescCreatedAt.Default.(func() time.Time)
 	// prescriptionDescUpdatedAt is the schema descriptor for updated_at field.
-	prescriptionDescUpdatedAt := prescriptionFields[19].Descriptor()
+	prescriptionDescUpdatedAt := prescriptionFields[20].Descriptor()
 	// prescription.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	prescription.DefaultUpdatedAt = prescriptionDescUpdatedAt.Default.(func() time.Time)
 	// prescription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -81,6 +81,21 @@ Sprint 5 — Billing & Insurance.
 
 ## Gap audit and MVP backlog candidates (2026-09-02)
 
+**Shipped 2026-09-03**: all three items are live. Allergy recheck (item 3) was pure wiring —
+`patients.Service.UpdatePatient` now calls the already-correct `pharmacy.Service.
+RecheckInteractions` for every pre-dispense prescription when `Allergies` genuinely changes (late-
+bound `SetPharmacyService`, no schema, no hospital-ui change). Refill (item 2): `Prescription.
+repeat_of_prescription_id` + `pharmacy.Service.CreateRefill` (clones lines, re-runs the
+allergy/interaction check) + a "Create Refill" action on the prescription detail page. MAR (item
+1): new `MedicationAdministration` entity + a new `mar` module — **note a real, intentional
+simplification versus the item's original framing**: this codebase has no dosing-frequency data
+model (`PrescriptionLine.instructions` is free text), so there is no way to auto-generate a
+schedule of future dose slots to "check off." MAR is instead charted on-demand ("chart a dose"),
+each chart action creating one `MedicationAdministration` row directly with its outcome
+(given/refused/missed/held), not a pre-populated schedule grid a nurse ticks through. New
+`GET/POST /admissions/{admissionID}/mar` + `GET .../mar/prescriptions`, and a `MarPanel` on the
+admission detail page (`hospital-ui`).
+
 Completeness audit of the shipped Pharmacy/Dispensing module against real inpatient medication
 practice and chronic-medication workflows, done against the actual shipped
 `internal/ent/schema/prescription.go`/`prescription_line.go` and `internal/modules/pharmacy/

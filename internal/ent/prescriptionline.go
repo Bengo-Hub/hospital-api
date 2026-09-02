@@ -55,9 +55,11 @@ type PrescriptionLine struct {
 type PrescriptionLineEdges struct {
 	// Prescription holds the value of the prescription edge.
 	Prescription *Prescription `json:"prescription,omitempty"`
+	// MedicationAdministrations holds the value of the medication_administrations edge.
+	MedicationAdministrations []*MedicationAdministration `json:"medication_administrations,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // PrescriptionOrErr returns the Prescription value or an error if the edge
@@ -69,6 +71,15 @@ func (e PrescriptionLineEdges) PrescriptionOrErr() (*Prescription, error) {
 		return nil, &NotFoundError{label: prescription.Label}
 	}
 	return nil, &NotLoadedError{edge: "prescription"}
+}
+
+// MedicationAdministrationsOrErr returns the MedicationAdministrations value or an error if the edge
+// was not loaded in eager-loading.
+func (e PrescriptionLineEdges) MedicationAdministrationsOrErr() ([]*MedicationAdministration, error) {
+	if e.loadedTypes[1] {
+		return e.MedicationAdministrations, nil
+	}
+	return nil, &NotLoadedError{edge: "medication_administrations"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -200,6 +211,11 @@ func (_m *PrescriptionLine) Value(name string) (ent.Value, error) {
 // QueryPrescription queries the "prescription" edge of the PrescriptionLine entity.
 func (_m *PrescriptionLine) QueryPrescription() *PrescriptionQuery {
 	return NewPrescriptionLineClient(_m.config).QueryPrescription(_m)
+}
+
+// QueryMedicationAdministrations queries the "medication_administrations" edge of the PrescriptionLine entity.
+func (_m *PrescriptionLine) QueryMedicationAdministrations() *MedicationAdministrationQuery {
+	return NewPrescriptionLineClient(_m.config).QueryMedicationAdministrations(_m)
 }
 
 // Update returns a builder for updating this PrescriptionLine.

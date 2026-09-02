@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/bed"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/google/uuid"
 )
@@ -222,6 +223,21 @@ func (_c *AdmissionCreate) SetVisit(v *PatientVisit) *AdmissionCreate {
 // SetBed sets the "bed" edge to the Bed entity.
 func (_c *AdmissionCreate) SetBed(v *Bed) *AdmissionCreate {
 	return _c.SetBedID(v.ID)
+}
+
+// AddMedicationAdministrationIDs adds the "medication_administrations" edge to the MedicationAdministration entity by IDs.
+func (_c *AdmissionCreate) AddMedicationAdministrationIDs(ids ...uuid.UUID) *AdmissionCreate {
+	_c.mutation.AddMedicationAdministrationIDs(ids...)
+	return _c
+}
+
+// AddMedicationAdministrations adds the "medication_administrations" edges to the MedicationAdministration entity.
+func (_c *AdmissionCreate) AddMedicationAdministrations(v ...*MedicationAdministration) *AdmissionCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddMedicationAdministrationIDs(ids...)
 }
 
 // Mutation returns the AdmissionMutation object of the builder.
@@ -463,6 +479,22 @@ func (_c *AdmissionCreate) createSpec() (*Admission, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.BedID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.MedicationAdministrationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.MedicationAdministrationsTable,
+			Columns: []string{admission.MedicationAdministrationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

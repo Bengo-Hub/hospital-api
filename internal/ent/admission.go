@@ -64,9 +64,11 @@ type AdmissionEdges struct {
 	Visit *PatientVisit `json:"visit,omitempty"`
 	// Bed holds the value of the bed edge.
 	Bed *Bed `json:"bed,omitempty"`
+	// MedicationAdministrations holds the value of the medication_administrations edge.
+	MedicationAdministrations []*MedicationAdministration `json:"medication_administrations,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // VisitOrErr returns the Visit value or an error if the edge
@@ -89,6 +91,15 @@ func (e AdmissionEdges) BedOrErr() (*Bed, error) {
 		return nil, &NotFoundError{label: bed.Label}
 	}
 	return nil, &NotLoadedError{edge: "bed"}
+}
+
+// MedicationAdministrationsOrErr returns the MedicationAdministrations value or an error if the edge
+// was not loaded in eager-loading.
+func (e AdmissionEdges) MedicationAdministrationsOrErr() ([]*MedicationAdministration, error) {
+	if e.loadedTypes[2] {
+		return e.MedicationAdministrations, nil
+	}
+	return nil, &NotLoadedError{edge: "medication_administrations"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -247,6 +258,11 @@ func (_m *Admission) QueryVisit() *PatientVisitQuery {
 // QueryBed queries the "bed" edge of the Admission entity.
 func (_m *Admission) QueryBed() *BedQuery {
 	return NewAdmissionClient(_m.config).QueryBed(_m)
+}
+
+// QueryMedicationAdministrations queries the "medication_administrations" edge of the Admission entity.
+func (_m *Admission) QueryMedicationAdministrations() *MedicationAdministrationQuery {
+	return NewAdmissionClient(_m.config).QueryMedicationAdministrations(_m)
 }
 
 // Update returns a builder for updating this Admission.

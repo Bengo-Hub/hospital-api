@@ -50,6 +50,8 @@ type Tx struct {
 	LabTestCatalogDefault *LabTestCatalogDefaultClient
 	// LabTestCatalogEntry is the client for interacting with the LabTestCatalogEntry builders.
 	LabTestCatalogEntry *LabTestCatalogEntryClient
+	// MedicationAdministration is the client for interacting with the MedicationAdministration builders.
+	MedicationAdministration *MedicationAdministrationClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// Outlet is the client for interacting with the Outlet builders.
@@ -236,6 +238,7 @@ func (tx *Tx) init() {
 	tx.LabOrderLine = NewLabOrderLineClient(tx.config)
 	tx.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(tx.config)
 	tx.LabTestCatalogEntry = NewLabTestCatalogEntryClient(tx.config)
+	tx.MedicationAdministration = NewMedicationAdministrationClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.Outlet = NewOutletClient(tx.config)
 	tx.Patient = NewPatientClient(tx.config)

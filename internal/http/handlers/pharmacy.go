@@ -190,6 +190,26 @@ func (h *PharmacyHandler) RecheckInteractions(w http.ResponseWriter, r *http.Req
 	respondJSON(w, http.StatusOK, map[string]any{"check": check, "prescription": rx})
 }
 
+// CreateRefill handles POST /{tenant}/hospital/prescriptions/{prescriptionID}/refill
+func (h *PharmacyHandler) CreateRefill(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	id, err := uuid.Parse(chi.URLParam(r, "prescriptionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid prescription ID")
+		return
+	}
+	rx, err := h.svc.CreateRefill(r.Context(), tenantID, id)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, rx)
+}
+
 // LockPrescription handles POST /{tenant}/hospital/prescriptions/{prescriptionID}/lock
 func (h *PharmacyHandler) LockPrescription(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

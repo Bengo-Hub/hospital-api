@@ -42,6 +42,7 @@ func (PrescriptionLine) Edges() []ent.Edge {
 			Field("prescription_id").
 			Unique().
 			Required(),
+		edge.To("medication_administrations", MedicationAdministration.Type),
 	}
 }
 

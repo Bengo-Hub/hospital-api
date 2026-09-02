@@ -729,6 +729,51 @@ var (
 			},
 		},
 	}
+	// MedicationAdministrationsColumns holds the columns for the "medication_administrations" table.
+	MedicationAdministrationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "scheduled_time", Type: field.TypeTime},
+		{Name: "administered_at", Type: field.TypeTime, Nullable: true},
+		{Name: "administered_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"scheduled", "given", "refused", "missed", "held"}, Default: "scheduled"},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "admission_id", Type: field.TypeUUID},
+		{Name: "prescription_line_id", Type: field.TypeUUID},
+	}
+	// MedicationAdministrationsTable holds the schema information for the "medication_administrations" table.
+	MedicationAdministrationsTable = &schema.Table{
+		Name:       "medication_administrations",
+		Columns:    MedicationAdministrationsColumns,
+		PrimaryKey: []*schema.Column{MedicationAdministrationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "medication_administrations_admissions_medication_administrations",
+				Columns:    []*schema.Column{MedicationAdministrationsColumns[8]},
+				RefColumns: []*schema.Column{AdmissionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "medication_administrations_prescription_lines_medication_administrations",
+				Columns:    []*schema.Column{MedicationAdministrationsColumns[9]},
+				RefColumns: []*schema.Column{PrescriptionLinesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "medicationadministration_tenant_id_admission_id",
+				Unique:  false,
+				Columns: []*schema.Column{MedicationAdministrationsColumns[1], MedicationAdministrationsColumns[8]},
+			},
+			{
+				Name:    "medicationadministration_tenant_id_prescription_line_id",
+				Unique:  false,
+				Columns: []*schema.Column{MedicationAdministrationsColumns[1], MedicationAdministrationsColumns[9]},
+			},
+		},
+	}
 	// OutboxEventsColumns holds the columns for the "outbox_events" table.
 	OutboxEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1024,6 +1069,7 @@ var (
 		{Name: "prescription_number", Type: field.TypeString},
 		{Name: "prescriber_name", Type: field.TypeString, Nullable: true},
 		{Name: "prescriber_license", Type: field.TypeString, Nullable: true},
+		{Name: "repeat_of_prescription_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "patient_name", Type: field.TypeString, Nullable: true},
 		{Name: "patient_dob", Type: field.TypeTime, Nullable: true},
 		{Name: "patient_id_number", Type: field.TypeString, Nullable: true},
@@ -1049,7 +1095,7 @@ var (
 			{
 				Name:    "prescription_tenant_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[13]},
+				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[14]},
 			},
 			{
 				Name:    "prescription_tenant_id_patient_id",
@@ -1060,6 +1106,11 @@ var (
 				Name:    "prescription_tenant_id_visit_id",
 				Unique:  false,
 				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[4]},
+			},
+			{
+				Name:    "prescription_tenant_id_repeat_of_prescription_id",
+				Unique:  false,
+				Columns: []*schema.Column{PrescriptionsColumns[1], PrescriptionsColumns[10]},
 			},
 		},
 	}
@@ -1500,6 +1551,7 @@ var (
 		LabOrderLinesTable,
 		LabTestCatalogDefaultsTable,
 		LabTestCatalogEntriesTable,
+		MedicationAdministrationsTable,
 		OutboxEventsTable,
 		OutletsTable,
 		PatientsTable,
@@ -1530,6 +1582,8 @@ func init() {
 	HospitalUsersTable.ForeignKeys[0].RefTable = TenantsTable
 	LabOrdersTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	LabOrderLinesTable.ForeignKeys[0].RefTable = LabOrdersTable
+	MedicationAdministrationsTable.ForeignKeys[0].RefTable = AdmissionsTable
+	MedicationAdministrationsTable.ForeignKeys[1].RefTable = PrescriptionLinesTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
 	PatientVisitsTable.ForeignKeys[0].RefTable = PatientsTable
 	PrescriptionLinesTable.ForeignKeys[0].RefTable = PrescriptionsTable

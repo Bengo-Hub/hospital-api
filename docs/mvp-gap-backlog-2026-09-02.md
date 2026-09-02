@@ -75,9 +75,9 @@ matching section (frontend).
 
 | Gap | Effort | Notes |
 |---|---|---|
-| No Medication Administration Record (MAR) for an inpatient. Dispense is tracked; per-dose nurse administration is not | New small module | More urgent now that Sprint 6 shipped real Admissions. A genuinely new entity plus a nurse-facing screen, most naturally hung off the admission detail page rather than the pharmacy UI. |
-| No prescription refill/repeat workflow for chronic medication | Quick, additive field plus one new method | Self-referencing `repeat_of_prescription_id` plus a `CreateRefill` clone method. |
-| Allergy recheck doesn't fire automatically when `Patient.allergy_flags` changes | Quick, wiring only, backend-only | Good news: `RecheckInteractions` already exists and is correct. It just isn't called from `UpdatePatient`. No hospital-ui change needed. |
+| No Medication Administration Record (MAR) for an inpatient. Dispense is tracked; per-dose nurse administration is not | New small module | **Shipped 2026-09-03** as an on-demand "chart a dose" screen (no dosing-frequency data model exists to pre-populate a schedule from) on the admission detail page — see the sprint doc's own note. |
+| No prescription refill/repeat workflow for chronic medication | Quick, additive field plus one new method | **Shipped 2026-09-03.** |
+| Allergy recheck doesn't fire automatically when `Patient.allergy_flags` changes | Quick, wiring only, backend-only | **Shipped 2026-09-03.** |
 
 ## Sprint 5: Billing & Insurance
 

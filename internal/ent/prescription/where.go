@@ -101,6 +101,11 @@ func PrescriberLicense(v string) predicate.Prescription {
 	return predicate.Prescription(sql.FieldEQ(FieldPrescriberLicense, v))
 }
 
+// RepeatOfPrescriptionID applies equality check predicate on the "repeat_of_prescription_id" field. It's identical to RepeatOfPrescriptionIDEQ.
+func RepeatOfPrescriptionID(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldEQ(FieldRepeatOfPrescriptionID, v))
+}
+
 // PatientName applies equality check predicate on the "patient_name" field. It's identical to PatientNameEQ.
 func PatientName(v string) predicate.Prescription {
 	return predicate.Prescription(sql.FieldEQ(FieldPatientName, v))
@@ -659,6 +664,56 @@ func PrescriberLicenseEqualFold(v string) predicate.Prescription {
 // PrescriberLicenseContainsFold applies the ContainsFold predicate on the "prescriber_license" field.
 func PrescriberLicenseContainsFold(v string) predicate.Prescription {
 	return predicate.Prescription(sql.FieldContainsFold(FieldPrescriberLicense, v))
+}
+
+// RepeatOfPrescriptionIDEQ applies the EQ predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDEQ(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldEQ(FieldRepeatOfPrescriptionID, v))
+}
+
+// RepeatOfPrescriptionIDNEQ applies the NEQ predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDNEQ(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldNEQ(FieldRepeatOfPrescriptionID, v))
+}
+
+// RepeatOfPrescriptionIDIn applies the In predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDIn(vs ...uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldIn(FieldRepeatOfPrescriptionID, vs...))
+}
+
+// RepeatOfPrescriptionIDNotIn applies the NotIn predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDNotIn(vs ...uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldNotIn(FieldRepeatOfPrescriptionID, vs...))
+}
+
+// RepeatOfPrescriptionIDGT applies the GT predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDGT(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldGT(FieldRepeatOfPrescriptionID, v))
+}
+
+// RepeatOfPrescriptionIDGTE applies the GTE predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDGTE(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldGTE(FieldRepeatOfPrescriptionID, v))
+}
+
+// RepeatOfPrescriptionIDLT applies the LT predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDLT(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldLT(FieldRepeatOfPrescriptionID, v))
+}
+
+// RepeatOfPrescriptionIDLTE applies the LTE predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDLTE(v uuid.UUID) predicate.Prescription {
+	return predicate.Prescription(sql.FieldLTE(FieldRepeatOfPrescriptionID, v))
+}
+
+// RepeatOfPrescriptionIDIsNil applies the IsNil predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDIsNil() predicate.Prescription {
+	return predicate.Prescription(sql.FieldIsNull(FieldRepeatOfPrescriptionID))
+}
+
+// RepeatOfPrescriptionIDNotNil applies the NotNil predicate on the "repeat_of_prescription_id" field.
+func RepeatOfPrescriptionIDNotNil() predicate.Prescription {
+	return predicate.Prescription(sql.FieldNotNull(FieldRepeatOfPrescriptionID))
 }
 
 // PatientNameEQ applies the EQ predicate on the "patient_name" field.

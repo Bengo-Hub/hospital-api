@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -14,63 +13,61 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/admission"
-	"github.com/bengobox/hospital-service/internal/ent/bed"
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
-	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
+	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
 	"github.com/google/uuid"
 )
 
-// AdmissionQuery is the builder for querying Admission entities.
-type AdmissionQuery struct {
+// MedicationAdministrationQuery is the builder for querying MedicationAdministration entities.
+type MedicationAdministrationQuery struct {
 	config
-	ctx                           *QueryContext
-	order                         []admission.OrderOption
-	inters                        []Interceptor
-	predicates                    []predicate.Admission
-	withVisit                     *PatientVisitQuery
-	withBed                       *BedQuery
-	withMedicationAdministrations *MedicationAdministrationQuery
-	modifiers                     []func(*sql.Selector)
+	ctx                  *QueryContext
+	order                []medicationadministration.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.MedicationAdministration
+	withAdmission        *AdmissionQuery
+	withPrescriptionLine *PrescriptionLineQuery
+	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the AdmissionQuery builder.
-func (_q *AdmissionQuery) Where(ps ...predicate.Admission) *AdmissionQuery {
+// Where adds a new predicate for the MedicationAdministrationQuery builder.
+func (_q *MedicationAdministrationQuery) Where(ps ...predicate.MedicationAdministration) *MedicationAdministrationQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *AdmissionQuery) Limit(limit int) *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) Limit(limit int) *MedicationAdministrationQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *AdmissionQuery) Offset(offset int) *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) Offset(offset int) *MedicationAdministrationQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *AdmissionQuery) Unique(unique bool) *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) Unique(unique bool) *MedicationAdministrationQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *AdmissionQuery) Order(o ...admission.OrderOption) *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) Order(o ...medicationadministration.OrderOption) *MedicationAdministrationQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryVisit chains the current query on the "visit" edge.
-func (_q *AdmissionQuery) QueryVisit() *PatientVisitQuery {
-	query := (&PatientVisitClient{config: _q.config}).Query()
+// QueryAdmission chains the current query on the "admission" edge.
+func (_q *MedicationAdministrationQuery) QueryAdmission() *AdmissionQuery {
+	query := (&AdmissionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -80,9 +77,9 @@ func (_q *AdmissionQuery) QueryVisit() *PatientVisitQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(admission.Table, admission.FieldID, selector),
-			sqlgraph.To(patientvisit.Table, patientvisit.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, admission.VisitTable, admission.VisitColumn),
+			sqlgraph.From(medicationadministration.Table, medicationadministration.FieldID, selector),
+			sqlgraph.To(admission.Table, admission.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, medicationadministration.AdmissionTable, medicationadministration.AdmissionColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -90,9 +87,9 @@ func (_q *AdmissionQuery) QueryVisit() *PatientVisitQuery {
 	return query
 }
 
-// QueryBed chains the current query on the "bed" edge.
-func (_q *AdmissionQuery) QueryBed() *BedQuery {
-	query := (&BedClient{config: _q.config}).Query()
+// QueryPrescriptionLine chains the current query on the "prescription_line" edge.
+func (_q *MedicationAdministrationQuery) QueryPrescriptionLine() *PrescriptionLineQuery {
+	query := (&PrescriptionLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -102,9 +99,9 @@ func (_q *AdmissionQuery) QueryBed() *BedQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(admission.Table, admission.FieldID, selector),
-			sqlgraph.To(bed.Table, bed.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, admission.BedTable, admission.BedColumn),
+			sqlgraph.From(medicationadministration.Table, medicationadministration.FieldID, selector),
+			sqlgraph.To(prescriptionline.Table, prescriptionline.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, medicationadministration.PrescriptionLineTable, medicationadministration.PrescriptionLineColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -112,43 +109,21 @@ func (_q *AdmissionQuery) QueryBed() *BedQuery {
 	return query
 }
 
-// QueryMedicationAdministrations chains the current query on the "medication_administrations" edge.
-func (_q *AdmissionQuery) QueryMedicationAdministrations() *MedicationAdministrationQuery {
-	query := (&MedicationAdministrationClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(admission.Table, admission.FieldID, selector),
-			sqlgraph.To(medicationadministration.Table, medicationadministration.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, admission.MedicationAdministrationsTable, admission.MedicationAdministrationsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// First returns the first Admission entity from the query.
-// Returns a *NotFoundError when no Admission was found.
-func (_q *AdmissionQuery) First(ctx context.Context) (*Admission, error) {
+// First returns the first MedicationAdministration entity from the query.
+// Returns a *NotFoundError when no MedicationAdministration was found.
+func (_q *MedicationAdministrationQuery) First(ctx context.Context) (*MedicationAdministration, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{admission.Label}
+		return nil, &NotFoundError{medicationadministration.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *AdmissionQuery) FirstX(ctx context.Context) *Admission {
+func (_q *MedicationAdministrationQuery) FirstX(ctx context.Context) *MedicationAdministration {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -156,22 +131,22 @@ func (_q *AdmissionQuery) FirstX(ctx context.Context) *Admission {
 	return node
 }
 
-// FirstID returns the first Admission ID from the query.
-// Returns a *NotFoundError when no Admission ID was found.
-func (_q *AdmissionQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+// FirstID returns the first MedicationAdministration ID from the query.
+// Returns a *NotFoundError when no MedicationAdministration ID was found.
+func (_q *MedicationAdministrationQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{admission.Label}
+		err = &NotFoundError{medicationadministration.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *AdmissionQuery) FirstIDX(ctx context.Context) uuid.UUID {
+func (_q *MedicationAdministrationQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -179,10 +154,10 @@ func (_q *AdmissionQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	return id
 }
 
-// Only returns a single Admission entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Admission entity is found.
-// Returns a *NotFoundError when no Admission entities are found.
-func (_q *AdmissionQuery) Only(ctx context.Context) (*Admission, error) {
+// Only returns a single MedicationAdministration entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one MedicationAdministration entity is found.
+// Returns a *NotFoundError when no MedicationAdministration entities are found.
+func (_q *MedicationAdministrationQuery) Only(ctx context.Context) (*MedicationAdministration, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -191,14 +166,14 @@ func (_q *AdmissionQuery) Only(ctx context.Context) (*Admission, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{admission.Label}
+		return nil, &NotFoundError{medicationadministration.Label}
 	default:
-		return nil, &NotSingularError{admission.Label}
+		return nil, &NotSingularError{medicationadministration.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *AdmissionQuery) OnlyX(ctx context.Context) *Admission {
+func (_q *MedicationAdministrationQuery) OnlyX(ctx context.Context) *MedicationAdministration {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -206,10 +181,10 @@ func (_q *AdmissionQuery) OnlyX(ctx context.Context) *Admission {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Admission ID in the query.
-// Returns a *NotSingularError when more than one Admission ID is found.
+// OnlyID is like Only, but returns the only MedicationAdministration ID in the query.
+// Returns a *NotSingularError when more than one MedicationAdministration ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *AdmissionQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+func (_q *MedicationAdministrationQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
 	var ids []uuid.UUID
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -218,15 +193,15 @@ func (_q *AdmissionQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) 
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{admission.Label}
+		err = &NotFoundError{medicationadministration.Label}
 	default:
-		err = &NotSingularError{admission.Label}
+		err = &NotSingularError{medicationadministration.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *AdmissionQuery) OnlyIDX(ctx context.Context) uuid.UUID {
+func (_q *MedicationAdministrationQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -234,18 +209,18 @@ func (_q *AdmissionQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	return id
 }
 
-// All executes the query and returns a list of Admissions.
-func (_q *AdmissionQuery) All(ctx context.Context) ([]*Admission, error) {
+// All executes the query and returns a list of MedicationAdministrations.
+func (_q *MedicationAdministrationQuery) All(ctx context.Context) ([]*MedicationAdministration, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Admission, *AdmissionQuery]()
-	return withInterceptors[[]*Admission](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*MedicationAdministration, *MedicationAdministrationQuery]()
+	return withInterceptors[[]*MedicationAdministration](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *AdmissionQuery) AllX(ctx context.Context) []*Admission {
+func (_q *MedicationAdministrationQuery) AllX(ctx context.Context) []*MedicationAdministration {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -253,20 +228,20 @@ func (_q *AdmissionQuery) AllX(ctx context.Context) []*Admission {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Admission IDs.
-func (_q *AdmissionQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
+// IDs executes the query and returns a list of MedicationAdministration IDs.
+func (_q *MedicationAdministrationQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(admission.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(medicationadministration.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *AdmissionQuery) IDsX(ctx context.Context) []uuid.UUID {
+func (_q *MedicationAdministrationQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -275,16 +250,16 @@ func (_q *AdmissionQuery) IDsX(ctx context.Context) []uuid.UUID {
 }
 
 // Count returns the count of the given query.
-func (_q *AdmissionQuery) Count(ctx context.Context) (int, error) {
+func (_q *MedicationAdministrationQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*AdmissionQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*MedicationAdministrationQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *AdmissionQuery) CountX(ctx context.Context) int {
+func (_q *MedicationAdministrationQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -293,7 +268,7 @@ func (_q *AdmissionQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *AdmissionQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *MedicationAdministrationQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -306,7 +281,7 @@ func (_q *AdmissionQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *AdmissionQuery) ExistX(ctx context.Context) bool {
+func (_q *MedicationAdministrationQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -314,57 +289,45 @@ func (_q *AdmissionQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the AdmissionQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the MedicationAdministrationQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *AdmissionQuery) Clone() *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) Clone() *MedicationAdministrationQuery {
 	if _q == nil {
 		return nil
 	}
-	return &AdmissionQuery{
-		config:                        _q.config,
-		ctx:                           _q.ctx.Clone(),
-		order:                         append([]admission.OrderOption{}, _q.order...),
-		inters:                        append([]Interceptor{}, _q.inters...),
-		predicates:                    append([]predicate.Admission{}, _q.predicates...),
-		withVisit:                     _q.withVisit.Clone(),
-		withBed:                       _q.withBed.Clone(),
-		withMedicationAdministrations: _q.withMedicationAdministrations.Clone(),
+	return &MedicationAdministrationQuery{
+		config:               _q.config,
+		ctx:                  _q.ctx.Clone(),
+		order:                append([]medicationadministration.OrderOption{}, _q.order...),
+		inters:               append([]Interceptor{}, _q.inters...),
+		predicates:           append([]predicate.MedicationAdministration{}, _q.predicates...),
+		withAdmission:        _q.withAdmission.Clone(),
+		withPrescriptionLine: _q.withPrescriptionLine.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithVisit tells the query-builder to eager-load the nodes that are connected to
-// the "visit" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AdmissionQuery) WithVisit(opts ...func(*PatientVisitQuery)) *AdmissionQuery {
-	query := (&PatientVisitClient{config: _q.config}).Query()
+// WithAdmission tells the query-builder to eager-load the nodes that are connected to
+// the "admission" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MedicationAdministrationQuery) WithAdmission(opts ...func(*AdmissionQuery)) *MedicationAdministrationQuery {
+	query := (&AdmissionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withVisit = query
+	_q.withAdmission = query
 	return _q
 }
 
-// WithBed tells the query-builder to eager-load the nodes that are connected to
-// the "bed" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AdmissionQuery) WithBed(opts ...func(*BedQuery)) *AdmissionQuery {
-	query := (&BedClient{config: _q.config}).Query()
+// WithPrescriptionLine tells the query-builder to eager-load the nodes that are connected to
+// the "prescription_line" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MedicationAdministrationQuery) WithPrescriptionLine(opts ...func(*PrescriptionLineQuery)) *MedicationAdministrationQuery {
+	query := (&PrescriptionLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withBed = query
-	return _q
-}
-
-// WithMedicationAdministrations tells the query-builder to eager-load the nodes that are connected to
-// the "medication_administrations" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AdmissionQuery) WithMedicationAdministrations(opts ...func(*MedicationAdministrationQuery)) *AdmissionQuery {
-	query := (&MedicationAdministrationClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withMedicationAdministrations = query
+	_q.withPrescriptionLine = query
 	return _q
 }
 
@@ -378,15 +341,15 @@ func (_q *AdmissionQuery) WithMedicationAdministrations(opts ...func(*Medication
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Admission.Query().
-//		GroupBy(admission.FieldTenantID).
+//	client.MedicationAdministration.Query().
+//		GroupBy(medicationadministration.FieldTenantID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *AdmissionQuery) GroupBy(field string, fields ...string) *AdmissionGroupBy {
+func (_q *MedicationAdministrationQuery) GroupBy(field string, fields ...string) *MedicationAdministrationGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &AdmissionGroupBy{build: _q}
+	grbuild := &MedicationAdministrationGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = admission.Label
+	grbuild.label = medicationadministration.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -400,23 +363,23 @@ func (_q *AdmissionQuery) GroupBy(field string, fields ...string) *AdmissionGrou
 //		TenantID uuid.UUID `json:"tenant_id,omitempty"`
 //	}
 //
-//	client.Admission.Query().
-//		Select(admission.FieldTenantID).
+//	client.MedicationAdministration.Query().
+//		Select(medicationadministration.FieldTenantID).
 //		Scan(ctx, &v)
-func (_q *AdmissionQuery) Select(fields ...string) *AdmissionSelect {
+func (_q *MedicationAdministrationQuery) Select(fields ...string) *MedicationAdministrationSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &AdmissionSelect{AdmissionQuery: _q}
-	sbuild.label = admission.Label
+	sbuild := &MedicationAdministrationSelect{MedicationAdministrationQuery: _q}
+	sbuild.label = medicationadministration.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a AdmissionSelect configured with the given aggregations.
-func (_q *AdmissionQuery) Aggregate(fns ...AggregateFunc) *AdmissionSelect {
+// Aggregate returns a MedicationAdministrationSelect configured with the given aggregations.
+func (_q *MedicationAdministrationQuery) Aggregate(fns ...AggregateFunc) *MedicationAdministrationSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *AdmissionQuery) prepareQuery(ctx context.Context) error {
+func (_q *MedicationAdministrationQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -428,7 +391,7 @@ func (_q *AdmissionQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !admission.ValidColumn(f) {
+		if !medicationadministration.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -442,21 +405,20 @@ func (_q *AdmissionQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *AdmissionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Admission, error) {
+func (_q *MedicationAdministrationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*MedicationAdministration, error) {
 	var (
-		nodes       = []*Admission{}
+		nodes       = []*MedicationAdministration{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
-			_q.withVisit != nil,
-			_q.withBed != nil,
-			_q.withMedicationAdministrations != nil,
+		loadedTypes = [2]bool{
+			_q.withAdmission != nil,
+			_q.withPrescriptionLine != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Admission).scanValues(nil, columns)
+		return (*MedicationAdministration).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Admission{config: _q.config}
+		node := &MedicationAdministration{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -473,35 +435,26 @@ func (_q *AdmissionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ad
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withVisit; query != nil {
-		if err := _q.loadVisit(ctx, query, nodes, nil,
-			func(n *Admission, e *PatientVisit) { n.Edges.Visit = e }); err != nil {
+	if query := _q.withAdmission; query != nil {
+		if err := _q.loadAdmission(ctx, query, nodes, nil,
+			func(n *MedicationAdministration, e *Admission) { n.Edges.Admission = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withBed; query != nil {
-		if err := _q.loadBed(ctx, query, nodes, nil,
-			func(n *Admission, e *Bed) { n.Edges.Bed = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withMedicationAdministrations; query != nil {
-		if err := _q.loadMedicationAdministrations(ctx, query, nodes,
-			func(n *Admission) { n.Edges.MedicationAdministrations = []*MedicationAdministration{} },
-			func(n *Admission, e *MedicationAdministration) {
-				n.Edges.MedicationAdministrations = append(n.Edges.MedicationAdministrations, e)
-			}); err != nil {
+	if query := _q.withPrescriptionLine; query != nil {
+		if err := _q.loadPrescriptionLine(ctx, query, nodes, nil,
+			func(n *MedicationAdministration, e *PrescriptionLine) { n.Edges.PrescriptionLine = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *AdmissionQuery) loadVisit(ctx context.Context, query *PatientVisitQuery, nodes []*Admission, init func(*Admission), assign func(*Admission, *PatientVisit)) error {
+func (_q *MedicationAdministrationQuery) loadAdmission(ctx context.Context, query *AdmissionQuery, nodes []*MedicationAdministration, init func(*MedicationAdministration), assign func(*MedicationAdministration, *Admission)) error {
 	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*Admission)
+	nodeids := make(map[uuid.UUID][]*MedicationAdministration)
 	for i := range nodes {
-		fk := nodes[i].PatientVisitID
+		fk := nodes[i].AdmissionID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -510,7 +463,7 @@ func (_q *AdmissionQuery) loadVisit(ctx context.Context, query *PatientVisitQuer
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(patientvisit.IDIn(ids...))
+	query.Where(admission.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -518,7 +471,7 @@ func (_q *AdmissionQuery) loadVisit(ctx context.Context, query *PatientVisitQuer
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "patient_visit_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "admission_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -526,11 +479,11 @@ func (_q *AdmissionQuery) loadVisit(ctx context.Context, query *PatientVisitQuer
 	}
 	return nil
 }
-func (_q *AdmissionQuery) loadBed(ctx context.Context, query *BedQuery, nodes []*Admission, init func(*Admission), assign func(*Admission, *Bed)) error {
+func (_q *MedicationAdministrationQuery) loadPrescriptionLine(ctx context.Context, query *PrescriptionLineQuery, nodes []*MedicationAdministration, init func(*MedicationAdministration), assign func(*MedicationAdministration, *PrescriptionLine)) error {
 	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*Admission)
+	nodeids := make(map[uuid.UUID][]*MedicationAdministration)
 	for i := range nodes {
-		fk := nodes[i].BedID
+		fk := nodes[i].PrescriptionLineID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -539,7 +492,7 @@ func (_q *AdmissionQuery) loadBed(ctx context.Context, query *BedQuery, nodes []
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(bed.IDIn(ids...))
+	query.Where(prescriptionline.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -547,46 +500,16 @@ func (_q *AdmissionQuery) loadBed(ctx context.Context, query *BedQuery, nodes []
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "bed_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "prescription_line_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
-	}
-	return nil
-}
-func (_q *AdmissionQuery) loadMedicationAdministrations(ctx context.Context, query *MedicationAdministrationQuery, nodes []*Admission, init func(*Admission), assign func(*Admission, *MedicationAdministration)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*Admission)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(medicationadministration.FieldAdmissionID)
-	}
-	query.Where(predicate.MedicationAdministration(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(admission.MedicationAdministrationsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.AdmissionID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "admission_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
 	}
 	return nil
 }
 
-func (_q *AdmissionQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *MedicationAdministrationQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	if len(_q.modifiers) > 0 {
 		_spec.Modifiers = _q.modifiers
@@ -598,8 +521,8 @@ func (_q *AdmissionQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *AdmissionQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(admission.Table, admission.Columns, sqlgraph.NewFieldSpec(admission.FieldID, field.TypeUUID))
+func (_q *MedicationAdministrationQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(medicationadministration.Table, medicationadministration.Columns, sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -608,17 +531,17 @@ func (_q *AdmissionQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, admission.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, medicationadministration.FieldID)
 		for i := range fields {
-			if fields[i] != admission.FieldID {
+			if fields[i] != medicationadministration.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withVisit != nil {
-			_spec.Node.AddColumnOnce(admission.FieldPatientVisitID)
+		if _q.withAdmission != nil {
+			_spec.Node.AddColumnOnce(medicationadministration.FieldAdmissionID)
 		}
-		if _q.withBed != nil {
-			_spec.Node.AddColumnOnce(admission.FieldBedID)
+		if _q.withPrescriptionLine != nil {
+			_spec.Node.AddColumnOnce(medicationadministration.FieldPrescriptionLineID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -644,12 +567,12 @@ func (_q *AdmissionQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *AdmissionQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *MedicationAdministrationQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(admission.Table)
+	t1 := builder.Table(medicationadministration.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = admission.Columns
+		columns = medicationadministration.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -682,7 +605,7 @@ func (_q *AdmissionQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (_q *AdmissionQuery) ForUpdate(opts ...sql.LockOption) *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) ForUpdate(opts ...sql.LockOption) *MedicationAdministrationQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -695,7 +618,7 @@ func (_q *AdmissionQuery) ForUpdate(opts ...sql.LockOption) *AdmissionQuery {
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (_q *AdmissionQuery) ForShare(opts ...sql.LockOption) *AdmissionQuery {
+func (_q *MedicationAdministrationQuery) ForShare(opts ...sql.LockOption) *MedicationAdministrationQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -705,28 +628,28 @@ func (_q *AdmissionQuery) ForShare(opts ...sql.LockOption) *AdmissionQuery {
 	return _q
 }
 
-// AdmissionGroupBy is the group-by builder for Admission entities.
-type AdmissionGroupBy struct {
+// MedicationAdministrationGroupBy is the group-by builder for MedicationAdministration entities.
+type MedicationAdministrationGroupBy struct {
 	selector
-	build *AdmissionQuery
+	build *MedicationAdministrationQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *AdmissionGroupBy) Aggregate(fns ...AggregateFunc) *AdmissionGroupBy {
+func (_g *MedicationAdministrationGroupBy) Aggregate(fns ...AggregateFunc) *MedicationAdministrationGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *AdmissionGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *MedicationAdministrationGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AdmissionQuery, *AdmissionGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*MedicationAdministrationQuery, *MedicationAdministrationGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *AdmissionGroupBy) sqlScan(ctx context.Context, root *AdmissionQuery, v any) error {
+func (_g *MedicationAdministrationGroupBy) sqlScan(ctx context.Context, root *MedicationAdministrationQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -753,28 +676,28 @@ func (_g *AdmissionGroupBy) sqlScan(ctx context.Context, root *AdmissionQuery, v
 	return sql.ScanSlice(rows, v)
 }
 
-// AdmissionSelect is the builder for selecting fields of Admission entities.
-type AdmissionSelect struct {
-	*AdmissionQuery
+// MedicationAdministrationSelect is the builder for selecting fields of MedicationAdministration entities.
+type MedicationAdministrationSelect struct {
+	*MedicationAdministrationQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *AdmissionSelect) Aggregate(fns ...AggregateFunc) *AdmissionSelect {
+func (_s *MedicationAdministrationSelect) Aggregate(fns ...AggregateFunc) *MedicationAdministrationSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *AdmissionSelect) Scan(ctx context.Context, v any) error {
+func (_s *MedicationAdministrationSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*AdmissionQuery, *AdmissionSelect](ctx, _s.AdmissionQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*MedicationAdministrationQuery, *MedicationAdministrationSelect](ctx, _s.MedicationAdministrationQuery, _s, _s.inters, v)
 }
 
-func (_s *AdmissionSelect) sqlScan(ctx context.Context, root *AdmissionQuery, v any) error {
+func (_s *MedicationAdministrationSelect) sqlScan(ctx context.Context, root *MedicationAdministrationQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

@@ -35,6 +35,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
+	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
@@ -98,6 +99,8 @@ type Client struct {
 	LabTestCatalogDefault *LabTestCatalogDefaultClient
 	// LabTestCatalogEntry is the client for interacting with the LabTestCatalogEntry builders.
 	LabTestCatalogEntry *LabTestCatalogEntryClient
+	// MedicationAdministration is the client for interacting with the MedicationAdministration builders.
+	MedicationAdministration *MedicationAdministrationClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// Outlet is the client for interacting with the Outlet builders.
@@ -164,6 +167,7 @@ func (c *Client) init() {
 	c.LabOrderLine = NewLabOrderLineClient(c.config)
 	c.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(c.config)
 	c.LabTestCatalogEntry = NewLabTestCatalogEntryClient(c.config)
+	c.MedicationAdministration = NewMedicationAdministrationClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.Outlet = NewOutletClient(c.config)
 	c.Patient = NewPatientClient(c.config)
@@ -272,45 +276,46 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                     ctx,
-		config:                  cfg,
-		Admission:               NewAdmissionClient(cfg),
-		Bed:                     NewBedClient(cfg),
-		BillableCharge:          NewBillableChargeClient(cfg),
-		BillableItemCatalog:     NewBillableItemCatalogClient(cfg),
-		ControlledSubstanceLog:  NewControlledSubstanceLogClient(cfg),
-		DiagnosisCatalogDefault: NewDiagnosisCatalogDefaultClient(cfg),
-		DiagnosisCatalogEntry:   NewDiagnosisCatalogEntryClient(cfg),
-		DocumentSequence:        NewDocumentSequenceClient(cfg),
-		DrugInteractionCheck:    NewDrugInteractionCheckClient(cfg),
-		ExaminationRecord:       NewExaminationRecordClient(cfg),
-		HospitalPermission:      NewHospitalPermissionClient(cfg),
-		HospitalRole:            NewHospitalRoleClient(cfg),
-		HospitalUser:            NewHospitalUserClient(cfg),
-		HospitalUserOutlet:      NewHospitalUserOutletClient(cfg),
-		ICUEpisode:              NewICUEpisodeClient(cfg),
-		LabOrder:                NewLabOrderClient(cfg),
-		LabOrderLine:            NewLabOrderLineClient(cfg),
-		LabTestCatalogDefault:   NewLabTestCatalogDefaultClient(cfg),
-		LabTestCatalogEntry:     NewLabTestCatalogEntryClient(cfg),
-		OutboxEvent:             NewOutboxEventClient(cfg),
-		Outlet:                  NewOutletClient(cfg),
-		Patient:                 NewPatientClient(cfg),
-		PatientAccount:          NewPatientAccountClient(cfg),
-		PatientNextOfKin:        NewPatientNextOfKinClient(cfg),
-		PatientTransfer:         NewPatientTransferClient(cfg),
-		PatientVisit:            NewPatientVisitClient(cfg),
-		Prescription:            NewPrescriptionClient(cfg),
-		PrescriptionLine:        NewPrescriptionLineClient(cfg),
-		RbacAuditLog:            NewRbacAuditLogClient(cfg),
-		Referral:                NewReferralClient(cfg),
-		RolePermission:          NewRolePermissionClient(cfg),
-		Tenant:                  NewTenantClient(cfg),
-		TheatreBooking:          NewTheatreBookingClient(cfg),
-		TriageRecord:            NewTriageRecordClient(cfg),
-		UserRoleAssignment:      NewUserRoleAssignmentClient(cfg),
-		WalkInSale:              NewWalkInSaleClient(cfg),
-		Ward:                    NewWardClient(cfg),
+		ctx:                      ctx,
+		config:                   cfg,
+		Admission:                NewAdmissionClient(cfg),
+		Bed:                      NewBedClient(cfg),
+		BillableCharge:           NewBillableChargeClient(cfg),
+		BillableItemCatalog:      NewBillableItemCatalogClient(cfg),
+		ControlledSubstanceLog:   NewControlledSubstanceLogClient(cfg),
+		DiagnosisCatalogDefault:  NewDiagnosisCatalogDefaultClient(cfg),
+		DiagnosisCatalogEntry:    NewDiagnosisCatalogEntryClient(cfg),
+		DocumentSequence:         NewDocumentSequenceClient(cfg),
+		DrugInteractionCheck:     NewDrugInteractionCheckClient(cfg),
+		ExaminationRecord:        NewExaminationRecordClient(cfg),
+		HospitalPermission:       NewHospitalPermissionClient(cfg),
+		HospitalRole:             NewHospitalRoleClient(cfg),
+		HospitalUser:             NewHospitalUserClient(cfg),
+		HospitalUserOutlet:       NewHospitalUserOutletClient(cfg),
+		ICUEpisode:               NewICUEpisodeClient(cfg),
+		LabOrder:                 NewLabOrderClient(cfg),
+		LabOrderLine:             NewLabOrderLineClient(cfg),
+		LabTestCatalogDefault:    NewLabTestCatalogDefaultClient(cfg),
+		LabTestCatalogEntry:      NewLabTestCatalogEntryClient(cfg),
+		MedicationAdministration: NewMedicationAdministrationClient(cfg),
+		OutboxEvent:              NewOutboxEventClient(cfg),
+		Outlet:                   NewOutletClient(cfg),
+		Patient:                  NewPatientClient(cfg),
+		PatientAccount:           NewPatientAccountClient(cfg),
+		PatientNextOfKin:         NewPatientNextOfKinClient(cfg),
+		PatientTransfer:          NewPatientTransferClient(cfg),
+		PatientVisit:             NewPatientVisitClient(cfg),
+		Prescription:             NewPrescriptionClient(cfg),
+		PrescriptionLine:         NewPrescriptionLineClient(cfg),
+		RbacAuditLog:             NewRbacAuditLogClient(cfg),
+		Referral:                 NewReferralClient(cfg),
+		RolePermission:           NewRolePermissionClient(cfg),
+		Tenant:                   NewTenantClient(cfg),
+		TheatreBooking:           NewTheatreBookingClient(cfg),
+		TriageRecord:             NewTriageRecordClient(cfg),
+		UserRoleAssignment:       NewUserRoleAssignmentClient(cfg),
+		WalkInSale:               NewWalkInSaleClient(cfg),
+		Ward:                     NewWardClient(cfg),
 	}, nil
 }
 
@@ -328,45 +333,46 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                     ctx,
-		config:                  cfg,
-		Admission:               NewAdmissionClient(cfg),
-		Bed:                     NewBedClient(cfg),
-		BillableCharge:          NewBillableChargeClient(cfg),
-		BillableItemCatalog:     NewBillableItemCatalogClient(cfg),
-		ControlledSubstanceLog:  NewControlledSubstanceLogClient(cfg),
-		DiagnosisCatalogDefault: NewDiagnosisCatalogDefaultClient(cfg),
-		DiagnosisCatalogEntry:   NewDiagnosisCatalogEntryClient(cfg),
-		DocumentSequence:        NewDocumentSequenceClient(cfg),
-		DrugInteractionCheck:    NewDrugInteractionCheckClient(cfg),
-		ExaminationRecord:       NewExaminationRecordClient(cfg),
-		HospitalPermission:      NewHospitalPermissionClient(cfg),
-		HospitalRole:            NewHospitalRoleClient(cfg),
-		HospitalUser:            NewHospitalUserClient(cfg),
-		HospitalUserOutlet:      NewHospitalUserOutletClient(cfg),
-		ICUEpisode:              NewICUEpisodeClient(cfg),
-		LabOrder:                NewLabOrderClient(cfg),
-		LabOrderLine:            NewLabOrderLineClient(cfg),
-		LabTestCatalogDefault:   NewLabTestCatalogDefaultClient(cfg),
-		LabTestCatalogEntry:     NewLabTestCatalogEntryClient(cfg),
-		OutboxEvent:             NewOutboxEventClient(cfg),
-		Outlet:                  NewOutletClient(cfg),
-		Patient:                 NewPatientClient(cfg),
-		PatientAccount:          NewPatientAccountClient(cfg),
-		PatientNextOfKin:        NewPatientNextOfKinClient(cfg),
-		PatientTransfer:         NewPatientTransferClient(cfg),
-		PatientVisit:            NewPatientVisitClient(cfg),
-		Prescription:            NewPrescriptionClient(cfg),
-		PrescriptionLine:        NewPrescriptionLineClient(cfg),
-		RbacAuditLog:            NewRbacAuditLogClient(cfg),
-		Referral:                NewReferralClient(cfg),
-		RolePermission:          NewRolePermissionClient(cfg),
-		Tenant:                  NewTenantClient(cfg),
-		TheatreBooking:          NewTheatreBookingClient(cfg),
-		TriageRecord:            NewTriageRecordClient(cfg),
-		UserRoleAssignment:      NewUserRoleAssignmentClient(cfg),
-		WalkInSale:              NewWalkInSaleClient(cfg),
-		Ward:                    NewWardClient(cfg),
+		ctx:                      ctx,
+		config:                   cfg,
+		Admission:                NewAdmissionClient(cfg),
+		Bed:                      NewBedClient(cfg),
+		BillableCharge:           NewBillableChargeClient(cfg),
+		BillableItemCatalog:      NewBillableItemCatalogClient(cfg),
+		ControlledSubstanceLog:   NewControlledSubstanceLogClient(cfg),
+		DiagnosisCatalogDefault:  NewDiagnosisCatalogDefaultClient(cfg),
+		DiagnosisCatalogEntry:    NewDiagnosisCatalogEntryClient(cfg),
+		DocumentSequence:         NewDocumentSequenceClient(cfg),
+		DrugInteractionCheck:     NewDrugInteractionCheckClient(cfg),
+		ExaminationRecord:        NewExaminationRecordClient(cfg),
+		HospitalPermission:       NewHospitalPermissionClient(cfg),
+		HospitalRole:             NewHospitalRoleClient(cfg),
+		HospitalUser:             NewHospitalUserClient(cfg),
+		HospitalUserOutlet:       NewHospitalUserOutletClient(cfg),
+		ICUEpisode:               NewICUEpisodeClient(cfg),
+		LabOrder:                 NewLabOrderClient(cfg),
+		LabOrderLine:             NewLabOrderLineClient(cfg),
+		LabTestCatalogDefault:    NewLabTestCatalogDefaultClient(cfg),
+		LabTestCatalogEntry:      NewLabTestCatalogEntryClient(cfg),
+		MedicationAdministration: NewMedicationAdministrationClient(cfg),
+		OutboxEvent:              NewOutboxEventClient(cfg),
+		Outlet:                   NewOutletClient(cfg),
+		Patient:                  NewPatientClient(cfg),
+		PatientAccount:           NewPatientAccountClient(cfg),
+		PatientNextOfKin:         NewPatientNextOfKinClient(cfg),
+		PatientTransfer:          NewPatientTransferClient(cfg),
+		PatientVisit:             NewPatientVisitClient(cfg),
+		Prescription:             NewPrescriptionClient(cfg),
+		PrescriptionLine:         NewPrescriptionLineClient(cfg),
+		RbacAuditLog:             NewRbacAuditLogClient(cfg),
+		Referral:                 NewReferralClient(cfg),
+		RolePermission:           NewRolePermissionClient(cfg),
+		Tenant:                   NewTenantClient(cfg),
+		TheatreBooking:           NewTheatreBookingClient(cfg),
+		TriageRecord:             NewTriageRecordClient(cfg),
+		UserRoleAssignment:       NewUserRoleAssignmentClient(cfg),
+		WalkInSale:               NewWalkInSaleClient(cfg),
+		Ward:                     NewWardClient(cfg),
 	}, nil
 }
 
@@ -401,10 +407,11 @@ func (c *Client) Use(hooks ...Hook) {
 		c.DocumentSequence, c.DrugInteractionCheck, c.ExaminationRecord,
 		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.HospitalUserOutlet,
 		c.ICUEpisode, c.LabOrder, c.LabOrderLine, c.LabTestCatalogDefault,
-		c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet, c.Patient, c.PatientAccount,
-		c.PatientNextOfKin, c.PatientTransfer, c.PatientVisit, c.Prescription,
-		c.PrescriptionLine, c.RbacAuditLog, c.Referral, c.RolePermission, c.Tenant,
-		c.TheatreBooking, c.TriageRecord, c.UserRoleAssignment, c.WalkInSale, c.Ward,
+		c.LabTestCatalogEntry, c.MedicationAdministration, c.OutboxEvent, c.Outlet,
+		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientTransfer,
+		c.PatientVisit, c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
+		c.RolePermission, c.Tenant, c.TheatreBooking, c.TriageRecord,
+		c.UserRoleAssignment, c.WalkInSale, c.Ward,
 	} {
 		n.Use(hooks...)
 	}
@@ -419,10 +426,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.DocumentSequence, c.DrugInteractionCheck, c.ExaminationRecord,
 		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.HospitalUserOutlet,
 		c.ICUEpisode, c.LabOrder, c.LabOrderLine, c.LabTestCatalogDefault,
-		c.LabTestCatalogEntry, c.OutboxEvent, c.Outlet, c.Patient, c.PatientAccount,
-		c.PatientNextOfKin, c.PatientTransfer, c.PatientVisit, c.Prescription,
-		c.PrescriptionLine, c.RbacAuditLog, c.Referral, c.RolePermission, c.Tenant,
-		c.TheatreBooking, c.TriageRecord, c.UserRoleAssignment, c.WalkInSale, c.Ward,
+		c.LabTestCatalogEntry, c.MedicationAdministration, c.OutboxEvent, c.Outlet,
+		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientTransfer,
+		c.PatientVisit, c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
+		c.RolePermission, c.Tenant, c.TheatreBooking, c.TriageRecord,
+		c.UserRoleAssignment, c.WalkInSale, c.Ward,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -469,6 +477,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.LabTestCatalogDefault.mutate(ctx, m)
 	case *LabTestCatalogEntryMutation:
 		return c.LabTestCatalogEntry.mutate(ctx, m)
+	case *MedicationAdministrationMutation:
+		return c.MedicationAdministration.mutate(ctx, m)
 	case *OutboxEventMutation:
 		return c.OutboxEvent.mutate(ctx, m)
 	case *OutletMutation:
@@ -643,6 +653,22 @@ func (c *AdmissionClient) QueryBed(_m *Admission) *BedQuery {
 			sqlgraph.From(admission.Table, admission.FieldID, id),
 			sqlgraph.To(bed.Table, bed.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, admission.BedTable, admission.BedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMedicationAdministrations queries the medication_administrations edge of a Admission.
+func (c *AdmissionClient) QueryMedicationAdministrations(_m *Admission) *MedicationAdministrationQuery {
+	query := (&MedicationAdministrationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(admission.Table, admission.FieldID, id),
+			sqlgraph.To(medicationadministration.Table, medicationadministration.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, admission.MedicationAdministrationsTable, admission.MedicationAdministrationsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -3293,6 +3319,171 @@ func (c *LabTestCatalogEntryClient) mutate(ctx context.Context, m *LabTestCatalo
 	}
 }
 
+// MedicationAdministrationClient is a client for the MedicationAdministration schema.
+type MedicationAdministrationClient struct {
+	config
+}
+
+// NewMedicationAdministrationClient returns a client for the MedicationAdministration from the given config.
+func NewMedicationAdministrationClient(c config) *MedicationAdministrationClient {
+	return &MedicationAdministrationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `medicationadministration.Hooks(f(g(h())))`.
+func (c *MedicationAdministrationClient) Use(hooks ...Hook) {
+	c.hooks.MedicationAdministration = append(c.hooks.MedicationAdministration, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `medicationadministration.Intercept(f(g(h())))`.
+func (c *MedicationAdministrationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MedicationAdministration = append(c.inters.MedicationAdministration, interceptors...)
+}
+
+// Create returns a builder for creating a MedicationAdministration entity.
+func (c *MedicationAdministrationClient) Create() *MedicationAdministrationCreate {
+	mutation := newMedicationAdministrationMutation(c.config, OpCreate)
+	return &MedicationAdministrationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MedicationAdministration entities.
+func (c *MedicationAdministrationClient) CreateBulk(builders ...*MedicationAdministrationCreate) *MedicationAdministrationCreateBulk {
+	return &MedicationAdministrationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MedicationAdministrationClient) MapCreateBulk(slice any, setFunc func(*MedicationAdministrationCreate, int)) *MedicationAdministrationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MedicationAdministrationCreateBulk{err: fmt.Errorf("calling to MedicationAdministrationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MedicationAdministrationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MedicationAdministrationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MedicationAdministration.
+func (c *MedicationAdministrationClient) Update() *MedicationAdministrationUpdate {
+	mutation := newMedicationAdministrationMutation(c.config, OpUpdate)
+	return &MedicationAdministrationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MedicationAdministrationClient) UpdateOne(_m *MedicationAdministration) *MedicationAdministrationUpdateOne {
+	mutation := newMedicationAdministrationMutation(c.config, OpUpdateOne, withMedicationAdministration(_m))
+	return &MedicationAdministrationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MedicationAdministrationClient) UpdateOneID(id uuid.UUID) *MedicationAdministrationUpdateOne {
+	mutation := newMedicationAdministrationMutation(c.config, OpUpdateOne, withMedicationAdministrationID(id))
+	return &MedicationAdministrationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MedicationAdministration.
+func (c *MedicationAdministrationClient) Delete() *MedicationAdministrationDelete {
+	mutation := newMedicationAdministrationMutation(c.config, OpDelete)
+	return &MedicationAdministrationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MedicationAdministrationClient) DeleteOne(_m *MedicationAdministration) *MedicationAdministrationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MedicationAdministrationClient) DeleteOneID(id uuid.UUID) *MedicationAdministrationDeleteOne {
+	builder := c.Delete().Where(medicationadministration.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MedicationAdministrationDeleteOne{builder}
+}
+
+// Query returns a query builder for MedicationAdministration.
+func (c *MedicationAdministrationClient) Query() *MedicationAdministrationQuery {
+	return &MedicationAdministrationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMedicationAdministration},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MedicationAdministration entity by its id.
+func (c *MedicationAdministrationClient) Get(ctx context.Context, id uuid.UUID) (*MedicationAdministration, error) {
+	return c.Query().Where(medicationadministration.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MedicationAdministrationClient) GetX(ctx context.Context, id uuid.UUID) *MedicationAdministration {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAdmission queries the admission edge of a MedicationAdministration.
+func (c *MedicationAdministrationClient) QueryAdmission(_m *MedicationAdministration) *AdmissionQuery {
+	query := (&AdmissionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(medicationadministration.Table, medicationadministration.FieldID, id),
+			sqlgraph.To(admission.Table, admission.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, medicationadministration.AdmissionTable, medicationadministration.AdmissionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPrescriptionLine queries the prescription_line edge of a MedicationAdministration.
+func (c *MedicationAdministrationClient) QueryPrescriptionLine(_m *MedicationAdministration) *PrescriptionLineQuery {
+	query := (&PrescriptionLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(medicationadministration.Table, medicationadministration.FieldID, id),
+			sqlgraph.To(prescriptionline.Table, prescriptionline.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, medicationadministration.PrescriptionLineTable, medicationadministration.PrescriptionLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *MedicationAdministrationClient) Hooks() []Hook {
+	return c.hooks.MedicationAdministration
+}
+
+// Interceptors returns the client interceptors.
+func (c *MedicationAdministrationClient) Interceptors() []Interceptor {
+	return c.inters.MedicationAdministration
+}
+
+func (c *MedicationAdministrationClient) mutate(ctx context.Context, m *MedicationAdministrationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MedicationAdministrationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MedicationAdministrationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MedicationAdministrationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MedicationAdministrationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MedicationAdministration mutation op: %q", m.Op())
+	}
+}
+
 // OutboxEventClient is a client for the OutboxEvent schema.
 type OutboxEventClient struct {
 	config
@@ -4650,6 +4841,22 @@ func (c *PrescriptionLineClient) QueryPrescription(_m *PrescriptionLine) *Prescr
 			sqlgraph.From(prescriptionline.Table, prescriptionline.FieldID, id),
 			sqlgraph.To(prescription.Table, prescription.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, prescriptionline.PrescriptionTable, prescriptionline.PrescriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMedicationAdministrations queries the medication_administrations edge of a PrescriptionLine.
+func (c *PrescriptionLineClient) QueryMedicationAdministrations(_m *PrescriptionLine) *MedicationAdministrationQuery {
+	query := (&MedicationAdministrationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prescriptionline.Table, prescriptionline.FieldID, id),
+			sqlgraph.To(medicationadministration.Table, medicationadministration.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prescriptionline.MedicationAdministrationsTable, prescriptionline.MedicationAdministrationsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6046,20 +6253,21 @@ type (
 		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
 		HospitalUser, HospitalUserOutlet, ICUEpisode, LabOrder, LabOrderLine,
-		LabTestCatalogDefault, LabTestCatalogEntry, OutboxEvent, Outlet, Patient,
-		PatientAccount, PatientNextOfKin, PatientTransfer, PatientVisit, Prescription,
-		PrescriptionLine, RbacAuditLog, Referral, RolePermission, Tenant,
-		TheatreBooking, TriageRecord, UserRoleAssignment, WalkInSale, Ward []ent.Hook
+		LabTestCatalogDefault, LabTestCatalogEntry, MedicationAdministration,
+		OutboxEvent, Outlet, Patient, PatientAccount, PatientNextOfKin,
+		PatientTransfer, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
+		Referral, RolePermission, Tenant, TheatreBooking, TriageRecord,
+		UserRoleAssignment, WalkInSale, Ward []ent.Hook
 	}
 	inters struct {
 		Admission, Bed, BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
 		DiagnosisCatalogDefault, DiagnosisCatalogEntry, DocumentSequence,
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
 		HospitalUser, HospitalUserOutlet, ICUEpisode, LabOrder, LabOrderLine,
-		LabTestCatalogDefault, LabTestCatalogEntry, OutboxEvent, Outlet, Patient,
-		PatientAccount, PatientNextOfKin, PatientTransfer, PatientVisit, Prescription,
-		PrescriptionLine, RbacAuditLog, Referral, RolePermission, Tenant,
-		TheatreBooking, TriageRecord, UserRoleAssignment, WalkInSale,
-		Ward []ent.Interceptor
+		LabTestCatalogDefault, LabTestCatalogEntry, MedicationAdministration,
+		OutboxEvent, Outlet, Patient, PatientAccount, PatientNextOfKin,
+		PatientTransfer, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
+		Referral, RolePermission, Tenant, TheatreBooking, TriageRecord,
+		UserRoleAssignment, WalkInSale, Ward []ent.Interceptor
 	}
 )

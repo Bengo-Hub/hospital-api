@@ -237,6 +237,18 @@ func (f LabTestCatalogEntryFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LabTestCatalogEntryMutation", m)
 }
 
+// The MedicationAdministrationFunc type is an adapter to allow the use of ordinary
+// function as MedicationAdministration mutator.
+type MedicationAdministrationFunc func(context.Context, *ent.MedicationAdministrationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MedicationAdministrationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MedicationAdministrationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MedicationAdministrationMutation", m)
+}
+
 // The OutboxEventFunc type is an adapter to allow the use of ordinary
 // function as OutboxEvent mutator.
 type OutboxEventFunc func(context.Context, *ent.OutboxEventMutation) (ent.Value, error)

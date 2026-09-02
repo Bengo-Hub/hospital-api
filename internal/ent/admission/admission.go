@@ -52,6 +52,8 @@ const (
 	EdgeVisit = "visit"
 	// EdgeBed holds the string denoting the bed edge name in mutations.
 	EdgeBed = "bed"
+	// EdgeMedicationAdministrations holds the string denoting the medication_administrations edge name in mutations.
+	EdgeMedicationAdministrations = "medication_administrations"
 	// Table holds the table name of the admission in the database.
 	Table = "admissions"
 	// VisitTable is the table that holds the visit relation/edge.
@@ -68,6 +70,13 @@ const (
 	BedInverseTable = "beds"
 	// BedColumn is the table column denoting the bed relation/edge.
 	BedColumn = "bed_id"
+	// MedicationAdministrationsTable is the table that holds the medication_administrations relation/edge.
+	MedicationAdministrationsTable = "medication_administrations"
+	// MedicationAdministrationsInverseTable is the table name for the MedicationAdministration entity.
+	// It exists in this package in order to avoid circular dependency with the "medicationadministration" package.
+	MedicationAdministrationsInverseTable = "medication_administrations"
+	// MedicationAdministrationsColumn is the table column denoting the medication_administrations relation/edge.
+	MedicationAdministrationsColumn = "admission_id"
 )
 
 // Columns holds all SQL columns for admission fields.
@@ -245,6 +254,20 @@ func ByBedField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBedStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByMedicationAdministrationsCount orders the results by medication_administrations count.
+func ByMedicationAdministrationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMedicationAdministrationsStep(), opts...)
+	}
+}
+
+// ByMedicationAdministrations orders the results by medication_administrations terms.
+func ByMedicationAdministrations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMedicationAdministrationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newVisitStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -257,5 +280,12 @@ func newBedStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BedInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BedTable, BedColumn),
+	)
+}
+func newMedicationAdministrationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MedicationAdministrationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MedicationAdministrationsTable, MedicationAdministrationsColumn),
 	)
 }

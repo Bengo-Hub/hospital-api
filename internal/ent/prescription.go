@@ -37,6 +37,8 @@ type Prescription struct {
 	PrescriberName string `json:"prescriber_name,omitempty"`
 	// PrescriberLicense holds the value of the "prescriber_license" field.
 	PrescriberLicense string `json:"prescriber_license,omitempty"`
+	// Set on a refill created via CreateRefill — points at the original prescription this repeats, for a chronic patient's regular regimen
+	RepeatOfPrescriptionID *uuid.UUID `json:"repeat_of_prescription_id,omitempty"`
 	// Free-text fallback when patient_id is nil (walk-in)
 	PatientName string `json:"patient_name,omitempty"`
 	// PatientDob holds the value of the "patient_dob" field.
@@ -97,7 +99,7 @@ func (*Prescription) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case prescription.FieldPatientID, prescription.FieldVisitID, prescription.FieldExaminationID, prescription.FieldDispensedBy:
+		case prescription.FieldPatientID, prescription.FieldVisitID, prescription.FieldExaminationID, prescription.FieldRepeatOfPrescriptionID, prescription.FieldDispensedBy:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case prescription.FieldMetadata:
 			values[i] = new([]byte)
@@ -184,6 +186,13 @@ func (_m *Prescription) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field prescriber_license", values[i])
 			} else if value.Valid {
 				_m.PrescriberLicense = value.String
+			}
+		case prescription.FieldRepeatOfPrescriptionID:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field repeat_of_prescription_id", values[i])
+			} else if value.Valid {
+				_m.RepeatOfPrescriptionID = new(uuid.UUID)
+				*_m.RepeatOfPrescriptionID = *value.S.(*uuid.UUID)
 			}
 		case prescription.FieldPatientName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -328,6 +337,11 @@ func (_m *Prescription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("prescriber_license=")
 	builder.WriteString(_m.PrescriberLicense)
+	builder.WriteString(", ")
+	if v := _m.RepeatOfPrescriptionID; v != nil {
+		builder.WriteString("repeat_of_prescription_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("patient_name=")
 	builder.WriteString(_m.PatientName)
