@@ -69,6 +69,12 @@ const (
 	PermTheatreChange = "hospital.theatre.change"
 	PermTheatreManage = "hospital.theatre.manage"
 
+	// icu (critical-care monitoring episodes)
+	PermICUView   = "hospital.icu.view"
+	PermICUAdd    = "hospital.icu.add"
+	PermICUChange = "hospital.icu.change"
+	PermICUManage = "hospital.icu.manage"
+
 	// users (tenant staff/role management)
 	PermUsersView   = "hospital.users.view"
 	PermUsersManage = "hospital.users.manage"

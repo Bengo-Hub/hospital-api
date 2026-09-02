@@ -26,6 +26,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
+	"github.com/bengobox/hospital-service/internal/ent/icuepisode"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -43,6 +44,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
+	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
@@ -121,6 +123,7 @@ func checkColumn(t, c string) error {
 			hospitalrole.Table:            hospitalrole.ValidColumn,
 			hospitaluser.Table:            hospitaluser.ValidColumn,
 			hospitaluseroutlet.Table:      hospitaluseroutlet.ValidColumn,
+			icuepisode.Table:              icuepisode.ValidColumn,
 			laborder.Table:                laborder.ValidColumn,
 			laborderline.Table:            laborderline.ValidColumn,
 			labtestcatalogdefault.Table:   labtestcatalogdefault.ValidColumn,
@@ -138,6 +141,7 @@ func checkColumn(t, c string) error {
 			referral.Table:                referral.ValidColumn,
 			rolepermission.Table:          rolepermission.ValidColumn,
 			tenant.Table:                  tenant.ValidColumn,
+			theatrebooking.Table:          theatrebooking.ValidColumn,
 			triagerecord.Table:            triagerecord.ValidColumn,
 			userroleassignment.Table:      userroleassignment.ValidColumn,
 			walkinsale.Table:              walkinsale.ValidColumn,

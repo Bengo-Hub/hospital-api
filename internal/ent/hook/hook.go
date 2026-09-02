@@ -177,6 +177,18 @@ func (f HospitalUserOutletFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HospitalUserOutletMutation", m)
 }
 
+// The ICUEpisodeFunc type is an adapter to allow the use of ordinary
+// function as ICUEpisode mutator.
+type ICUEpisodeFunc func(context.Context, *ent.ICUEpisodeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ICUEpisodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ICUEpisodeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ICUEpisodeMutation", m)
+}
+
 // The LabOrderFunc type is an adapter to allow the use of ordinary
 // function as LabOrder mutator.
 type LabOrderFunc func(context.Context, *ent.LabOrderMutation) (ent.Value, error)
@@ -379,6 +391,18 @@ func (f TenantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TenantMutation", m)
+}
+
+// The TheatreBookingFunc type is an adapter to allow the use of ordinary
+// function as TheatreBooking mutator.
+type TheatreBookingFunc func(context.Context, *ent.TheatreBookingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TheatreBookingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TheatreBookingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TheatreBookingMutation", m)
 }
 
 // The TriageRecordFunc type is an adapter to allow the use of ordinary

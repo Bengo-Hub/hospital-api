@@ -40,6 +40,8 @@ type Tx struct {
 	HospitalUser *HospitalUserClient
 	// HospitalUserOutlet is the client for interacting with the HospitalUserOutlet builders.
 	HospitalUserOutlet *HospitalUserOutletClient
+	// ICUEpisode is the client for interacting with the ICUEpisode builders.
+	ICUEpisode *ICUEpisodeClient
 	// LabOrder is the client for interacting with the LabOrder builders.
 	LabOrder *LabOrderClient
 	// LabOrderLine is the client for interacting with the LabOrderLine builders.
@@ -74,6 +76,8 @@ type Tx struct {
 	RolePermission *RolePermissionClient
 	// Tenant is the client for interacting with the Tenant builders.
 	Tenant *TenantClient
+	// TheatreBooking is the client for interacting with the TheatreBooking builders.
+	TheatreBooking *TheatreBookingClient
 	// TriageRecord is the client for interacting with the TriageRecord builders.
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
@@ -227,6 +231,7 @@ func (tx *Tx) init() {
 	tx.HospitalRole = NewHospitalRoleClient(tx.config)
 	tx.HospitalUser = NewHospitalUserClient(tx.config)
 	tx.HospitalUserOutlet = NewHospitalUserOutletClient(tx.config)
+	tx.ICUEpisode = NewICUEpisodeClient(tx.config)
 	tx.LabOrder = NewLabOrderClient(tx.config)
 	tx.LabOrderLine = NewLabOrderLineClient(tx.config)
 	tx.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(tx.config)
@@ -244,6 +249,7 @@ func (tx *Tx) init() {
 	tx.Referral = NewReferralClient(tx.config)
 	tx.RolePermission = NewRolePermissionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
+	tx.TheatreBooking = NewTheatreBookingClient(tx.config)
 	tx.TriageRecord = NewTriageRecordClient(tx.config)
 	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
 	tx.WalkInSale = NewWalkInSaleClient(tx.config)

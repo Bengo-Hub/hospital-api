@@ -28,6 +28,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/consultation"
+	"github.com/bengobox/hospital-service/internal/modules/icu"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
 	"github.com/bengobox/hospital-service/internal/modules/inpatient"
 	inventoryclient "github.com/bengobox/hospital-service/internal/modules/inventory"
@@ -37,6 +38,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
 	"github.com/bengobox/hospital-service/internal/modules/refdata"
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
+	"github.com/bengobox/hospital-service/internal/modules/theatre"
 	treasuryclient "github.com/bengobox/hospital-service/internal/modules/treasury"
 	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
@@ -233,6 +235,12 @@ func New(ctx context.Context) (*App, error) {
 	inpatientSvc := inpatient.NewService(ormClient, billingSvc, log)
 	inpatientHandler := handlers.NewInpatientHandler(inpatientSvc, rbacService)
 
+	// ── Sprint 7: theatre/OT scheduling + ICU critical-care monitoring ────
+	theatreSvc := theatre.NewService(ormClient, billingSvc, log)
+	theatreHandler := handlers.NewTheatreHandler(theatreSvc)
+	icuSvc := icu.NewService(ormClient, log)
+	icuHandler := handlers.NewICUHandler(icuSvc)
+
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
@@ -261,6 +269,8 @@ func New(ctx context.Context) (*App, error) {
 		AuditLog:       auditLogHandler,
 		UserOutlets:    userOutletsHandler,
 		Inpatient:      inpatientHandler,
+		Theatre:        theatreHandler,
+		ICU:            icuHandler,
 		TenantSyncer:   tenantSyncer,
 	}
 	chiRouter := router.New(deps)

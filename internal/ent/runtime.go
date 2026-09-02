@@ -19,6 +19,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/hospitalrole"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluser"
 	"github.com/bengobox/hospital-service/internal/ent/hospitaluseroutlet"
+	"github.com/bengobox/hospital-service/internal/ent/icuepisode"
 	"github.com/bengobox/hospital-service/internal/ent/laborder"
 	"github.com/bengobox/hospital-service/internal/ent/laborderline"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
@@ -36,6 +37,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
+	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
@@ -385,6 +387,26 @@ func init() {
 	hospitaluseroutletDescID := hospitaluseroutletFields[0].Descriptor()
 	// hospitaluseroutlet.DefaultID holds the default value on creation for the id field.
 	hospitaluseroutlet.DefaultID = hospitaluseroutletDescID.Default.(func() uuid.UUID)
+	icuepisodeFields := schema.ICUEpisode{}.Fields()
+	_ = icuepisodeFields
+	// icuepisodeDescStartedAt is the schema descriptor for started_at field.
+	icuepisodeDescStartedAt := icuepisodeFields[7].Descriptor()
+	// icuepisode.DefaultStartedAt holds the default value on creation for the started_at field.
+	icuepisode.DefaultStartedAt = icuepisodeDescStartedAt.Default.(func() time.Time)
+	// icuepisodeDescCreatedAt is the schema descriptor for created_at field.
+	icuepisodeDescCreatedAt := icuepisodeFields[9].Descriptor()
+	// icuepisode.DefaultCreatedAt holds the default value on creation for the created_at field.
+	icuepisode.DefaultCreatedAt = icuepisodeDescCreatedAt.Default.(func() time.Time)
+	// icuepisodeDescUpdatedAt is the schema descriptor for updated_at field.
+	icuepisodeDescUpdatedAt := icuepisodeFields[10].Descriptor()
+	// icuepisode.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	icuepisode.DefaultUpdatedAt = icuepisodeDescUpdatedAt.Default.(func() time.Time)
+	// icuepisode.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	icuepisode.UpdateDefaultUpdatedAt = icuepisodeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// icuepisodeDescID is the schema descriptor for id field.
+	icuepisodeDescID := icuepisodeFields[0].Descriptor()
+	// icuepisode.DefaultID holds the default value on creation for the id field.
+	icuepisode.DefaultID = icuepisodeDescID.Default.(func() uuid.UUID)
 	laborderFields := schema.LabOrder{}.Fields()
 	_ = laborderFields
 	// laborderDescOrderedAt is the schema descriptor for ordered_at field.
@@ -775,6 +797,38 @@ func init() {
 	tenantDescID := tenantFields[0].Descriptor()
 	// tenant.DefaultID holds the default value on creation for the id field.
 	tenant.DefaultID = tenantDescID.Default.(func() uuid.UUID)
+	theatrebookingFields := schema.TheatreBooking{}.Fields()
+	_ = theatrebookingFields
+	// theatrebookingDescTheatreRoom is the schema descriptor for theatre_room field.
+	theatrebookingDescTheatreRoom := theatrebookingFields[5].Descriptor()
+	// theatrebooking.TheatreRoomValidator is a validator for the "theatre_room" field. It is called by the builders before save.
+	theatrebooking.TheatreRoomValidator = theatrebookingDescTheatreRoom.Validators[0].(func(string) error)
+	// theatrebookingDescSurgeryType is the schema descriptor for surgery_type field.
+	theatrebookingDescSurgeryType := theatrebookingFields[6].Descriptor()
+	// theatrebooking.SurgeryTypeValidator is a validator for the "surgery_type" field. It is called by the builders before save.
+	theatrebooking.SurgeryTypeValidator = theatrebookingDescSurgeryType.Validators[0].(func(string) error)
+	// theatrebookingDescDurationMinutes is the schema descriptor for duration_minutes field.
+	theatrebookingDescDurationMinutes := theatrebookingFields[9].Descriptor()
+	// theatrebooking.DefaultDurationMinutes holds the default value on creation for the duration_minutes field.
+	theatrebooking.DefaultDurationMinutes = theatrebookingDescDurationMinutes.Default.(int)
+	// theatrebookingDescChecklist is the schema descriptor for checklist field.
+	theatrebookingDescChecklist := theatrebookingFields[11].Descriptor()
+	// theatrebooking.DefaultChecklist holds the default value on creation for the checklist field.
+	theatrebooking.DefaultChecklist = theatrebookingDescChecklist.Default.(map[string]bool)
+	// theatrebookingDescCreatedAt is the schema descriptor for created_at field.
+	theatrebookingDescCreatedAt := theatrebookingFields[16].Descriptor()
+	// theatrebooking.DefaultCreatedAt holds the default value on creation for the created_at field.
+	theatrebooking.DefaultCreatedAt = theatrebookingDescCreatedAt.Default.(func() time.Time)
+	// theatrebookingDescUpdatedAt is the schema descriptor for updated_at field.
+	theatrebookingDescUpdatedAt := theatrebookingFields[17].Descriptor()
+	// theatrebooking.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	theatrebooking.DefaultUpdatedAt = theatrebookingDescUpdatedAt.Default.(func() time.Time)
+	// theatrebooking.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	theatrebooking.UpdateDefaultUpdatedAt = theatrebookingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// theatrebookingDescID is the schema descriptor for id field.
+	theatrebookingDescID := theatrebookingFields[0].Descriptor()
+	// theatrebooking.DefaultID holds the default value on creation for the id field.
+	theatrebooking.DefaultID = theatrebookingDescID.Default.(func() uuid.UUID)
 	triagerecordFields := schema.TriageRecord{}.Fields()
 	_ = triagerecordFields
 	// triagerecordDescTakenAt is the schema descriptor for taken_at field.

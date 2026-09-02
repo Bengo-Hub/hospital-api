@@ -551,6 +551,38 @@ var (
 			},
 		},
 	}
+	// IcuEpisodesColumns holds the columns for the "icu_episodes" table.
+	IcuEpisodesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "admission_id", Type: field.TypeUUID},
+		{Name: "bed_id", Type: field.TypeUUID},
+		{Name: "severity_flag", Type: field.TypeEnum, Enums: []string{"stable", "guarded", "critical"}, Default: "stable"},
+		{Name: "monitoring_notes", Type: field.TypeString, Nullable: true},
+		{Name: "started_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "started_at", Type: field.TypeTime},
+		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// IcuEpisodesTable holds the schema information for the "icu_episodes" table.
+	IcuEpisodesTable = &schema.Table{
+		Name:       "icu_episodes",
+		Columns:    IcuEpisodesColumns,
+		PrimaryKey: []*schema.Column{IcuEpisodesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "icuepisode_tenant_id_admission_id",
+				Unique:  false,
+				Columns: []*schema.Column{IcuEpisodesColumns[1], IcuEpisodesColumns[2]},
+			},
+			{
+				Name:    "icuepisode_tenant_id_bed_id",
+				Unique:  false,
+				Columns: []*schema.Column{IcuEpisodesColumns[1], IcuEpisodesColumns[3]},
+			},
+		},
+	}
 	// LabOrdersColumns holds the columns for the "lab_orders" table.
 	LabOrdersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1204,6 +1236,50 @@ var (
 			},
 		},
 	}
+	// TheatreBookingsColumns holds the columns for the "theatre_bookings" table.
+	TheatreBookingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "patient_visit_id", Type: field.TypeUUID},
+		{Name: "patient_id", Type: field.TypeUUID},
+		{Name: "theatre_room", Type: field.TypeString},
+		{Name: "surgery_type", Type: field.TypeString},
+		{Name: "surgeon_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "scheduled_at", Type: field.TypeTime},
+		{Name: "duration_minutes", Type: field.TypeInt, Default: 60},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"awaiting_payment", "scheduled", "in_progress", "completed", "cancelled"}, Default: "scheduled"},
+		{Name: "checklist", Type: field.TypeJSON, Nullable: true},
+		{Name: "fee_amount", Type: field.TypeFloat64, Nullable: true},
+		{Name: "created_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// TheatreBookingsTable holds the schema information for the "theatre_bookings" table.
+	TheatreBookingsTable = &schema.Table{
+		Name:       "theatre_bookings",
+		Columns:    TheatreBookingsColumns,
+		PrimaryKey: []*schema.Column{TheatreBookingsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "theatrebooking_tenant_id_patient_visit_id",
+				Unique:  false,
+				Columns: []*schema.Column{TheatreBookingsColumns[1], TheatreBookingsColumns[3]},
+			},
+			{
+				Name:    "theatrebooking_tenant_id_theatre_room",
+				Unique:  false,
+				Columns: []*schema.Column{TheatreBookingsColumns[1], TheatreBookingsColumns[5]},
+			},
+			{
+				Name:    "theatrebooking_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{TheatreBookingsColumns[1], TheatreBookingsColumns[10]},
+			},
+		},
+	}
 	// TriageRecordsColumns holds the columns for the "triage_records" table.
 	TriageRecordsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1405,6 +1481,7 @@ var (
 		HospitalRolesTable,
 		HospitalUsersTable,
 		HospitalUserOutletsTable,
+		IcuEpisodesTable,
 		LabOrdersTable,
 		LabOrderLinesTable,
 		LabTestCatalogDefaultsTable,
@@ -1422,6 +1499,7 @@ var (
 		ReferralsTable,
 		RolePermissionsTable,
 		TenantsTable,
+		TheatreBookingsTable,
 		TriageRecordsTable,
 		UserRoleAssignmentsTable,
 		WalkInSalesTable,

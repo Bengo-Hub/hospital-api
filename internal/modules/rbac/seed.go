@@ -60,6 +60,11 @@ var defaultPermissions = []HospitalPermission{
 	{PermissionCode: PermTheatreChange, Name: "Edit Theatre Bookings", Module: "theatre", Action: "change"},
 	{PermissionCode: PermTheatreManage, Name: "Manage Theatre", Module: "theatre", Action: "manage"},
 
+	{PermissionCode: PermICUView, Name: "View ICU Board", Module: "icu", Action: "view"},
+	{PermissionCode: PermICUAdd, Name: "Start ICU Episodes", Module: "icu", Action: "add"},
+	{PermissionCode: PermICUChange, Name: "Update ICU Episodes", Module: "icu", Action: "change"},
+	{PermissionCode: PermICUManage, Name: "Manage ICU (End Episodes)", Module: "icu", Action: "manage"},
+
 	{PermissionCode: PermUsersView, Name: "View Users", Module: "users", Action: "view"},
 	{PermissionCode: PermUsersManage, Name: "Manage Users", Module: "users", Action: "manage"},
 
@@ -99,6 +104,11 @@ var defaultRoles = []roleDefinition{
 			// "discharge/manage inpatient", same class of call as SetUserRole's single-role
 			// contract).
 			PermInpatientView, PermInpatientAdd, PermInpatientChange, PermInpatientManage,
+			// Sprint 7 (2026-09-02): a doctor/surgeon schedules and runs surgery end to end; ICU
+			// rounds require viewing/updating severity but starting/ending a critical-care episode
+			// is an ICU-nursing-team action (see Nurse's grant below).
+			"hospital.theatre.*",
+			PermICUView, PermICUChange,
 			PermBillingCollectOwn,
 		},
 	},
@@ -112,6 +122,10 @@ var defaultRoles = []roleDefinition{
 			// transfers day-to-day; discharge/transfer-out (PermInpatientManage) stays doctor/
 			// manager-authorized, matching real clinical sign-off practice.
 			PermInpatientView, PermInpatientAdd, PermInpatientChange,
+			// Sprint 7 (2026-09-02): ICU critical-care monitoring is nursing-team-run day to day
+			// (start/update/end an episode); theatre scheduling stays view-only for a nurse.
+			"hospital.icu.*",
+			PermTheatreView,
 			PermConsultationView,
 			PermRecordsView,
 			PermBillingCollectOwn,
@@ -179,7 +193,10 @@ var defaultRoles = []roleDefinition{
 			"hospital.reception.*",
 			PermRecordsView, PermRecordsChange,
 			PermInpatientView, PermInpatientAdd, PermInpatientChange, PermInpatientManage,
-			PermTheatreView,
+			// Sprint 7 (2026-09-02): a facility manager oversees theatre scheduling and ICU
+			// throughput broadly, matching this role's existing "broad view/manage" scope.
+			"hospital.theatre.*",
+			"hospital.icu.*",
 			PermUsersView,
 			PermConfigView,
 		},

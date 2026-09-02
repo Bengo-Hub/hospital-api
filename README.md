@@ -3,13 +3,14 @@
 Hospital & clinic management microservice for the Codevertex platform — consultation, laboratory,
 pharmacy/dispensing, inpatient, and billing/insurance workflows for one connected patient record.
 
-**Status:** Sprints 0-6 shipped and live in production (Codevertex Afya). Patient/OPD/Triage,
-Consultation/Examination, Laboratory, Pharmacy/Dispensing, Billing/Insurance, and Inpatient
-(ward/bed/admission/transfer/discharge) are real, working Go code with Trinity Authorization (JWT
-RBAC + subscription licensing + local resource RBAC) fully wired. The pos-api pharmacy migration
-this service absorbed is complete and decisively removed from pos-api. Sprints 7-13 (Theatre/ICU
-onward) are still planned. See `docs/plan.md` for the current, authoritative status and roadmap —
-this file is a static entry point, not the source of truth.
+**Status:** Sprints 0-7 shipped and live in production (Codevertex Afya). Patient/OPD/Triage,
+Consultation/Examination, Laboratory, Pharmacy/Dispensing, Billing/Insurance, Inpatient
+(ward/bed/admission/transfer/discharge), and Theatre/OT scheduling + ICU critical-care monitoring
+are real, working Go code with Trinity Authorization (JWT RBAC + subscription licensing + local
+resource RBAC) fully wired. The pos-api pharmacy migration this service absorbed is complete and
+decisively removed from pos-api. Sprints 8-13 (Blood Bank onward) are still planned. See
+`docs/plan.md` for the current, authoritative status and roadmap — this file is a static entry
+point, not the source of truth.
 
 See `docs/plan.md` for the full product vision and roadmap, `docs/architecture.md` for the layer
 overview and data-ownership boundaries, `docs/integrations.md` for how this service talks to

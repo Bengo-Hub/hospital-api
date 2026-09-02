@@ -64,6 +64,9 @@ type Deps struct {
 	UserOutlets *handlers.UserOutletsHandler
 	// Sprint 6: ward/bed/admission/transfer/discharge.
 	Inpatient *handlers.InpatientHandler
+	// Sprint 7: theatre/OT scheduling + ICU critical-care monitoring.
+	Theatre *handlers.TheatreHandler
+	ICU     *handlers.ICUHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -496,6 +499,55 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
 					Post("/admissions/{admissionID}/discharge", d.Inpatient.Discharge)
+			}
+
+			// Sprint 7 — Theatre/OT scheduling. Gated on FeatureTheatreModule (Afya Hospital tier).
+			// ICU shares this same subscription feature (subscriptions-api's plans_hospital.go
+			// grants no separate ICU feature code — Theatre+ICU are one bundled Hospital-tier
+			// capability), but has its own RBAC permission set since the staff who run each differ.
+			if d.Theatre != nil {
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreAdd)).
+					Post("/theatre-bookings", d.Theatre.CreateBooking)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreView)).
+					Get("/theatre-bookings", d.Theatre.ListSchedule)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreView)).
+					Get("/theatre-bookings/{bookingID}", d.Theatre.GetBooking)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc,
+						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/theatre-bookings/{bookingID}/activate", d.Theatre.ActivateIfPaid)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Put("/theatre-bookings/{bookingID}/checklist", d.Theatre.UpdateChecklist)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Post("/theatre-bookings/{bookingID}/start", d.Theatre.StartSurgery)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Post("/theatre-bookings/{bookingID}/complete", d.Theatre.CompleteSurgery)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreManage)).
+					Post("/theatre-bookings/{bookingID}/cancel", d.Theatre.CancelBooking)
+			}
+			if d.ICU != nil {
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermICUAdd)).
+					Post("/icu-episodes", d.ICU.StartEpisode)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermICUView)).
+					Get("/icu-episodes", d.ICU.ListEpisodes)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermICUView)).
+					Get("/icu-episodes/{episodeID}", d.ICU.GetEpisode)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermICUChange)).
+					Patch("/icu-episodes/{episodeID}", d.ICU.UpdateEpisode)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermICUManage)).
+					Post("/icu-episodes/{episodeID}/end", d.ICU.EndEpisode)
 			}
 
 			// Users / Config admin — tenant staff role-management and a read-only config view.

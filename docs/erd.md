@@ -2,11 +2,11 @@
 
 **Last updated:** 2026-09-02 — Initial ERD draft written 2026-07-31 alongside the Sprint-0 scaffold.
 **As of 2026-09-02, the Patient & Visits, Clinical Workflow, Pharmacy & Dispensing, Billing &
-Patient Accounts, and Inpatient sections below are real, implemented `internal/ent/schema/` tables
-with generated Atlas migrations** (Sprints 1/2/3/4/5-core/6 — see `docs/sprints/`); the Tenant &
-Outlet Structure / Global Reference Data tables were already implemented since 2026-08-01.
-Theatre & Critical Care, Blood Bank & Transfusion, Ambulance & Emergency Dispatch, and
-Specialized Care Programmes remain the **planned** model for Sprint 7 onward — not yet built. A
+Patient Accounts, Inpatient, and Theatre & Critical Care sections below are real, implemented
+`internal/ent/schema/` tables with generated Atlas migrations** (Sprints 1/2/3/4/5-core/6/7 — see
+`docs/sprints/`); the Tenant & Outlet Structure / Global Reference Data tables were already
+implemented since 2026-08-01. Blood Bank & Transfusion, Ambulance & Emergency Dispatch, and
+Specialized Care Programmes remain the **planned** model for Sprint 8 onward — not yet built. A
 KenyaEMR technical audit earlier the same day (`docs/kenyaemr-technical-reference.md`) expanded the
 specialized-programmes table (VMMC, an OTZ flag on `art_record`, HIV-exposed-infant/PMTCT follow-up,
 cervical/prostate cancer screening), added `patient.identification_type`/`identification_number`
@@ -152,12 +152,12 @@ reference treasury-api, which stays the sole owner of every financial document.
 
 ---
 
-## Theatre & Critical Care (planned — Sprint 7, Afya Hospital tier)
+## Theatre & Critical Care (shipped 2026-09-02 — Sprint 7, Afya Hospital tier)
 
 | Table | Key Columns | Description |
 |---|---|---|
-| `theatre_booking` | `id`, `patient_visit_id`, `theatre_room`, `surgery_type`, `scheduled_at`, `status`, `checklist_json` | OT scheduling + surgical checklist |
-| `icu_episode` | `id`, `admission_id`, `bed_id`, `severity_flag`, `monitoring_notes`, `started_at`, `ended_at` | Critical-care episode tracking |
+| `theatre_booking` | `id`, `tenant_id`, `outlet_id`, `patient_visit_id`, `patient_id`, `theatre_room`, `surgery_type`, `surgeon_id`, `scheduled_at`, `duration_minutes`, `status`, `checklist` (JSON), `fee_amount`, `started_at`, `completed_at` | OT scheduling + surgical checklist. `fee_amount` is a snapshot (the seeded `THEATRE_FEE` catalog price is nil — procedure fees vary too widely to price generically) |
+| `icu_episode` | `id`, `tenant_id`, `admission_id`, `bed_id`, `severity_flag`, `monitoring_notes`, `started_by`, `started_at`, `ended_at` | Critical-care episode tracking. No billing fields — an ICU bed's elevated day-rate flows through `ward.billable_item_code` (Sprint 6) |
 
 ---
 
