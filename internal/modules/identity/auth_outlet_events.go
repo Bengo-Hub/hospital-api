@@ -149,6 +149,10 @@ func (h *AuthOutletEventHandler) handleUpsert(ctx context.Context, evt *sharedev
 	if status == "" {
 		status = "active"
 	}
+	var facilityType string
+	if meta, ok := evt.Payload["metadata"].(map[string]any); ok {
+		facilityType, _ = meta["facility_type"].(string)
+	}
 
 	// Skip outlets that don't apply to hospital-api (retail branches, warehouses, ...).
 	if useCase != "" && !tenant.HospitalAcceptedUseCases[useCase] {
@@ -201,6 +205,9 @@ func (h *AuthOutletEventHandler) handleUpsert(ctx context.Context, evt *sharedev
 		if useCase != "" {
 			createQ = createQ.SetUseCase(useCase)
 		}
+		if facilityType != "" {
+			createQ = createQ.SetFacilityType(facilityType)
+		}
 		if addr := outletAddressJSON(nil, evt); addr != nil {
 			createQ = createQ.SetAddressJSON(addr)
 		}
@@ -220,6 +227,9 @@ func (h *AuthOutletEventHandler) handleUpsert(ctx context.Context, evt *sharedev
 		SetUpdatedAt(time.Now())
 	if useCase != "" {
 		upd = upd.SetUseCase(useCase)
+	}
+	if facilityType != "" {
+		upd = upd.SetFacilityType(facilityType)
 	}
 	if addr := outletAddressJSON(existing.AddressJSON, evt); addr != nil {
 		upd = upd.SetAddressJSON(addr)

@@ -16128,6 +16128,7 @@ type OutletMutation struct {
 	address_json  *map[string]interface{}
 	status        *string
 	use_case      *string
+	facility_type *string
 	is_hq         *bool
 	created_at    *time.Time
 	updated_at    *time.Time
@@ -16521,6 +16522,55 @@ func (m *OutletMutation) ResetUseCase() {
 	delete(m.clearedFields, outlet.FieldUseCase)
 }
 
+// SetFacilityType sets the "facility_type" field.
+func (m *OutletMutation) SetFacilityType(s string) {
+	m.facility_type = &s
+}
+
+// FacilityType returns the value of the "facility_type" field in the mutation.
+func (m *OutletMutation) FacilityType() (r string, exists bool) {
+	v := m.facility_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFacilityType returns the old "facility_type" field's value of the Outlet entity.
+// If the Outlet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OutletMutation) OldFacilityType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFacilityType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFacilityType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFacilityType: %w", err)
+	}
+	return oldValue.FacilityType, nil
+}
+
+// ClearFacilityType clears the value of the "facility_type" field.
+func (m *OutletMutation) ClearFacilityType() {
+	m.facility_type = nil
+	m.clearedFields[outlet.FieldFacilityType] = struct{}{}
+}
+
+// FacilityTypeCleared returns if the "facility_type" field was cleared in this mutation.
+func (m *OutletMutation) FacilityTypeCleared() bool {
+	_, ok := m.clearedFields[outlet.FieldFacilityType]
+	return ok
+}
+
+// ResetFacilityType resets all changes to the "facility_type" field.
+func (m *OutletMutation) ResetFacilityType() {
+	m.facility_type = nil
+	delete(m.clearedFields, outlet.FieldFacilityType)
+}
+
 // SetIsHq sets the "is_hq" field.
 func (m *OutletMutation) SetIsHq(b bool) {
 	m.is_hq = &b
@@ -16690,7 +16740,7 @@ func (m *OutletMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OutletMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.tenant != nil {
 		fields = append(fields, outlet.FieldTenantID)
 	}
@@ -16711,6 +16761,9 @@ func (m *OutletMutation) Fields() []string {
 	}
 	if m.use_case != nil {
 		fields = append(fields, outlet.FieldUseCase)
+	}
+	if m.facility_type != nil {
+		fields = append(fields, outlet.FieldFacilityType)
 	}
 	if m.is_hq != nil {
 		fields = append(fields, outlet.FieldIsHq)
@@ -16743,6 +16796,8 @@ func (m *OutletMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case outlet.FieldUseCase:
 		return m.UseCase()
+	case outlet.FieldFacilityType:
+		return m.FacilityType()
 	case outlet.FieldIsHq:
 		return m.IsHq()
 	case outlet.FieldCreatedAt:
@@ -16772,6 +16827,8 @@ func (m *OutletMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldStatus(ctx)
 	case outlet.FieldUseCase:
 		return m.OldUseCase(ctx)
+	case outlet.FieldFacilityType:
+		return m.OldFacilityType(ctx)
 	case outlet.FieldIsHq:
 		return m.OldIsHq(ctx)
 	case outlet.FieldCreatedAt:
@@ -16836,6 +16893,13 @@ func (m *OutletMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUseCase(v)
 		return nil
+	case outlet.FieldFacilityType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFacilityType(v)
+		return nil
 	case outlet.FieldIsHq:
 		v, ok := value.(bool)
 		if !ok {
@@ -16893,6 +16957,9 @@ func (m *OutletMutation) ClearedFields() []string {
 	if m.FieldCleared(outlet.FieldUseCase) {
 		fields = append(fields, outlet.FieldUseCase)
 	}
+	if m.FieldCleared(outlet.FieldFacilityType) {
+		fields = append(fields, outlet.FieldFacilityType)
+	}
 	return fields
 }
 
@@ -16912,6 +16979,9 @@ func (m *OutletMutation) ClearField(name string) error {
 		return nil
 	case outlet.FieldUseCase:
 		m.ClearUseCase()
+		return nil
+	case outlet.FieldFacilityType:
+		m.ClearFacilityType()
 		return nil
 	}
 	return fmt.Errorf("unknown Outlet nullable field %s", name)
@@ -16941,6 +17011,9 @@ func (m *OutletMutation) ResetField(name string) error {
 		return nil
 	case outlet.FieldUseCase:
 		m.ResetUseCase()
+		return nil
+	case outlet.FieldFacilityType:
+		m.ResetFacilityType()
 		return nil
 	case outlet.FieldIsHq:
 		m.ResetIsHq()

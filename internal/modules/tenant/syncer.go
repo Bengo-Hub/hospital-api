@@ -474,6 +474,9 @@ func (s *Syncer) SyncOutlets(ctx context.Context, tenantID uuid.UUID, tenantSlug
 		if item.UseCase != "" {
 			q = q.SetUseCase(item.UseCase)
 		}
+		if ft, ok := item.Metadata["facility_type"].(string); ok && ft != "" {
+			q = q.SetFacilityType(ft)
+		}
 		if addrJSON := addressJSONFrom(item.Address, item.Metadata); addrJSON != nil {
 			q = q.SetAddressJSON(addrJSON)
 		}

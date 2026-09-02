@@ -29,6 +29,8 @@ const (
 	FieldStatus = "status"
 	// FieldUseCase holds the string denoting the use_case field in the database.
 	FieldUseCase = "use_case"
+	// FieldFacilityType holds the string denoting the facility_type field in the database.
+	FieldFacilityType = "facility_type"
 	// FieldIsHq holds the string denoting the is_hq field in the database.
 	FieldIsHq = "is_hq"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -58,6 +60,7 @@ var Columns = []string{
 	FieldAddressJSON,
 	FieldStatus,
 	FieldUseCase,
+	FieldFacilityType,
 	FieldIsHq,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -130,6 +133,11 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByUseCase orders the results by the use_case field.
 func ByUseCase(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUseCase, opts...).ToFunc()
+}
+
+// ByFacilityType orders the results by the facility_type field.
+func ByFacilityType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFacilityType, opts...).ToFunc()
 }
 
 // ByIsHq orders the results by the is_hq field.

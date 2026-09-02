@@ -132,6 +132,26 @@ func (_u *OutletUpdate) ClearUseCase() *OutletUpdate {
 	return _u
 }
 
+// SetFacilityType sets the "facility_type" field.
+func (_u *OutletUpdate) SetFacilityType(v string) *OutletUpdate {
+	_u.mutation.SetFacilityType(v)
+	return _u
+}
+
+// SetNillableFacilityType sets the "facility_type" field if the given value is not nil.
+func (_u *OutletUpdate) SetNillableFacilityType(v *string) *OutletUpdate {
+	if v != nil {
+		_u.SetFacilityType(*v)
+	}
+	return _u
+}
+
+// ClearFacilityType clears the value of the "facility_type" field.
+func (_u *OutletUpdate) ClearFacilityType() *OutletUpdate {
+	_u.mutation.ClearFacilityType()
+	return _u
+}
+
 // SetIsHq sets the "is_hq" field.
 func (_u *OutletUpdate) SetIsHq(v bool) *OutletUpdate {
 	_u.mutation.SetIsHq(v)
@@ -262,6 +282,12 @@ func (_u *OutletUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.UseCaseCleared() {
 		_spec.ClearField(outlet.FieldUseCase, field.TypeString)
+	}
+	if value, ok := _u.mutation.FacilityType(); ok {
+		_spec.SetField(outlet.FieldFacilityType, field.TypeString, value)
+	}
+	if _u.mutation.FacilityTypeCleared() {
+		_spec.ClearField(outlet.FieldFacilityType, field.TypeString)
 	}
 	if value, ok := _u.mutation.IsHq(); ok {
 		_spec.SetField(outlet.FieldIsHq, field.TypeBool, value)
@@ -417,6 +443,26 @@ func (_u *OutletUpdateOne) SetNillableUseCase(v *string) *OutletUpdateOne {
 // ClearUseCase clears the value of the "use_case" field.
 func (_u *OutletUpdateOne) ClearUseCase() *OutletUpdateOne {
 	_u.mutation.ClearUseCase()
+	return _u
+}
+
+// SetFacilityType sets the "facility_type" field.
+func (_u *OutletUpdateOne) SetFacilityType(v string) *OutletUpdateOne {
+	_u.mutation.SetFacilityType(v)
+	return _u
+}
+
+// SetNillableFacilityType sets the "facility_type" field if the given value is not nil.
+func (_u *OutletUpdateOne) SetNillableFacilityType(v *string) *OutletUpdateOne {
+	if v != nil {
+		_u.SetFacilityType(*v)
+	}
+	return _u
+}
+
+// ClearFacilityType clears the value of the "facility_type" field.
+func (_u *OutletUpdateOne) ClearFacilityType() *OutletUpdateOne {
+	_u.mutation.ClearFacilityType()
 	return _u
 }
 
@@ -580,6 +626,12 @@ func (_u *OutletUpdateOne) sqlSave(ctx context.Context) (_node *Outlet, err erro
 	}
 	if _u.mutation.UseCaseCleared() {
 		_spec.ClearField(outlet.FieldUseCase, field.TypeString)
+	}
+	if value, ok := _u.mutation.FacilityType(); ok {
+		_spec.SetField(outlet.FieldFacilityType, field.TypeString, value)
+	}
+	if _u.mutation.FacilityTypeCleared() {
+		_spec.ClearField(outlet.FieldFacilityType, field.TypeString)
 	}
 	if value, ok := _u.mutation.IsHq(); ok {
 		_spec.SetField(outlet.FieldIsHq, field.TypeBool, value)

@@ -34,6 +34,8 @@ type Outlet struct {
 	Status string `json:"status,omitempty"`
 	// Use case for this outlet, e.g. hospital
 	UseCase *string `json:"use_case,omitempty"`
+	// Afya facility tier for THIS outlet — chemist|clinic|facility|hospital. Sourced from auth-api's Outlet.metadata (no schema change there), synced the same way use_case already is. Presentation-only (which nav hospital-ui's adaptive sidebar shows), NOT a licensing/feature-gating field — that stays the subscription plan's job. 2026-09-02: replaces deriving nav tier from the tenant-wide subscription, which couldn't distinguish two outlets under the same tenant and needed a real paid/assigned plan to resolve to anything but the safe default.
+	FacilityType *string `json:"facility_type,omitempty"`
 	// HQ outlets bypass outlet-scoped data filtering — staff see all outlets
 	IsHq bool `json:"is_hq,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -75,7 +77,7 @@ func (*Outlet) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case outlet.FieldIsHq:
 			values[i] = new(sql.NullBool)
-		case outlet.FieldTenantSlug, outlet.FieldCode, outlet.FieldName, outlet.FieldStatus, outlet.FieldUseCase:
+		case outlet.FieldTenantSlug, outlet.FieldCode, outlet.FieldName, outlet.FieldStatus, outlet.FieldUseCase, outlet.FieldFacilityType:
 			values[i] = new(sql.NullString)
 		case outlet.FieldCreatedAt, outlet.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -146,6 +148,13 @@ func (_m *Outlet) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UseCase = new(string)
 				*_m.UseCase = value.String
+			}
+		case outlet.FieldFacilityType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field facility_type", values[i])
+			} else if value.Valid {
+				_m.FacilityType = new(string)
+				*_m.FacilityType = value.String
 			}
 		case outlet.FieldIsHq:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -226,6 +235,11 @@ func (_m *Outlet) String() string {
 	builder.WriteString(", ")
 	if v := _m.UseCase; v != nil {
 		builder.WriteString("use_case=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.FacilityType; v != nil {
+		builder.WriteString("facility_type=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

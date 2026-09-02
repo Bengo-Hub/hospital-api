@@ -83,6 +83,20 @@ func (_c *OutletCreate) SetNillableUseCase(v *string) *OutletCreate {
 	return _c
 }
 
+// SetFacilityType sets the "facility_type" field.
+func (_c *OutletCreate) SetFacilityType(v string) *OutletCreate {
+	_c.mutation.SetFacilityType(v)
+	return _c
+}
+
+// SetNillableFacilityType sets the "facility_type" field if the given value is not nil.
+func (_c *OutletCreate) SetNillableFacilityType(v *string) *OutletCreate {
+	if v != nil {
+		_c.SetFacilityType(*v)
+	}
+	return _c
+}
+
 // SetIsHq sets the "is_hq" field.
 func (_c *OutletCreate) SetIsHq(v bool) *OutletCreate {
 	_c.mutation.SetIsHq(v)
@@ -305,6 +319,10 @@ func (_c *OutletCreate) createSpec() (*Outlet, *sqlgraph.CreateSpec) {
 		_spec.SetField(outlet.FieldUseCase, field.TypeString, value)
 		_node.UseCase = &value
 	}
+	if value, ok := _c.mutation.FacilityType(); ok {
+		_spec.SetField(outlet.FieldFacilityType, field.TypeString, value)
+		_node.FacilityType = &value
+	}
 	if value, ok := _c.mutation.IsHq(); ok {
 		_spec.SetField(outlet.FieldIsHq, field.TypeBool, value)
 		_node.IsHq = value
@@ -479,6 +497,24 @@ func (u *OutletUpsert) UpdateUseCase() *OutletUpsert {
 // ClearUseCase clears the value of the "use_case" field.
 func (u *OutletUpsert) ClearUseCase() *OutletUpsert {
 	u.SetNull(outlet.FieldUseCase)
+	return u
+}
+
+// SetFacilityType sets the "facility_type" field.
+func (u *OutletUpsert) SetFacilityType(v string) *OutletUpsert {
+	u.Set(outlet.FieldFacilityType, v)
+	return u
+}
+
+// UpdateFacilityType sets the "facility_type" field to the value that was provided on create.
+func (u *OutletUpsert) UpdateFacilityType() *OutletUpsert {
+	u.SetExcluded(outlet.FieldFacilityType)
+	return u
+}
+
+// ClearFacilityType clears the value of the "facility_type" field.
+func (u *OutletUpsert) ClearFacilityType() *OutletUpsert {
+	u.SetNull(outlet.FieldFacilityType)
 	return u
 }
 
@@ -666,6 +702,27 @@ func (u *OutletUpsertOne) UpdateUseCase() *OutletUpsertOne {
 func (u *OutletUpsertOne) ClearUseCase() *OutletUpsertOne {
 	return u.Update(func(s *OutletUpsert) {
 		s.ClearUseCase()
+	})
+}
+
+// SetFacilityType sets the "facility_type" field.
+func (u *OutletUpsertOne) SetFacilityType(v string) *OutletUpsertOne {
+	return u.Update(func(s *OutletUpsert) {
+		s.SetFacilityType(v)
+	})
+}
+
+// UpdateFacilityType sets the "facility_type" field to the value that was provided on create.
+func (u *OutletUpsertOne) UpdateFacilityType() *OutletUpsertOne {
+	return u.Update(func(s *OutletUpsert) {
+		s.UpdateFacilityType()
+	})
+}
+
+// ClearFacilityType clears the value of the "facility_type" field.
+func (u *OutletUpsertOne) ClearFacilityType() *OutletUpsertOne {
+	return u.Update(func(s *OutletUpsert) {
+		s.ClearFacilityType()
 	})
 }
 
@@ -1024,6 +1081,27 @@ func (u *OutletUpsertBulk) UpdateUseCase() *OutletUpsertBulk {
 func (u *OutletUpsertBulk) ClearUseCase() *OutletUpsertBulk {
 	return u.Update(func(s *OutletUpsert) {
 		s.ClearUseCase()
+	})
+}
+
+// SetFacilityType sets the "facility_type" field.
+func (u *OutletUpsertBulk) SetFacilityType(v string) *OutletUpsertBulk {
+	return u.Update(func(s *OutletUpsert) {
+		s.SetFacilityType(v)
+	})
+}
+
+// UpdateFacilityType sets the "facility_type" field to the value that was provided on create.
+func (u *OutletUpsertBulk) UpdateFacilityType() *OutletUpsertBulk {
+	return u.Update(func(s *OutletUpsert) {
+		s.UpdateFacilityType()
+	})
+}
+
+// ClearFacilityType clears the value of the "facility_type" field.
+func (u *OutletUpsertBulk) ClearFacilityType() *OutletUpsertBulk {
+	return u.Update(func(s *OutletUpsert) {
+		s.ClearFacilityType()
 	})
 }
 

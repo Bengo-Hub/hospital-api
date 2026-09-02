@@ -86,6 +86,11 @@ func UseCase(v string) predicate.Outlet {
 	return predicate.Outlet(sql.FieldEQ(FieldUseCase, v))
 }
 
+// FacilityType applies equality check predicate on the "facility_type" field. It's identical to FacilityTypeEQ.
+func FacilityType(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldEQ(FieldFacilityType, v))
+}
+
 // IsHq applies equality check predicate on the "is_hq" field. It's identical to IsHqEQ.
 func IsHq(v bool) predicate.Outlet {
 	return predicate.Outlet(sql.FieldEQ(FieldIsHq, v))
@@ -464,6 +469,81 @@ func UseCaseEqualFold(v string) predicate.Outlet {
 // UseCaseContainsFold applies the ContainsFold predicate on the "use_case" field.
 func UseCaseContainsFold(v string) predicate.Outlet {
 	return predicate.Outlet(sql.FieldContainsFold(FieldUseCase, v))
+}
+
+// FacilityTypeEQ applies the EQ predicate on the "facility_type" field.
+func FacilityTypeEQ(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldEQ(FieldFacilityType, v))
+}
+
+// FacilityTypeNEQ applies the NEQ predicate on the "facility_type" field.
+func FacilityTypeNEQ(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldNEQ(FieldFacilityType, v))
+}
+
+// FacilityTypeIn applies the In predicate on the "facility_type" field.
+func FacilityTypeIn(vs ...string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldIn(FieldFacilityType, vs...))
+}
+
+// FacilityTypeNotIn applies the NotIn predicate on the "facility_type" field.
+func FacilityTypeNotIn(vs ...string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldNotIn(FieldFacilityType, vs...))
+}
+
+// FacilityTypeGT applies the GT predicate on the "facility_type" field.
+func FacilityTypeGT(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldGT(FieldFacilityType, v))
+}
+
+// FacilityTypeGTE applies the GTE predicate on the "facility_type" field.
+func FacilityTypeGTE(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldGTE(FieldFacilityType, v))
+}
+
+// FacilityTypeLT applies the LT predicate on the "facility_type" field.
+func FacilityTypeLT(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldLT(FieldFacilityType, v))
+}
+
+// FacilityTypeLTE applies the LTE predicate on the "facility_type" field.
+func FacilityTypeLTE(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldLTE(FieldFacilityType, v))
+}
+
+// FacilityTypeContains applies the Contains predicate on the "facility_type" field.
+func FacilityTypeContains(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldContains(FieldFacilityType, v))
+}
+
+// FacilityTypeHasPrefix applies the HasPrefix predicate on the "facility_type" field.
+func FacilityTypeHasPrefix(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldHasPrefix(FieldFacilityType, v))
+}
+
+// FacilityTypeHasSuffix applies the HasSuffix predicate on the "facility_type" field.
+func FacilityTypeHasSuffix(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldHasSuffix(FieldFacilityType, v))
+}
+
+// FacilityTypeIsNil applies the IsNil predicate on the "facility_type" field.
+func FacilityTypeIsNil() predicate.Outlet {
+	return predicate.Outlet(sql.FieldIsNull(FieldFacilityType))
+}
+
+// FacilityTypeNotNil applies the NotNil predicate on the "facility_type" field.
+func FacilityTypeNotNil() predicate.Outlet {
+	return predicate.Outlet(sql.FieldNotNull(FieldFacilityType))
+}
+
+// FacilityTypeEqualFold applies the EqualFold predicate on the "facility_type" field.
+func FacilityTypeEqualFold(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldEqualFold(FieldFacilityType, v))
+}
+
+// FacilityTypeContainsFold applies the ContainsFold predicate on the "facility_type" field.
+func FacilityTypeContainsFold(v string) predicate.Outlet {
+	return predicate.Outlet(sql.FieldContainsFold(FieldFacilityType, v))
 }
 
 // IsHqEQ applies the EQ predicate on the "is_hq" field.

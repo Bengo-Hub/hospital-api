@@ -37,6 +37,16 @@ func (Outlet) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Use case for this outlet, e.g. hospital"),
+		field.String("facility_type").
+			Optional().
+			Nillable().
+			Comment("Afya facility tier for THIS outlet — chemist|clinic|facility|hospital. Sourced " +
+				"from auth-api's Outlet.metadata (no schema change there), synced the same way " +
+				"use_case already is. Presentation-only (which nav hospital-ui's adaptive sidebar " +
+				"shows), NOT a licensing/feature-gating field — that stays the subscription plan's " +
+				"job. 2026-09-02: replaces deriving nav tier from the tenant-wide subscription, " +
+				"which couldn't distinguish two outlets under the same tenant and needed a real " +
+				"paid/assigned plan to resolve to anything but the safe default."),
 		field.Bool("is_hq").
 			Default(false).
 			Comment("HQ outlets bypass outlet-scoped data filtering — staff see all outlets"),
