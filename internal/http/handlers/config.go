@@ -113,11 +113,12 @@ func (h *ConfigHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 type outletDTO struct {
-	ID     string `json:"id"`
-	Code   string `json:"code"`
-	Name   string `json:"name"`
-	IsHQ   bool   `json:"is_hq"`
-	Status string `json:"status"`
+	ID           string `json:"id"`
+	Code         string `json:"code"`
+	Name         string `json:"name"`
+	IsHQ         bool   `json:"is_hq"`
+	Status       string `json:"status"`
+	FacilityType string `json:"facility_type,omitempty"`
 }
 
 // ListOutlets handles GET /{tenant}/hospital/outlets — the source list for hospital-ui's outlet
@@ -163,7 +164,11 @@ func (h *ConfigHandler) ListOutlets(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]outletDTO, 0, len(outlets))
 	for _, o := range outlets {
-		out = append(out, outletDTO{ID: o.ID.String(), Code: o.Code, Name: o.Name, IsHQ: o.IsHq, Status: o.Status})
+		dto := outletDTO{ID: o.ID.String(), Code: o.Code, Name: o.Name, IsHQ: o.IsHq, Status: o.Status}
+		if o.FacilityType != nil {
+			dto.FacilityType = *o.FacilityType
+		}
+		out = append(out, dto)
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"data": out})
 }
