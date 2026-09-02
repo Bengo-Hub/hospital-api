@@ -197,15 +197,23 @@ type SearchItem struct {
 }
 
 // SearchItems calls inventory-api's real item list/search endpoint (GET /v1/{tenant}/inventory/
-// items) scoped to type=DRUG, for a prescription-line autocomplete with a live stock preview —
-// previously prescription lines were pure free-text SKU/name/price with no lookup at all. `lean`
-// is always set (this caller never needs the image-gallery/preferred-supplier eager loads).
+// items) scoped to use_case=PHARMACY, for a prescription-line autocomplete with a live stock
+// preview — previously prescription lines were pure free-text SKU/name/price with no lookup at
+// all. `lean` is always set (this caller never needs the image-gallery/preferred-supplier eager
+// loads). Filters on `use_case`, NOT `type`: inventory-api's Item.type enum is
+// GOODS|SERVICE|RECIPE|INGREDIENT|VOUCHER|EQUIPMENT — "DRUG" has never been a valid value there
+// (confirmed against internal/ent/schema/item.go). A pharmacy item is real inventory GOODS
+// classified by the separate `use_case` field (RETAIL|PHARMACY|FOOD_BEVERAGE|...) — this was
+// filtering on a value that could never match, silently returning zero results for every tenant
+// regardless of whether pharmacy items were actually seeded (codevertex-demo's own 10 real
+// PHM-* items, `use_case=PHARMACY`, were sitting in inventory-api the whole time — confirmed live
+// 2026-09-02 via a direct curl).
 func (c *Client) SearchItems(ctx context.Context, tenantID uuid.UUID, search string) ([]SearchItem, error) {
 	if !c.enabled {
 		return nil, fmt.Errorf("inventory client not configured")
 	}
 	q := url.Values{}
-	q.Set("type", "DRUG")
+	q.Set("use_case", "PHARMACY")
 	q.Set("lean", "1")
 	q.Set("limit", "20")
 	if search != "" {
