@@ -164,17 +164,21 @@ func (h *LabHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Request
 		respondError(w, http.StatusBadRequest, "invalid order ID")
 		return
 	}
-	// Same per-charge-module gate CollectCharge enforces on the cash path (see billing.go's
-	// sourceModulePermission) — the route-level RequireServicePermission only checks collect_own
-	// OR collect_any, which would let a collect_own-only holder (e.g. a nurse) claim LAB charges
-	// via insurance without actually holding lab permission. A lab order's charges are always
-	// source_module="lab", so this is a single fixed check rather than iterating a charge list.
-	if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectAny) {
-		if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectOwn) ||
-			!outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermLabAdd) {
-			respondError(w, http.StatusForbidden, "you do not have permission to claim this order's charges")
-			return
-		}
+	// A lab order's charges are always source_module="lab". Originally required collect_own AND
+	// lab.add together for anyone without collect_any — but that's stricter than the picker route
+	// one line over (GET /insurance/providers) already deliberately is, and stricter than the
+	// frontend's own gate (laboratory/page.tsx's Bill-to-Insurance button), for no real reason: a
+	// doctor holds lab.add but not billing.collect_own, a records clerk holds collect_own but not
+	// lab.add — both are legitimate holders of SOME real permission over this action. Widened to a
+	// plain OR of the three, matching the providers-picker route's own established reasoning
+	// ("a doctor billing a lab order to insurance holds PermLabAdd but not PermBillingView, and
+	// would otherwise 403 on the picker alone") rather than leaving the submit endpoint stricter
+	// than the picker that feeds it.
+	if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectAny) &&
+		!outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectOwn) &&
+		!outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermLabAdd) {
+		respondError(w, http.StatusForbidden, "you do not have permission to claim this order's charges")
+		return
 	}
 	var in labInsuranceClaimRequest
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {

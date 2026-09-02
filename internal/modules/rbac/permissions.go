@@ -86,6 +86,10 @@ const (
 	RolePharmacist   = "pharmacist"
 	RoleRecordsClerk = "records_clerk"
 	RoleManager      = "manager"
+	// RoleLabTech (2026-09-02) closes a real out-of-the-box gap: no seeded role except Admin's
+	// wildcard held PermLabChange, so nobody could enter lab results or activate a paid lab order
+	// without an admin first customizing a role. See docs/architecture.md's role list.
+	RoleLabTech = "lab_technician"
 	// RoleCashier is the Billing desk — the universal fallback collection point for any
 	// department that doesn't (or can't) collect its own charges directly. See
 	// docs/architecture.md "Distributed Billing & Patient Accounts".

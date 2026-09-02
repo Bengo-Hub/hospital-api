@@ -120,6 +120,14 @@ var defaultRoles = []roleDefinition{
 		},
 	},
 	{
+		Code:        RoleLabTech,
+		Name:        "Lab Technician",
+		Description: "Enter and edit lab results, activate paid lab orders",
+		Permissions: []string{
+			PermLabView, PermLabAdd, PermLabChange,
+		},
+	},
+	{
 		Code:        RoleRecordsClerk,
 		Name:        "Records Clerk",
 		Description: "Patient records, registration, and reception queuing",
