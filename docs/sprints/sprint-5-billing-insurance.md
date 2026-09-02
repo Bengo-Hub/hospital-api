@@ -174,3 +174,69 @@ of first-contact fees + inpatient accounts.
 
 Sprint 6 — Inpatient (the `PatientAccount`'s `admission_id` linkage; ward/day-rate charges accrue
 onto the same account this sprint builds).
+
+## Gap audit and MVP backlog candidates (2026-09-02)
+
+Completeness audit of the shipped Billing & Insurance ledger against real hospital billing
+practice, done against the actual shipped `internal/ent/schema/billable_charge.go`/`patient_
+account.go` and `internal/modules/billing/service.go` plus `internal/modules/inpatient/service.go`'s
+`Admit`, not this sprint doc's own text. All proposals below are **proposed, not yet built**, except
+item 4, which is a positive finding confirming existing behaviour is already correct.
+
+1. **Pre-payment / deposit collection at admission time.** `inpatient.Service.Admit`
+   (`internal/modules/inpatient/service.go`) validates the bed, occupies it, flips the visit to
+   admitted, and opens a zero-balance `PatientAccount` (created lazily, only once the first
+   department charge posts). It collects nothing upfront. Sprint 6 already built the
+   discharge-time balance gate (`ErrOutstandingBalance`), but there is no admission-time
+   counterpart. Fresh web research on real Kenyan hospital practice confirms a fixed, ward-type-based
+   cash deposit at or before admission is standard for cash-paying patients, with insured patients
+   instead providing a letter of guarantee/undertaking on the day of admission. **Proposed**: (a) a
+   new `ADMISSION_DEPOSIT` `BillableItemCatalog` code (department `inpatient`, `requires_prepayment`
+   true), charged automatically inside `Admit` the same best-effort way `chargeRegistrationFee`/
+   `chargeConsultationFee` already work in Sprints 1/2 (never blocks the admission itself if
+   unconfigured or if posting fails); (b) for the insured path, an additive nullable
+   `Admission.insurance_guarantee_reference` free-text field to record a letter-of-guarantee/
+   undertaking reference in place of a cash deposit. Both additive, no destructive schema change,
+   and (a) directly mirrors an already-established pattern in this same codebase rather than
+   inventing a new one.
+
+2. **Printed / PDF itemized invoice and receipt.** `treasury.Client` (`internal/modules/treasury/
+   client.go`) exposes `CreateInvoice`/`CreateCreditNote`/`CreateIntent`/etc., all JSON-data S2S
+   calls, and grep of this whole service confirms zero PDF/receipt call anywhere. Billing today is
+   purely in-app: nothing in hospital-api or hospital-ui produces a printable/downloadable invoice or
+   receipt for a patient or cashier. Per the project's own cross-service memory
+   (`reference_docs_engine_shared_across_services.md`), a shared PDF-rendering engine already exists
+   and is used by inventory-api/pos-api/treasury-api's own invoice flows, hospital-api was simply
+   never wired to call it. **Proposed**: a `GET /billing/charges/{id}/receipt.pdf` (or an
+   account-level itemized statement) endpoint that calls into treasury-api's existing invoice PDF
+   capability over S2S. **Verify first**: confirm treasury-api actually exposes that render as an
+   S2S-callable endpoint (not just an admin-JWT UI route) before scoping this as "just a new
+   hospital-api handler". If it doesn't, this becomes a small treasury-api-side task first. Moderate,
+   cross-service effort.
+
+3. **Refund / credit-note workflow for an overpayment or billing error.** Genuinely good news here
+   too: `treasury.Client.CreateCreditNote(ctx, tenantID, invoiceID, lines)` already exists in
+   hospital-api's own treasury client (`internal/modules/treasury/client.go`), but grep of
+   `internal/modules/billing/service.go` and every HTTP handler confirms zero call sites, it is dead,
+   unused capability from hospital-api's side. **Proposed**: a `billing.Service.IssueRefund(chargeID,
+   reason)` wrapper calling the existing `treasury.CreateCreditNote`, gated on a billing permission
+   mirroring how `OverrideSettlement`/`WaiveCharge` are already exposed, marking the charge with a new
+   `refunded` `BillableCharge.status` value (joining the existing pending/invoiced/paid/exempted/
+   waived/written_off set, an additive enum value exactly like `exempted` was added 2026-08-29, per
+   this doc's own earlier note that ent's enum-to-Postgres mapping needs no migration DDL for this).
+   Quick win: the hard part (the treasury-api primitive) already exists, only a service method and a
+   route are missing.
+
+4. **Price-list versioning, confirmed already correct, no fix needed.** Traced `PostCharge`
+   (`internal/modules/billing/service.go`) end to end: `BillableCharge.amount` is set at charge-post
+   time from whatever price the calling module resolved from `BillableItemCatalog` (or the drug/lab
+   catalogue) AT THAT MOMENT, e.g. `findActiveBillableItem` in `patients.Service.
+   chargeRegistrationFee` is queried fresh on every check-in. A later `UpdateBillableItem` price
+   change therefore correctly affects only NEW charges going forward; an already-open account's
+   existing charges keep their original snapshotted amount, exactly as a real billing ledger should
+   behave. Documenting this explicitly so a future engineer doesn't assume it's broken and build an
+   unnecessary fix; no action needed.
+
+See `hospital-api/docs/mvp-gap-backlog-2026-09-02.md` for this item's place in the full
+sprint-by-sprint backlog, and for the User Management/RBAC module's own gap-audit findings (which
+have no sprint-numbered doc of their own to live in).

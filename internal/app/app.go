@@ -241,6 +241,11 @@ func New(ctx context.Context) (*App, error) {
 	icuSvc := icu.NewService(ormClient, log)
 	icuHandler := handlers.NewICUHandler(icuSvc)
 
+	// Biomedical Equipment — read-only inventory-api Asset integration (brought forward from
+	// Sprint 9, see docs/architecture.md). Reuses the same inventorySvc S2S client Sprint 4's
+	// pharmacy drug-search already wired.
+	assetsHandler := handlers.NewAssetsHandler(inventorySvc)
+
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
 
@@ -271,6 +276,7 @@ func New(ctx context.Context) (*App, error) {
 		Inpatient:      inpatientHandler,
 		Theatre:        theatreHandler,
 		ICU:            icuHandler,
+		Assets:         assetsHandler,
 		TenantSyncer:   tenantSyncer,
 	}
 	chiRouter := router.New(deps)

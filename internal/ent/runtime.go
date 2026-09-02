@@ -83,12 +83,16 @@ func init() {
 	bedDescBedNumber := bedFields[3].Descriptor()
 	// bed.BedNumberValidator is a validator for the "bed_number" field. It is called by the builders before save.
 	bed.BedNumberValidator = bedDescBedNumber.Validators[0].(func(string) error)
+	// bedDescEquipmentAssetIds is the schema descriptor for equipment_asset_ids field.
+	bedDescEquipmentAssetIds := bedFields[5].Descriptor()
+	// bed.DefaultEquipmentAssetIds holds the default value on creation for the equipment_asset_ids field.
+	bed.DefaultEquipmentAssetIds = bedDescEquipmentAssetIds.Default.([]uuid.UUID)
 	// bedDescCreatedAt is the schema descriptor for created_at field.
-	bedDescCreatedAt := bedFields[5].Descriptor()
+	bedDescCreatedAt := bedFields[6].Descriptor()
 	// bed.DefaultCreatedAt holds the default value on creation for the created_at field.
 	bed.DefaultCreatedAt = bedDescCreatedAt.Default.(func() time.Time)
 	// bedDescUpdatedAt is the schema descriptor for updated_at field.
-	bedDescUpdatedAt := bedFields[6].Descriptor()
+	bedDescUpdatedAt := bedFields[7].Descriptor()
 	// bed.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	bed.DefaultUpdatedAt = bedDescUpdatedAt.Default.(func() time.Time)
 	// bed.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -389,16 +393,20 @@ func init() {
 	hospitaluseroutlet.DefaultID = hospitaluseroutletDescID.Default.(func() uuid.UUID)
 	icuepisodeFields := schema.ICUEpisode{}.Fields()
 	_ = icuepisodeFields
+	// icuepisodeDescEquipmentAssetIds is the schema descriptor for equipment_asset_ids field.
+	icuepisodeDescEquipmentAssetIds := icuepisodeFields[6].Descriptor()
+	// icuepisode.DefaultEquipmentAssetIds holds the default value on creation for the equipment_asset_ids field.
+	icuepisode.DefaultEquipmentAssetIds = icuepisodeDescEquipmentAssetIds.Default.([]uuid.UUID)
 	// icuepisodeDescStartedAt is the schema descriptor for started_at field.
-	icuepisodeDescStartedAt := icuepisodeFields[7].Descriptor()
+	icuepisodeDescStartedAt := icuepisodeFields[8].Descriptor()
 	// icuepisode.DefaultStartedAt holds the default value on creation for the started_at field.
 	icuepisode.DefaultStartedAt = icuepisodeDescStartedAt.Default.(func() time.Time)
 	// icuepisodeDescCreatedAt is the schema descriptor for created_at field.
-	icuepisodeDescCreatedAt := icuepisodeFields[9].Descriptor()
+	icuepisodeDescCreatedAt := icuepisodeFields[10].Descriptor()
 	// icuepisode.DefaultCreatedAt holds the default value on creation for the created_at field.
 	icuepisode.DefaultCreatedAt = icuepisodeDescCreatedAt.Default.(func() time.Time)
 	// icuepisodeDescUpdatedAt is the schema descriptor for updated_at field.
-	icuepisodeDescUpdatedAt := icuepisodeFields[10].Descriptor()
+	icuepisodeDescUpdatedAt := icuepisodeFields[11].Descriptor()
 	// icuepisode.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	icuepisode.DefaultUpdatedAt = icuepisodeDescUpdatedAt.Default.(func() time.Time)
 	// icuepisode.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -815,12 +823,16 @@ func init() {
 	theatrebookingDescChecklist := theatrebookingFields[11].Descriptor()
 	// theatrebooking.DefaultChecklist holds the default value on creation for the checklist field.
 	theatrebooking.DefaultChecklist = theatrebookingDescChecklist.Default.(map[string]bool)
+	// theatrebookingDescEquipmentAssetIds is the schema descriptor for equipment_asset_ids field.
+	theatrebookingDescEquipmentAssetIds := theatrebookingFields[13].Descriptor()
+	// theatrebooking.DefaultEquipmentAssetIds holds the default value on creation for the equipment_asset_ids field.
+	theatrebooking.DefaultEquipmentAssetIds = theatrebookingDescEquipmentAssetIds.Default.([]uuid.UUID)
 	// theatrebookingDescCreatedAt is the schema descriptor for created_at field.
-	theatrebookingDescCreatedAt := theatrebookingFields[16].Descriptor()
+	theatrebookingDescCreatedAt := theatrebookingFields[17].Descriptor()
 	// theatrebooking.DefaultCreatedAt holds the default value on creation for the created_at field.
 	theatrebooking.DefaultCreatedAt = theatrebookingDescCreatedAt.Default.(func() time.Time)
 	// theatrebookingDescUpdatedAt is the schema descriptor for updated_at field.
-	theatrebookingDescUpdatedAt := theatrebookingFields[17].Descriptor()
+	theatrebookingDescUpdatedAt := theatrebookingFields[18].Descriptor()
 	// theatrebooking.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	theatrebooking.DefaultUpdatedAt = theatrebookingDescUpdatedAt.Default.(func() time.Time)
 	// theatrebooking.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

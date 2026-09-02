@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/bed"
@@ -84,6 +85,24 @@ func (_u *BedUpdate) SetNillableStatus(v *bed.Status) *BedUpdate {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_u *BedUpdate) SetEquipmentAssetIds(v []uuid.UUID) *BedUpdate {
+	_u.mutation.SetEquipmentAssetIds(v)
+	return _u
+}
+
+// AppendEquipmentAssetIds appends value to the "equipment_asset_ids" field.
+func (_u *BedUpdate) AppendEquipmentAssetIds(v []uuid.UUID) *BedUpdate {
+	_u.mutation.AppendEquipmentAssetIds(v)
+	return _u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (_u *BedUpdate) ClearEquipmentAssetIds() *BedUpdate {
+	_u.mutation.ClearEquipmentAssetIds()
 	return _u
 }
 
@@ -219,6 +238,17 @@ func (_u *BedUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(bed.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(bed.FieldEquipmentAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedEquipmentAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, bed.FieldEquipmentAssetIds, value)
+		})
+	}
+	if _u.mutation.EquipmentAssetIdsCleared() {
+		_spec.ClearField(bed.FieldEquipmentAssetIds, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(bed.FieldUpdatedAt, field.TypeTime, value)
@@ -370,6 +400,24 @@ func (_u *BedUpdateOne) SetNillableStatus(v *bed.Status) *BedUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_u *BedUpdateOne) SetEquipmentAssetIds(v []uuid.UUID) *BedUpdateOne {
+	_u.mutation.SetEquipmentAssetIds(v)
+	return _u
+}
+
+// AppendEquipmentAssetIds appends value to the "equipment_asset_ids" field.
+func (_u *BedUpdateOne) AppendEquipmentAssetIds(v []uuid.UUID) *BedUpdateOne {
+	_u.mutation.AppendEquipmentAssetIds(v)
+	return _u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (_u *BedUpdateOne) ClearEquipmentAssetIds() *BedUpdateOne {
+	_u.mutation.ClearEquipmentAssetIds()
 	return _u
 }
 
@@ -535,6 +583,17 @@ func (_u *BedUpdateOne) sqlSave(ctx context.Context) (_node *Bed, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(bed.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(bed.FieldEquipmentAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedEquipmentAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, bed.FieldEquipmentAssetIds, value)
+		})
+	}
+	if _u.mutation.EquipmentAssetIdsCleared() {
+		_spec.ClearField(bed.FieldEquipmentAssetIds, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(bed.FieldUpdatedAt, field.TypeTime, value)

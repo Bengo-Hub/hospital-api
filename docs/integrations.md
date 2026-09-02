@@ -1,8 +1,12 @@
 # Hospital API — Integration Guide
 
-**Last updated:** 2026-09-02 (§2A.1 and §2D.1 added — deepened ambulance billing linkage and the
-inter-facility referral/transfer shape, planned design only, see the sections themselves and
-`docs/architecture.md`'s new "Referral, Transfer & Ambulance Billing" section). Previously updated
+**Last updated:** 2026-09-02, later the same day (§1.5 extended — confirmed the exact asset-route
+paths/auth bypass and two real `AssetReservation` gaps behind the shipped `equipment_asset_ids`
+linkage design, see the section itself and `docs/architecture.md`'s "Biomedical Equipment / Asset
+Integration" section). Previously updated the same day: §2A.1 and §2D.1
+added — deepened ambulance billing linkage and the inter-facility referral/transfer shape, planned
+design only, see the sections themselves and `docs/architecture.md`'s "Referral, Transfer & Ambulance
+Billing" section. Previously updated
 2026-08-29 (§1.7, §2C, §2D, §2E added after a KenyaEMR technical audit and a Kenya
 national-HIE research pass, see `docs/kenyaemr-technical-reference.md` and `docs/compliance-kenya.md`
 §9-10; later the same day, §1.1-1.3 and §2.1 flipped to "implemented" once Sprint 4/5-core actually
@@ -83,6 +87,33 @@ hospital-api's UI surfaces this data as "Biomedical Equipment" and lets clinical
 "ventilator X is due for maintenance" — it does **not** own a parallel asset table. Depreciation
 accounting for the same asset is already wired via `treasury-api`'s `FixedAssetDepreciation`
 (references `asset_id`) — hospital-api never posts depreciation.
+
+**Confirmed and shipped 2026-09-02 (path/auth detail, brought forward from Sprint 9).** A direct
+read of inventory-api's own route table and middleware (not the plan above, the actual code)
+confirmed the exact paths and access story the shipped `equipment_asset_ids` linkage on
+`Bed`/`TheatreBooking`/`ICUEpisode` (a JSON array, not a single `asset_id`, and not on `Ward` — see
+`docs/architecture.md`'s "Biomedical Equipment / Asset Integration" section for the full corrected
+design) depends on:
+
+- Every asset `GET` route (`/inventory/assets`, `/{id}`, and every detail-object list —
+  `/maintenance`, `/transfers`, `/disposals`, `/insurance`, `/audits`, `/reservations`) is registered
+  with no middleware at all — confirmed ungated by reading the route table directly.
+- Every mutating asset route requires inventory-api's `fixed_assets` feature flag plus a real
+  permission — **both are fully bypassed** for hospital-api's actual S2S caller, because
+  `internal/modules/inventory/client.go` authenticates with the static `X-API-Key`
+  (`INTERNAL_SERVICE_KEY`), and inventory-api's tenant-tree guard recognizes that exact key and
+  injects `Claims{IsService: true, SubscriptionExempt: true}` rather than resolving a real user — both
+  the permission gate and the feature gate short-circuit unconditionally on those two claim fields.
+  Full detail and the reasoning for why this matters: `docs/architecture.md`'s new "Biomedical
+  Equipment / Asset Integration" section.
+- **Known gaps in `AssetReservation`** (relevant if the concurrent work reuses it for a time-bound
+  equipment booking, e.g. an anaesthesia machine reserved for a theatre slot): `POST
+  /inventory/assets/{id}/reservations` performs no overlap/conflict check against any existing
+  reservation for the same asset and time window, and no route exists to transition a reservation's
+  `status` past its default `pending` once created. Neither is fixed by this pass — hospital-api's own
+  booking logic should not assume either protection exists yet. Full detail:
+  `docs/architecture.md`'s Asset Integration section and `docs/sprints/sprint-7-theatre-icu.md`'s gap
+  audit.
 
 ### 1.6 Blood-unit stock (lot-tracked, no bespoke blood inventory)
 

@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ type Bed struct {
 	BedNumber string `json:"bed_number,omitempty"`
 	// Status holds the value of the "status" field.
 	Status bed.Status `json:"status,omitempty"`
+	// EquipmentAssetIds holds the value of the "equipment_asset_ids" field.
+	EquipmentAssetIds []uuid.UUID `json:"equipment_asset_ids,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -73,6 +76,8 @@ func (*Bed) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case bed.FieldEquipmentAssetIds:
+			values[i] = new([]byte)
 		case bed.FieldBedNumber, bed.FieldStatus:
 			values[i] = new(sql.NullString)
 		case bed.FieldCreatedAt, bed.FieldUpdatedAt:
@@ -123,6 +128,14 @@ func (_m *Bed) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = bed.Status(value.String)
+			}
+		case bed.FieldEquipmentAssetIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field equipment_asset_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.EquipmentAssetIds); err != nil {
+					return fmt.Errorf("unmarshal field equipment_asset_ids: %w", err)
+				}
 			}
 		case bed.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -193,6 +206,9 @@ func (_m *Bed) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("equipment_asset_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.EquipmentAssetIds))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

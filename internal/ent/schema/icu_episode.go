@@ -27,6 +27,10 @@ func (ICUEpisode) Fields() []ent.Field {
 		field.UUID("bed_id", uuid.UUID{}),
 		field.Enum("severity_flag").Values("stable", "guarded", "critical").Default("stable"),
 		field.String("monitoring_notes").Optional(),
+		// EquipmentAssetIDs (2026-09-02, Biomedical Equipment integration brought forward from
+		// Sprint 9): references to inventory-api's Asset register (e.g. a ventilator) attached to
+		// this episode — reference only. See docs/architecture.md.
+		field.JSON("equipment_asset_ids", []uuid.UUID{}).Optional().Default([]uuid.UUID{}),
 		field.UUID("started_by", uuid.UUID{}).Optional().Nillable(),
 		field.Time("started_at").Default(time.Now).Immutable(),
 		field.Time("ended_at").Optional().Nillable(),

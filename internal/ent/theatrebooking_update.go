@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
@@ -221,6 +222,24 @@ func (_u *TheatreBookingUpdate) ClearFeeAmount() *TheatreBookingUpdate {
 	return _u
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_u *TheatreBookingUpdate) SetEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.SetEquipmentAssetIds(v)
+	return _u
+}
+
+// AppendEquipmentAssetIds appends value to the "equipment_asset_ids" field.
+func (_u *TheatreBookingUpdate) AppendEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.AppendEquipmentAssetIds(v)
+	return _u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (_u *TheatreBookingUpdate) ClearEquipmentAssetIds() *TheatreBookingUpdate {
+	_u.mutation.ClearEquipmentAssetIds()
+	return _u
+}
+
 // SetCreatedBy sets the "created_by" field.
 func (_u *TheatreBookingUpdate) SetCreatedBy(v uuid.UUID) *TheatreBookingUpdate {
 	_u.mutation.SetCreatedBy(v)
@@ -410,6 +429,17 @@ func (_u *TheatreBookingUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.FeeAmountCleared() {
 		_spec.ClearField(theatrebooking.FieldFeeAmount, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(theatrebooking.FieldEquipmentAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedEquipmentAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, theatrebooking.FieldEquipmentAssetIds, value)
+		})
+	}
+	if _u.mutation.EquipmentAssetIdsCleared() {
+		_spec.ClearField(theatrebooking.FieldEquipmentAssetIds, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.CreatedBy(); ok {
 		_spec.SetField(theatrebooking.FieldCreatedBy, field.TypeUUID, value)
@@ -644,6 +674,24 @@ func (_u *TheatreBookingUpdateOne) ClearFeeAmount() *TheatreBookingUpdateOne {
 	return _u
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_u *TheatreBookingUpdateOne) SetEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.SetEquipmentAssetIds(v)
+	return _u
+}
+
+// AppendEquipmentAssetIds appends value to the "equipment_asset_ids" field.
+func (_u *TheatreBookingUpdateOne) AppendEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.AppendEquipmentAssetIds(v)
+	return _u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (_u *TheatreBookingUpdateOne) ClearEquipmentAssetIds() *TheatreBookingUpdateOne {
+	_u.mutation.ClearEquipmentAssetIds()
+	return _u
+}
+
 // SetCreatedBy sets the "created_by" field.
 func (_u *TheatreBookingUpdateOne) SetCreatedBy(v uuid.UUID) *TheatreBookingUpdateOne {
 	_u.mutation.SetCreatedBy(v)
@@ -863,6 +911,17 @@ func (_u *TheatreBookingUpdateOne) sqlSave(ctx context.Context) (_node *TheatreB
 	}
 	if _u.mutation.FeeAmountCleared() {
 		_spec.ClearField(theatrebooking.FieldFeeAmount, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(theatrebooking.FieldEquipmentAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedEquipmentAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, theatrebooking.FieldEquipmentAssetIds, value)
+		})
+	}
+	if _u.mutation.EquipmentAssetIdsCleared() {
+		_spec.ClearField(theatrebooking.FieldEquipmentAssetIds, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.CreatedBy(); ok {
 		_spec.SetField(theatrebooking.FieldCreatedBy, field.TypeUUID, value)

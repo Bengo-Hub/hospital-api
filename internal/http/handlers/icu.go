@@ -91,8 +91,9 @@ func (h *ICUHandler) GetEpisode(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateEpisodeRequest struct {
-	SeverityFlag    *string `json:"severity_flag,omitempty"`
-	MonitoringNotes *string `json:"monitoring_notes,omitempty"`
+	SeverityFlag    *string  `json:"severity_flag,omitempty"`
+	MonitoringNotes *string  `json:"monitoring_notes,omitempty"`
+	EquipmentIDs    []string `json:"equipment_asset_ids,omitempty"`
 }
 
 // UpdateEpisode handles PATCH /{tenant}/hospital/icu-episodes/{episodeID}
@@ -112,9 +113,17 @@ func (h *ICUHandler) UpdateEpisode(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	episode, err := h.svc.UpdateEpisode(r.Context(), tenantID, episodeID, icu.UpdateEpisodeRequest{
-		SeverityFlag: in.SeverityFlag, MonitoringNotes: in.MonitoringNotes,
-	})
+	req := icu.UpdateEpisodeRequest{SeverityFlag: in.SeverityFlag, MonitoringNotes: in.MonitoringNotes}
+	if in.EquipmentIDs != nil {
+		assetIDs := make([]uuid.UUID, 0, len(in.EquipmentIDs))
+		for _, s := range in.EquipmentIDs {
+			if id, perr := uuid.Parse(s); perr == nil {
+				assetIDs = append(assetIDs, id)
+			}
+		}
+		req.EquipmentAssetIDs = &assetIDs
+	}
+	episode, err := h.svc.UpdateEpisode(r.Context(), tenantID, episodeID, req)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return

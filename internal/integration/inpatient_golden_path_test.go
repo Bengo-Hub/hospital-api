@@ -108,6 +108,18 @@ func TestInpatientGoldenPath(t *testing.T) {
 	if occupiedBedA.Status != bed.StatusOccupied {
 		t.Fatalf("bed A status after admit = %q, want %q", occupiedBedA.Status, bed.StatusOccupied)
 	}
+
+	// Biomedical Equipment linkage (2026-09-02, brought forward from Sprint 9) — a bed can
+	// reference inventory-api Asset IDs (e.g. a bed-mounted monitor), reference only.
+	monitorAssetID := uuid.New()
+	bedWithEquipment, err := inpatientSvc.SetBedEquipment(ctx, tenantID, bedA.ID, []uuid.UUID{monitorAssetID})
+	if err != nil {
+		t.Fatalf("set bed equipment: %v", err)
+	}
+	if len(bedWithEquipment.EquipmentAssetIds) != 1 || bedWithEquipment.EquipmentAssetIds[0] != monitorAssetID {
+		t.Fatalf("bed equipment_asset_ids = %v, want [%v]", bedWithEquipment.EquipmentAssetIds, monitorAssetID)
+	}
+
 	admAcct, _, err := billingSvc.GetAccountByAdmission(ctx, tenantID, adm.ID)
 	if err != nil {
 		t.Fatalf("get admission account: %v", err)

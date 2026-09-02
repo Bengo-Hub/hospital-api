@@ -58,6 +58,12 @@ func (_c *BedCreate) SetNillableStatus(v *bed.Status) *BedCreate {
 	return _c
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_c *BedCreate) SetEquipmentAssetIds(v []uuid.UUID) *BedCreate {
+	_c.mutation.SetEquipmentAssetIds(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *BedCreate) SetCreatedAt(v time.Time) *BedCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -159,6 +165,10 @@ func (_c *BedCreate) defaults() {
 		v := bed.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.EquipmentAssetIds(); !ok {
+		v := bed.DefaultEquipmentAssetIds
+		_c.mutation.SetEquipmentAssetIds(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := bed.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -253,6 +263,10 @@ func (_c *BedCreate) createSpec() (*Bed, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(bed.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(bed.FieldEquipmentAssetIds, field.TypeJSON, value)
+		_node.EquipmentAssetIds = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(bed.FieldCreatedAt, field.TypeTime, value)
@@ -395,6 +409,24 @@ func (u *BedUpsert) UpdateStatus() *BedUpsert {
 	return u
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *BedUpsert) SetEquipmentAssetIds(v []uuid.UUID) *BedUpsert {
+	u.Set(bed.FieldEquipmentAssetIds, v)
+	return u
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *BedUpsert) UpdateEquipmentAssetIds() *BedUpsert {
+	u.SetExcluded(bed.FieldEquipmentAssetIds)
+	return u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *BedUpsert) ClearEquipmentAssetIds() *BedUpsert {
+	u.SetNull(bed.FieldEquipmentAssetIds)
+	return u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BedUpsert) SetUpdatedAt(v time.Time) *BedUpsert {
 	u.Set(bed.FieldUpdatedAt, v)
@@ -511,6 +543,27 @@ func (u *BedUpsertOne) SetStatus(v bed.Status) *BedUpsertOne {
 func (u *BedUpsertOne) UpdateStatus() *BedUpsertOne {
 	return u.Update(func(s *BedUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *BedUpsertOne) SetEquipmentAssetIds(v []uuid.UUID) *BedUpsertOne {
+	return u.Update(func(s *BedUpsert) {
+		s.SetEquipmentAssetIds(v)
+	})
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *BedUpsertOne) UpdateEquipmentAssetIds() *BedUpsertOne {
+	return u.Update(func(s *BedUpsert) {
+		s.UpdateEquipmentAssetIds()
+	})
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *BedUpsertOne) ClearEquipmentAssetIds() *BedUpsertOne {
+	return u.Update(func(s *BedUpsert) {
+		s.ClearEquipmentAssetIds()
 	})
 }
 
@@ -799,6 +852,27 @@ func (u *BedUpsertBulk) SetStatus(v bed.Status) *BedUpsertBulk {
 func (u *BedUpsertBulk) UpdateStatus() *BedUpsertBulk {
 	return u.Update(func(s *BedUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *BedUpsertBulk) SetEquipmentAssetIds(v []uuid.UUID) *BedUpsertBulk {
+	return u.Update(func(s *BedUpsert) {
+		s.SetEquipmentAssetIds(v)
+	})
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *BedUpsertBulk) UpdateEquipmentAssetIds() *BedUpsertBulk {
+	return u.Update(func(s *BedUpsert) {
+		s.UpdateEquipmentAssetIds()
+	})
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *BedUpsertBulk) ClearEquipmentAssetIds() *BedUpsertBulk {
+	return u.Update(func(s *BedUpsert) {
+		s.ClearEquipmentAssetIds()
 	})
 }
 

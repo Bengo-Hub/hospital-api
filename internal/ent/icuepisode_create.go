@@ -70,6 +70,12 @@ func (_c *ICUEpisodeCreate) SetNillableMonitoringNotes(v *string) *ICUEpisodeCre
 	return _c
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_c *ICUEpisodeCreate) SetEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeCreate {
+	_c.mutation.SetEquipmentAssetIds(v)
+	return _c
+}
+
 // SetStartedBy sets the "started_by" field.
 func (_c *ICUEpisodeCreate) SetStartedBy(v uuid.UUID) *ICUEpisodeCreate {
 	_c.mutation.SetStartedBy(v)
@@ -193,6 +199,10 @@ func (_c *ICUEpisodeCreate) defaults() {
 		v := icuepisode.DefaultSeverityFlag
 		_c.mutation.SetSeverityFlag(v)
 	}
+	if _, ok := _c.mutation.EquipmentAssetIds(); !ok {
+		v := icuepisode.DefaultEquipmentAssetIds
+		_c.mutation.SetEquipmentAssetIds(v)
+	}
 	if _, ok := _c.mutation.StartedAt(); !ok {
 		v := icuepisode.DefaultStartedAt()
 		_c.mutation.SetStartedAt(v)
@@ -294,6 +304,10 @@ func (_c *ICUEpisodeCreate) createSpec() (*ICUEpisode, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.MonitoringNotes(); ok {
 		_spec.SetField(icuepisode.FieldMonitoringNotes, field.TypeString, value)
 		_node.MonitoringNotes = value
+	}
+	if value, ok := _c.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(icuepisode.FieldEquipmentAssetIds, field.TypeJSON, value)
+		_node.EquipmentAssetIds = value
 	}
 	if value, ok := _c.mutation.StartedBy(); ok {
 		_spec.SetField(icuepisode.FieldStartedBy, field.TypeUUID, value)
@@ -430,6 +444,24 @@ func (u *ICUEpisodeUpsert) UpdateMonitoringNotes() *ICUEpisodeUpsert {
 // ClearMonitoringNotes clears the value of the "monitoring_notes" field.
 func (u *ICUEpisodeUpsert) ClearMonitoringNotes() *ICUEpisodeUpsert {
 	u.SetNull(icuepisode.FieldMonitoringNotes)
+	return u
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *ICUEpisodeUpsert) SetEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpsert {
+	u.Set(icuepisode.FieldEquipmentAssetIds, v)
+	return u
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *ICUEpisodeUpsert) UpdateEquipmentAssetIds() *ICUEpisodeUpsert {
+	u.SetExcluded(icuepisode.FieldEquipmentAssetIds)
+	return u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *ICUEpisodeUpsert) ClearEquipmentAssetIds() *ICUEpisodeUpsert {
+	u.SetNull(icuepisode.FieldEquipmentAssetIds)
 	return u
 }
 
@@ -609,6 +641,27 @@ func (u *ICUEpisodeUpsertOne) UpdateMonitoringNotes() *ICUEpisodeUpsertOne {
 func (u *ICUEpisodeUpsertOne) ClearMonitoringNotes() *ICUEpisodeUpsertOne {
 	return u.Update(func(s *ICUEpisodeUpsert) {
 		s.ClearMonitoringNotes()
+	})
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *ICUEpisodeUpsertOne) SetEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpsertOne {
+	return u.Update(func(s *ICUEpisodeUpsert) {
+		s.SetEquipmentAssetIds(v)
+	})
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *ICUEpisodeUpsertOne) UpdateEquipmentAssetIds() *ICUEpisodeUpsertOne {
+	return u.Update(func(s *ICUEpisodeUpsert) {
+		s.UpdateEquipmentAssetIds()
+	})
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *ICUEpisodeUpsertOne) ClearEquipmentAssetIds() *ICUEpisodeUpsertOne {
+	return u.Update(func(s *ICUEpisodeUpsert) {
+		s.ClearEquipmentAssetIds()
 	})
 }
 
@@ -963,6 +1016,27 @@ func (u *ICUEpisodeUpsertBulk) UpdateMonitoringNotes() *ICUEpisodeUpsertBulk {
 func (u *ICUEpisodeUpsertBulk) ClearMonitoringNotes() *ICUEpisodeUpsertBulk {
 	return u.Update(func(s *ICUEpisodeUpsert) {
 		s.ClearMonitoringNotes()
+	})
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *ICUEpisodeUpsertBulk) SetEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpsertBulk {
+	return u.Update(func(s *ICUEpisodeUpsert) {
+		s.SetEquipmentAssetIds(v)
+	})
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *ICUEpisodeUpsertBulk) UpdateEquipmentAssetIds() *ICUEpisodeUpsertBulk {
+	return u.Update(func(s *ICUEpisodeUpsert) {
+		s.UpdateEquipmentAssetIds()
+	})
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *ICUEpisodeUpsertBulk) ClearEquipmentAssetIds() *ICUEpisodeUpsertBulk {
+	return u.Update(func(s *ICUEpisodeUpsert) {
+		s.ClearEquipmentAssetIds()
 	})
 }
 

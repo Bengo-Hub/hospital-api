@@ -25,6 +25,8 @@ const (
 	FieldSeverityFlag = "severity_flag"
 	// FieldMonitoringNotes holds the string denoting the monitoring_notes field in the database.
 	FieldMonitoringNotes = "monitoring_notes"
+	// FieldEquipmentAssetIds holds the string denoting the equipment_asset_ids field in the database.
+	FieldEquipmentAssetIds = "equipment_asset_ids"
 	// FieldStartedBy holds the string denoting the started_by field in the database.
 	FieldStartedBy = "started_by"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
@@ -47,6 +49,7 @@ var Columns = []string{
 	FieldBedID,
 	FieldSeverityFlag,
 	FieldMonitoringNotes,
+	FieldEquipmentAssetIds,
 	FieldStartedBy,
 	FieldStartedAt,
 	FieldEndedAt,
@@ -65,6 +68,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultEquipmentAssetIds holds the default value on creation for the "equipment_asset_ids" field.
+	DefaultEquipmentAssetIds []uuid.UUID
 	// DefaultStartedAt holds the default value on creation for the "started_at" field.
 	DefaultStartedAt func() time.Time
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.

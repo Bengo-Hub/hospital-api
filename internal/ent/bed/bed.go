@@ -24,6 +24,8 @@ const (
 	FieldBedNumber = "bed_number"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldEquipmentAssetIds holds the string denoting the equipment_asset_ids field in the database.
+	FieldEquipmentAssetIds = "equipment_asset_ids"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -57,6 +59,7 @@ var Columns = []string{
 	FieldWardID,
 	FieldBedNumber,
 	FieldStatus,
+	FieldEquipmentAssetIds,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -74,6 +77,8 @@ func ValidColumn(column string) bool {
 var (
 	// BedNumberValidator is a validator for the "bed_number" field. It is called by the builders before save.
 	BedNumberValidator func(string) error
+	// DefaultEquipmentAssetIds holds the default value on creation for the "equipment_asset_ids" field.
+	DefaultEquipmentAssetIds []uuid.UUID
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.

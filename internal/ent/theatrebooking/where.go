@@ -630,6 +630,16 @@ func FeeAmountNotNil() predicate.TheatreBooking {
 	return predicate.TheatreBooking(sql.FieldNotNull(FieldFeeAmount))
 }
 
+// EquipmentAssetIdsIsNil applies the IsNil predicate on the "equipment_asset_ids" field.
+func EquipmentAssetIdsIsNil() predicate.TheatreBooking {
+	return predicate.TheatreBooking(sql.FieldIsNull(FieldEquipmentAssetIds))
+}
+
+// EquipmentAssetIdsNotNil applies the NotNil predicate on the "equipment_asset_ids" field.
+func EquipmentAssetIdsNotNil() predicate.TheatreBooking {
+	return predicate.TheatreBooking(sql.FieldNotNull(FieldEquipmentAssetIds))
+}
+
 // CreatedByEQ applies the EQ predicate on the "created_by" field.
 func CreatedByEQ(v uuid.UUID) predicate.TheatreBooking {
 	return predicate.TheatreBooking(sql.FieldEQ(FieldCreatedBy, v))

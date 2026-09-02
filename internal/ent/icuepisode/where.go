@@ -315,6 +315,16 @@ func MonitoringNotesContainsFold(v string) predicate.ICUEpisode {
 	return predicate.ICUEpisode(sql.FieldContainsFold(FieldMonitoringNotes, v))
 }
 
+// EquipmentAssetIdsIsNil applies the IsNil predicate on the "equipment_asset_ids" field.
+func EquipmentAssetIdsIsNil() predicate.ICUEpisode {
+	return predicate.ICUEpisode(sql.FieldIsNull(FieldEquipmentAssetIds))
+}
+
+// EquipmentAssetIdsNotNil applies the NotNil predicate on the "equipment_asset_ids" field.
+func EquipmentAssetIdsNotNil() predicate.ICUEpisode {
+	return predicate.ICUEpisode(sql.FieldNotNull(FieldEquipmentAssetIds))
+}
+
 // StartedByEQ applies the EQ predicate on the "started_by" field.
 func StartedByEQ(v uuid.UUID) predicate.ICUEpisode {
 	return predicate.ICUEpisode(sql.FieldEQ(FieldStartedBy, v))

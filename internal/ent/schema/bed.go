@@ -24,6 +24,12 @@ func (Bed) Fields() []ent.Field {
 		field.Enum("status").
 			Values("available", "occupied", "cleaning", "out_of_service").
 			Default("available"),
+		// EquipmentAssetIDs (2026-09-02, Biomedical Equipment integration brought forward from
+		// Sprint 9): references to inventory-api's Asset register (e.g. a bed-mounted monitor) —
+		// reference only, hospital-api never owns asset data. A JSON list rather than a single
+		// field since a bed (especially an ICU bed) commonly has more than one piece of fixed
+		// equipment. See docs/architecture.md's asset-integration section.
+		field.JSON("equipment_asset_ids", []uuid.UUID{}).Optional().Default([]uuid.UUID{}),
 		field.Time("created_at").Default(time.Now).Immutable(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}

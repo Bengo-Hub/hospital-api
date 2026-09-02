@@ -82,6 +82,7 @@ var (
 		{Name: "tenant_id", Type: field.TypeUUID},
 		{Name: "bed_number", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"available", "occupied", "cleaning", "out_of_service"}, Default: "available"},
+		{Name: "equipment_asset_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "ward_id", Type: field.TypeUUID},
@@ -94,7 +95,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "beds_wards_beds",
-				Columns:    []*schema.Column{BedsColumns[6]},
+				Columns:    []*schema.Column{BedsColumns[7]},
 				RefColumns: []*schema.Column{WardsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -103,7 +104,7 @@ var (
 			{
 				Name:    "bed_tenant_id_ward_id",
 				Unique:  false,
-				Columns: []*schema.Column{BedsColumns[1], BedsColumns[6]},
+				Columns: []*schema.Column{BedsColumns[1], BedsColumns[7]},
 			},
 			{
 				Name:    "bed_tenant_id_status",
@@ -113,7 +114,7 @@ var (
 			{
 				Name:    "bed_ward_id_bed_number",
 				Unique:  true,
-				Columns: []*schema.Column{BedsColumns[6], BedsColumns[2]},
+				Columns: []*schema.Column{BedsColumns[7], BedsColumns[2]},
 			},
 		},
 	}
@@ -559,6 +560,7 @@ var (
 		{Name: "bed_id", Type: field.TypeUUID},
 		{Name: "severity_flag", Type: field.TypeEnum, Enums: []string{"stable", "guarded", "critical"}, Default: "stable"},
 		{Name: "monitoring_notes", Type: field.TypeString, Nullable: true},
+		{Name: "equipment_asset_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "started_by", Type: field.TypeUUID, Nullable: true},
 		{Name: "started_at", Type: field.TypeTime},
 		{Name: "ended_at", Type: field.TypeTime, Nullable: true},
@@ -1251,6 +1253,7 @@ var (
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"awaiting_payment", "scheduled", "in_progress", "completed", "cancelled"}, Default: "scheduled"},
 		{Name: "checklist", Type: field.TypeJSON, Nullable: true},
 		{Name: "fee_amount", Type: field.TypeFloat64, Nullable: true},
+		{Name: "equipment_asset_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_by", Type: field.TypeUUID, Nullable: true},
 		{Name: "started_at", Type: field.TypeTime, Nullable: true},
 		{Name: "completed_at", Type: field.TypeTime, Nullable: true},

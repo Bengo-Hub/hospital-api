@@ -50,3 +50,104 @@ copy pos-api's data-ownership mistakes forward.
 ## Next Sprint
 
 Sprint 2 — Consultation & Examination, Diagnosis Catalogue.
+
+## Gap audit and MVP backlog candidates (2026-09-02)
+
+Completeness audit of the shipped Patient registry and OPD queue against real-world HMIS practice
+(KenyaEMR/OpenMRS primarily, plus fresh web research this session), done by reading the actual
+shipped code, not just this sprint doc's own text. Every proposal below is marked **proposed, not
+yet built**. Scope explicitly excludes referral/transfer/ambulance and the ward/bed/IPD sub-module,
+both being audited in parallel this same session.
+
+**Real doc-drift found by this audit, worth fixing on its own merits**: this sprint doc's own "Ent
+Schemas to Add" section above still describes an `identification_type` enum (national_id/passport/
+birth_certificate/maisha_number/alien_id). The actual shipped `Patient` schema
+(`internal/ent/schema/patient.go`) has no such field, only a single free-text `id_number` commented
+"National ID / passport". The matching hospital-ui sprint doc makes the same claim about a
+"Maisha Number" selector, and the actual `patients/page.tsx` register form has one plain text input
+and its own code comment already flags this drift ("that doc additionally describes a Kenya ID-type
+selector... neither exists in `RegisterPatientInput`/`Patient` yet"). This section's proposals below
+correct the doc against the code; the code itself is the gap.
+
+1. **National ID / Maisha Number capture.** `compliance-kenya.md` §9-10 already confirms Maisha
+   Number is a Client-Registry-accepted ID type. `Patient.id_number` is a single untyped string with
+   no way to record which ID scheme it came from, so a facility cannot distinguish a Maisha Number
+   from a passport or birth certificate in the data itself, only by convention. **Proposed**: add a
+   nullable `Patient.identification_type` enum (`national_id`, `passport`, `birth_certificate`,
+   `maisha_number`, `alien_id`), additive column, no backfill required (existing rows stay null/
+   "unknown"). Small effort, mirrors an enum field this doc already described once. hospital-ui adds
+   the matching selector next to the existing ID-number input.
+
+2. **Insurance/payer capture at registration.** No field on `Patient` or any related entity captures
+   an SHA/SHIF beneficiary number at registration. `Patient.client_registry_id` is the DHA Client
+   Registry ID (a different identifier, reserved for the national HIE lookup per
+   `docs/integrations.md` §2.4), not an SHA beneficiary number. Today, insurance identity is handled
+   ad hoc and only at billing time, via `billing.Service.CheckEligibility`'s free-form
+   `fields map[string]string` argument (`internal/modules/billing/service.go`), re-entered fresh at
+   every eligibility check rather than captured once. This is now more consequential than it looks:
+   fresh research this session found SHA ended OTP-based claim approval in August 2026 in favor of
+   mandatory fingerprint biometric authentication for every claim (see item 3). **Proposed**: add a
+   nullable `Patient.sha_beneficiary_number` field, captured at registration, auto-populated into the
+   eligibility-check `fields` map so a returning patient's payer lookup never needs re-typing.
+
+3. **Patient photo / biometric capture.** Zero fields, zero UI (`Patient` schema has no photo/
+   biometric column; `patients/page.tsx` has no capture UI). This is no longer a pure nice-to-have:
+   Kenya's SHA replaced OTP-based insurance-claim approval with mandatory fingerprint biometric
+   verification in August 2026 (confirmed via web research, biometricupdate.com, "Kenya
+   re-introduces biometric patient verification to curb insurance fraud"), rolled out at Level 4-6
+   public facilities with Level 2-3 planned next. A facility billing SHA/SHIF through Codevertex Afya
+   will eventually need SOME biometric touchpoint. **Proposed, staged**: (a) a simple nullable
+   `Patient.photo_url` field + an upload step in the registration form, a low-effort visual-ID aid on
+   its own merit (confirming the right chart at a busy front desk); (b) fingerprint biometric capture
+   itself is a much larger integration (a physical scanner + SHA's own biometric API), explicitly
+   **not proposed for this pass**. Flagged here so Sprint 12 (compliance hardening) or a dedicated
+   SHA-integration effort scopes it deliberately rather than discovering it late.
+
+4. **Duplicate-patient detection / merge.** `Patient.status`'s own schema comment already lists
+   `merged` as a legal value ("active|inactive|merged"), but no code anywhere sets it or performs a
+   merge. `patients.Service` has zero duplicate-check logic; `RegisterPatient` will happily create a
+   second MRN for the same person typed with a slightly different name or phone. This is a
+   well-documented real-world HMIS pain point. OpenMRS's own ecosystem treats it as a real module
+   (`openmrs-module-patientmatching`, a full patient-merge UI, deliberately refusing to merge patients
+   with existing orders because that case is genuinely hard). This is not a case where a five-line
+   fix closes the gap. **Proposed, staged**: (a) quick win, a "possible duplicate" warning at
+   registration time, a pre-save query against the existing `tenant_id, phone` / `tenant_id,
+   id_number` / `tenant_id, full_name` indexes already on `Patient` (no schema change, these indexes
+   already exist), surfaced as a non-blocking confirm-anyway prompt; (b) a real `MergePatients`
+   service method that reassigns visits/accounts/prescriptions from a duplicate record to a survivor
+   and sets the duplicate's status to `merged` is a genuinely new, more involved module, scope it as
+   its own follow-up rather than bundling it with (a).
+
+5. **Family / household linkage.** No field anywhere links one `Patient` to another (confirmed:
+   no `household_id`/`family_id` column on any schema). SHA's own registration model already links a
+   spouse and children under 18 to one beneficiary profile (marriage certificate / birth certificate
+   required, confirmed via web research this session), and Sprint 10's planned ANC/PNC/pediatric
+   programmes will eventually want mother-child linkage. **Proposed, deferred by design**: a
+   lightweight nullable `Patient.household_id` (self-referencing UUID, pointing at a "head of
+   household" Patient row) is enough to avoid a retrofit later, additive and no migration risk to add
+   now even though nothing consumes it until Sprint 10. Flagging now, per this audit's own brief, so a
+   future sprint doesn't have to bolt this onto an already-large `Patient` table under time pressure.
+   **Not proposed as urgent**: no current workflow needs it.
+
+6. **OPD queue acuity-based reordering.** `patients.Service.ListVisits` (`internal/modules/patients/
+   service.go`) orders the OPD/consultation queue strictly `ent.Asc(patientvisit.FieldCreatedAt)`,
+   pure FIFO by check-in time. `TriageRecord.priority` (an ESI-style 1-5 acuity field, per the
+   schema's own comment) is captured and stored, but nothing ever reads it back into queue ordering
+   or the consultation worklist. It sits on the triage record, visible only if a clinician opens
+   that specific patient's chart. Confirmed via web research: acuity-based queue reordering (the
+   Emergency Severity Index model) is the dominant real-world triage-to-provider pattern, not an
+   edge case. **Proposed**: no new field needed, the data already exists. `ListVisits` gains an
+   optional join to each visit's latest `TriageRecord.priority` and sorts urgent-first within the
+   same status bucket (registered/triaged visits only; a visit already `in_examination` or beyond
+   doesn't need re-sorting). hospital-ui's consultation queue shows a priority badge and reflects the
+   new order. Low effort. A quick win precisely because the acuity data already exists and only the
+   read-side ordering is missing.
+
+7. **Appointment scheduling.** Confirmed still not built: `hospital-ui`'s `Appointments` nav entry
+   (`lib/nav-config.ts`) is `comingSoon: true` with zero backend route behind it. This matches the
+   already-tracked, already-acknowledged gap in `docs/plan.md`'s Core Capabilities list. No further
+   research done here per this audit's own scope (deep appointment-system research was explicitly
+   out of scope for this pass); noted only to confirm the state hasn't silently changed.
+
+See `hospital-api/docs/mvp-gap-backlog-2026-09-02.md` for this item's place in the full
+sprint-by-sprint backlog.

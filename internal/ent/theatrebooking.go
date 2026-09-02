@@ -43,6 +43,8 @@ type TheatreBooking struct {
 	Checklist map[string]bool `json:"checklist,omitempty"`
 	// Snapshotted procedure fee at booking time; nil = no charge posted (tenant hasn't priced this booking)
 	FeeAmount *float64 `json:"fee_amount,omitempty"`
+	// EquipmentAssetIds holds the value of the "equipment_asset_ids" field.
+	EquipmentAssetIds []uuid.UUID `json:"equipment_asset_ids,omitempty"`
 	// CreatedBy holds the value of the "created_by" field.
 	CreatedBy *uuid.UUID `json:"created_by,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
@@ -63,7 +65,7 @@ func (*TheatreBooking) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case theatrebooking.FieldSurgeonID, theatrebooking.FieldCreatedBy:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case theatrebooking.FieldChecklist:
+		case theatrebooking.FieldChecklist, theatrebooking.FieldEquipmentAssetIds:
 			values[i] = new([]byte)
 		case theatrebooking.FieldFeeAmount:
 			values[i] = new(sql.NullFloat64)
@@ -171,6 +173,14 @@ func (_m *TheatreBooking) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.FeeAmount = new(float64)
 				*_m.FeeAmount = value.Float64
+			}
+		case theatrebooking.FieldEquipmentAssetIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field equipment_asset_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.EquipmentAssetIds); err != nil {
+					return fmt.Errorf("unmarshal field equipment_asset_ids: %w", err)
+				}
 			}
 		case theatrebooking.FieldCreatedBy:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -280,6 +290,9 @@ func (_m *TheatreBooking) String() string {
 		builder.WriteString("fee_amount=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("equipment_asset_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.EquipmentAssetIds))
 	builder.WriteString(", ")
 	if v := _m.CreatedBy; v != nil {
 		builder.WriteString("created_by=")

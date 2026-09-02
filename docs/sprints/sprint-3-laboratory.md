@@ -63,3 +63,49 @@ integration target than in-house analyzer connectivity for a Level 2-4 facility.
 
 Sprint 4 — Pharmacy & Dispensing (the first sprint that touches the pos-api migration — see
 `docs/migration-pos-pharmacy.md` Phase A).
+
+## Gap audit and MVP backlog candidates (2026-09-02)
+
+Completeness audit of the shipped Laboratory module against real specimen-tracking and
+critical-value-alerting practice in production lab information systems, done against the actual
+shipped `internal/ent/schema/lab_order.go`/`lab_order_line.go` and `internal/modules/lab/
+service.go`, not this sprint doc's own text. Both proposals below are **proposed, not yet built**.
+Referred-out/external lab tracking is explicitly out of scope, covered elsewhere per this sprint
+doc's own §2E note.
+
+1. **Specimen / sample tracking.** `LabOrderLine` carries only `specimen_type` (a catalogue-snapshot
+   string, e.g. "blood", "urine"). There is no collection timestamp, no collector identity, and no
+   specimen ID/barcode field anywhere. Worth noting directly: `LabOrder.status` used to have a
+   `collected` value, and it was deliberately removed on 2026-09-02 as confirmed dead code (the
+   schema's own comment: "never set by any service method... zero live rows used it before removal").
+   In other words, specimen collection has never really existed as a tracked event in this codebase,
+   even nominally. The one enum value that gestured at it was removed specifically because nothing
+   ever set it. Real lab practice treats collection (who drew it, when, against which specimen ID) as
+   a distinct, safety-relevant step, since a mislabeled or late specimen is a genuine patient-safety
+   failure mode, not just a workflow nicety. **Proposed**: additive nullable fields on
+   `LabOrderLine`, `specimen_collected_at`, `specimen_collected_by`, `specimen_id` (a barcode/label
+   string), plus a small `POST .../lines/{lineID}/collect` endpoint that sets them, gating result
+   entry on collection having happened for that line. This effectively reintroduces a "collected"
+   concept, but this time backed by real fields and an actual call site, not a dead enum value.
+   Moderate effort: schema is small, but every worklist UI needs a "mark collected" step added before
+   result entry.
+
+2. **Critical-value / panic-value alerting.** `LabOrderLine.flag` (pending/normal/abnormal/critical)
+   is set in `EnterResult`, but nothing distinguishes a critical result's downstream handling from a
+   normal one. The only event published is `hospital.lab_order.resulted`, fired once EVERY line in
+   the order has a result (not per-line, not per-critical-flag), and its payload carries only the
+   `lab_order_id`, no severity information. A critical potassium result today reaches the ordering
+   clinician through exactly the same "results ready" notification as a routine result, distinguished
+   only by a red badge if and when someone opens the worklist. Fresh web research this session
+   confirms critical-value reporting is a recognised patient-safety requirement (a Joint Commission
+   National Patient Safety Goal in the US context, and the dominant real-world implementation is a
+   direct, urgent notification to the ordering clinician, historically a phone call, increasingly SMS/
+   push, always separate from routine result delivery). **Proposed**: when `EnterResult` sets
+   `flag = critical`, publish a distinct `hospital.lab_order.critical_result` event carrying the
+   ordering clinician's ID, test name, and value, for notifications-api to route as an urgent
+   SMS/push distinct from the routine "results ready" patient message. No schema change (the `flag`
+   field already exists and is already set correctly), a genuinely new code path in `EnterResult`
+   plus a new notifications-api consumer. Small-to-moderate effort, high patient-safety value.
+
+See `hospital-api/docs/mvp-gap-backlog-2026-09-02.md` for this item's place in the full
+sprint-by-sprint backlog.

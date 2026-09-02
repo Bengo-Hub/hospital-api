@@ -1,4 +1,4 @@
-h1:9gcgmo5S/x9AEgDq5lNaqeuN8Z/Ob9dPqs9FCAiCEPA=
+h1:jBt9t1IRPEFr2YsHgR0lSTP7MQQlUjvl1sbehIy10HE=
 20260731212101_add_rbac_and_sync_schemas.sql h1:k+F/1ko7AGn0h9CZoWquPgsfoCCH+wMm8/wdycvUnxs=
 20260829112442_tenant_facility_metadata.sql h1:NaPnpW01TiNmyX6U6hQR2bIZekD6r7QqiIjU+HM5Aaw=
 20260829120437_sprint1_patient_opd_triage.sql h1:Qya7Ud7B6bbQMJHBecWOtx5+KFtu74ROeeRFHnCrLPw=
@@ -14,3 +14,4 @@ h1:9gcgmo5S/x9AEgDq5lNaqeuN8Z/Ob9dPqs9FCAiCEPA=
 20260902123013_add_outlet_facility_type.sql h1:5FavUgt2xHWIUZQbdi3XS/CWEvBUzcbITMMtJ4x80H0=
 20260902182648_sprint6_inpatient_ward_bed_admission_transfer.sql h1:iuRrIZqVFzOynhPnSR9kWSh9CKbZpVfxO44WpuFUcXI=
 20260902192720_sprint7_theatre_icu.sql h1:tcd6ahMmoektdwhjDFxJAC4GlO+kTTr8D2s5iQS38to=
+20260902200424_sprint7_5_equipment_asset_links.sql h1:zVxts6VRK4/Jtu69PPZ44hVluodDvAdAKZHA/dFthVU=

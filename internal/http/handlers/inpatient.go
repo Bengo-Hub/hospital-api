@@ -176,6 +176,41 @@ func (h *InpatientHandler) SetBedStatus(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, bed)
 }
 
+type setBedEquipmentRequest struct {
+	AssetIDs []string `json:"asset_ids"`
+}
+
+// SetBedEquipment handles PUT /{tenant}/hospital/beds/{bedID}/equipment
+func (h *InpatientHandler) SetBedEquipment(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bedID, err := uuid.Parse(chi.URLParam(r, "bedID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid bed ID")
+		return
+	}
+	var in setBedEquipmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	assetIDs := make([]uuid.UUID, 0, len(in.AssetIDs))
+	for _, s := range in.AssetIDs {
+		if id, perr := uuid.Parse(s); perr == nil {
+			assetIDs = append(assetIDs, id)
+		}
+	}
+	bed, err := h.svc.SetBedEquipment(r.Context(), tenantID, bedID, assetIDs)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, bed)
+}
+
 // ── Admissions ───────────────────────────────────────────────────────────────────────────────
 
 type admitRequest struct {

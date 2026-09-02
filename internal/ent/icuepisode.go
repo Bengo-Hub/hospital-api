@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -28,6 +29,8 @@ type ICUEpisode struct {
 	SeverityFlag icuepisode.SeverityFlag `json:"severity_flag,omitempty"`
 	// MonitoringNotes holds the value of the "monitoring_notes" field.
 	MonitoringNotes string `json:"monitoring_notes,omitempty"`
+	// EquipmentAssetIds holds the value of the "equipment_asset_ids" field.
+	EquipmentAssetIds []uuid.UUID `json:"equipment_asset_ids,omitempty"`
 	// StartedBy holds the value of the "started_by" field.
 	StartedBy *uuid.UUID `json:"started_by,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
@@ -48,6 +51,8 @@ func (*ICUEpisode) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case icuepisode.FieldStartedBy:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
+		case icuepisode.FieldEquipmentAssetIds:
+			values[i] = new([]byte)
 		case icuepisode.FieldSeverityFlag, icuepisode.FieldMonitoringNotes:
 			values[i] = new(sql.NullString)
 		case icuepisode.FieldStartedAt, icuepisode.FieldEndedAt, icuepisode.FieldCreatedAt, icuepisode.FieldUpdatedAt:
@@ -104,6 +109,14 @@ func (_m *ICUEpisode) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field monitoring_notes", values[i])
 			} else if value.Valid {
 				_m.MonitoringNotes = value.String
+			}
+		case icuepisode.FieldEquipmentAssetIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field equipment_asset_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.EquipmentAssetIds); err != nil {
+					return fmt.Errorf("unmarshal field equipment_asset_ids: %w", err)
+				}
 			}
 		case icuepisode.FieldStartedBy:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
@@ -187,6 +200,9 @@ func (_m *ICUEpisode) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("monitoring_notes=")
 	builder.WriteString(_m.MonitoringNotes)
+	builder.WriteString(", ")
+	builder.WriteString("equipment_asset_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.EquipmentAssetIds))
 	builder.WriteString(", ")
 	if v := _m.StartedBy; v != nil {
 		builder.WriteString("started_by=")

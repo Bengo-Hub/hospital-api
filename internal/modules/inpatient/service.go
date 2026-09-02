@@ -155,6 +155,24 @@ func (s *Service) SetBedStatus(ctx context.Context, tenantID, bedID uuid.UUID, s
 	return updated, nil
 }
 
+// SetBedEquipment replaces the list of inventory-api Asset IDs (biomedical equipment, e.g. a
+// bed-mounted monitor) linked to this bed — reference only, hospital-api never validates the
+// asset actually exists in inventory-api (a read-through display concern, not a referential-
+// integrity one; see docs/architecture.md's "Biomedical Equipment / Asset Integration" section).
+func (s *Service) SetBedEquipment(ctx context.Context, tenantID, bedID uuid.UUID, assetIDs []uuid.UUID) (*ent.Bed, error) {
+	if _, err := s.client.Bed.Query().Where(bed.ID(bedID), bed.TenantID(tenantID)).Only(ctx); err != nil {
+		return nil, fmt.Errorf("inpatient: bed not found: %w", err)
+	}
+	if assetIDs == nil {
+		assetIDs = []uuid.UUID{}
+	}
+	updated, err := s.client.Bed.UpdateOneID(bedID).SetEquipmentAssetIds(assetIDs).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: set bed equipment: %w", err)
+	}
+	return updated, nil
+}
+
 // BedOccupancy is one row of a ward-occupancy view — a bed, and (if occupied) the active
 // admission and a denormalized patient name/MRN so hospital-ui's occupancy board needs no
 // client-side join.

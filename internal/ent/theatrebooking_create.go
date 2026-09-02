@@ -128,6 +128,12 @@ func (_c *TheatreBookingCreate) SetNillableFeeAmount(v *float64) *TheatreBooking
 	return _c
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_c *TheatreBookingCreate) SetEquipmentAssetIds(v []uuid.UUID) *TheatreBookingCreate {
+	_c.mutation.SetEquipmentAssetIds(v)
+	return _c
+}
+
 // SetCreatedBy sets the "created_by" field.
 func (_c *TheatreBookingCreate) SetCreatedBy(v uuid.UUID) *TheatreBookingCreate {
 	_c.mutation.SetCreatedBy(v)
@@ -258,6 +264,10 @@ func (_c *TheatreBookingCreate) defaults() {
 	if _, ok := _c.mutation.Checklist(); !ok {
 		v := theatrebooking.DefaultChecklist
 		_c.mutation.SetChecklist(v)
+	}
+	if _, ok := _c.mutation.EquipmentAssetIds(); !ok {
+		v := theatrebooking.DefaultEquipmentAssetIds
+		_c.mutation.SetEquipmentAssetIds(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := theatrebooking.DefaultCreatedAt()
@@ -406,6 +416,10 @@ func (_c *TheatreBookingCreate) createSpec() (*TheatreBooking, *sqlgraph.CreateS
 	if value, ok := _c.mutation.FeeAmount(); ok {
 		_spec.SetField(theatrebooking.FieldFeeAmount, field.TypeFloat64, value)
 		_node.FeeAmount = &value
+	}
+	if value, ok := _c.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(theatrebooking.FieldEquipmentAssetIds, field.TypeJSON, value)
+		_node.EquipmentAssetIds = value
 	}
 	if value, ok := _c.mutation.CreatedBy(); ok {
 		_spec.SetField(theatrebooking.FieldCreatedBy, field.TypeUUID, value)
@@ -650,6 +664,24 @@ func (u *TheatreBookingUpsert) AddFeeAmount(v float64) *TheatreBookingUpsert {
 // ClearFeeAmount clears the value of the "fee_amount" field.
 func (u *TheatreBookingUpsert) ClearFeeAmount() *TheatreBookingUpsert {
 	u.SetNull(theatrebooking.FieldFeeAmount)
+	return u
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *TheatreBookingUpsert) SetEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpsert {
+	u.Set(theatrebooking.FieldEquipmentAssetIds, v)
+	return u
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *TheatreBookingUpsert) UpdateEquipmentAssetIds() *TheatreBookingUpsert {
+	u.SetExcluded(theatrebooking.FieldEquipmentAssetIds)
+	return u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *TheatreBookingUpsert) ClearEquipmentAssetIds() *TheatreBookingUpsert {
+	u.SetNull(theatrebooking.FieldEquipmentAssetIds)
 	return u
 }
 
@@ -970,6 +1002,27 @@ func (u *TheatreBookingUpsertOne) UpdateFeeAmount() *TheatreBookingUpsertOne {
 func (u *TheatreBookingUpsertOne) ClearFeeAmount() *TheatreBookingUpsertOne {
 	return u.Update(func(s *TheatreBookingUpsert) {
 		s.ClearFeeAmount()
+	})
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *TheatreBookingUpsertOne) SetEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpsertOne {
+	return u.Update(func(s *TheatreBookingUpsert) {
+		s.SetEquipmentAssetIds(v)
+	})
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *TheatreBookingUpsertOne) UpdateEquipmentAssetIds() *TheatreBookingUpsertOne {
+	return u.Update(func(s *TheatreBookingUpsert) {
+		s.UpdateEquipmentAssetIds()
+	})
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *TheatreBookingUpsertOne) ClearEquipmentAssetIds() *TheatreBookingUpsertOne {
+	return u.Update(func(s *TheatreBookingUpsert) {
+		s.ClearEquipmentAssetIds()
 	})
 }
 
@@ -1468,6 +1521,27 @@ func (u *TheatreBookingUpsertBulk) UpdateFeeAmount() *TheatreBookingUpsertBulk {
 func (u *TheatreBookingUpsertBulk) ClearFeeAmount() *TheatreBookingUpsertBulk {
 	return u.Update(func(s *TheatreBookingUpsert) {
 		s.ClearFeeAmount()
+	})
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (u *TheatreBookingUpsertBulk) SetEquipmentAssetIds(v []uuid.UUID) *TheatreBookingUpsertBulk {
+	return u.Update(func(s *TheatreBookingUpsert) {
+		s.SetEquipmentAssetIds(v)
+	})
+}
+
+// UpdateEquipmentAssetIds sets the "equipment_asset_ids" field to the value that was provided on create.
+func (u *TheatreBookingUpsertBulk) UpdateEquipmentAssetIds() *TheatreBookingUpsertBulk {
+	return u.Update(func(s *TheatreBookingUpsert) {
+		s.UpdateEquipmentAssetIds()
+	})
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (u *TheatreBookingUpsertBulk) ClearEquipmentAssetIds() *TheatreBookingUpsertBulk {
+	return u.Update(func(s *TheatreBookingUpsert) {
+		s.ClearEquipmentAssetIds()
 	})
 }
 

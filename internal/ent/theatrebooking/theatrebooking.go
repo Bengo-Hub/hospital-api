@@ -39,6 +39,8 @@ const (
 	FieldChecklist = "checklist"
 	// FieldFeeAmount holds the string denoting the fee_amount field in the database.
 	FieldFeeAmount = "fee_amount"
+	// FieldEquipmentAssetIds holds the string denoting the equipment_asset_ids field in the database.
+	FieldEquipmentAssetIds = "equipment_asset_ids"
 	// FieldCreatedBy holds the string denoting the created_by field in the database.
 	FieldCreatedBy = "created_by"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
@@ -68,6 +70,7 @@ var Columns = []string{
 	FieldStatus,
 	FieldChecklist,
 	FieldFeeAmount,
+	FieldEquipmentAssetIds,
 	FieldCreatedBy,
 	FieldStartedAt,
 	FieldCompletedAt,
@@ -94,6 +97,8 @@ var (
 	DefaultDurationMinutes int
 	// DefaultChecklist holds the default value on creation for the "checklist" field.
 	DefaultChecklist map[string]bool
+	// DefaultEquipmentAssetIds holds the default value on creation for the "equipment_asset_ids" field.
+	DefaultEquipmentAssetIds []uuid.UUID
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.

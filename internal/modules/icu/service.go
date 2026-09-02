@@ -100,9 +100,13 @@ func (s *Service) ListEpisodes(ctx context.Context, tenantID uuid.UUID, activeOn
 type UpdateEpisodeRequest struct {
 	SeverityFlag    *string
 	MonitoringNotes *string
+	// EquipmentAssetIDs, when non-nil, replaces the full linked-equipment list (inventory-api
+	// Asset IDs, e.g. a ventilator) — reference only, see docs/architecture.md.
+	EquipmentAssetIDs *[]uuid.UUID
 }
 
-// UpdateEpisode updates an active episode's severity flag and/or monitoring notes.
+// UpdateEpisode updates an active episode's severity flag, monitoring notes, and/or linked
+// equipment.
 func (s *Service) UpdateEpisode(ctx context.Context, tenantID, episodeID uuid.UUID, req UpdateEpisodeRequest) (*ent.ICUEpisode, error) {
 	episode, err := s.GetEpisode(ctx, tenantID, episodeID)
 	if err != nil {
@@ -117,6 +121,9 @@ func (s *Service) UpdateEpisode(ctx context.Context, tenantID, episodeID uuid.UU
 	}
 	if req.MonitoringNotes != nil {
 		upd = upd.SetMonitoringNotes(*req.MonitoringNotes)
+	}
+	if req.EquipmentAssetIDs != nil {
+		upd = upd.SetEquipmentAssetIds(*req.EquipmentAssetIDs)
 	}
 	updated, err := upd.Save(ctx)
 	if err != nil {

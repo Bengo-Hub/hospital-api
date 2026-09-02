@@ -46,3 +46,59 @@ tenant-custom additions do.
 ## Next Sprint
 
 Sprint 3 — Laboratory.
+
+## Gap audit and MVP backlog candidates (2026-09-02)
+
+Completeness audit of the shipped Consultation/Examination module against what a real examination
+record captures in production HMIS systems, done against the actual shipped
+`internal/ent/schema/examination_record.go` and `internal/modules/consultation/service.go`, not
+this sprint doc's own text. All proposals below are **proposed, not yet built**. Referral/transfer
+content is explicitly out of scope here, covered by a parallel audit this session.
+
+1. **Vitals at consultation vs. triage-only.** `ExaminationRecord` has no vitals fields of its own;
+   the consultation queue relies entirely on whatever `TriageRecord` was captured earlier in the
+   visit. The consultation queue page's own UI copy confirms this design as intentional today
+   ("Visits appear here once vitals are recorded in Triage"). The underlying schema already supports
+   a re-triage: `TriageRecord`'s own doc comment states "a visit may be re-triaged... rows are
+   append-only, the latest by `taken_at` is authoritative," so the data model is fine, only the
+   workflow trigger is missing. A patient who waited a long time between triage and being seen has no
+   prompt to recheck vitals before the doctor writes a diagnosis. **Proposed**: no schema change
+   needed for the minimum fix, wire a "Recheck vitals" action into the consultation UI that creates a
+   new `TriageRecord` inline (the capability already exists, `patients.Service.RecordTriage` is
+   already callable from any pre-terminal visit state). A further, more invasive option, a nullable
+   `ExaminationRecord.vitals_snapshot JSON` field that freezes exactly which vitals reading the
+   clinician reviewed at diagnosis time for audit purposes, is noted as a lower-priority follow-on,
+   not proposed for this pass.
+
+2. **Structured review-of-systems / physical exam findings.** `ExaminationRecord.notes` is a single
+   free-text `String` field; there is no discrete review-of-systems or per-system physical-exam
+   structure anywhere in the schema. Real production EMRs typically capture at least a
+   system-by-system findings structure (cardiovascular, respiratory, abdominal, etc.) separately from
+   a free-text narrative, both for clinical completeness and because a structured field is what makes
+   later decision-support/quality-reporting possible. **Proposed**: two additive nullable JSON fields,
+   `review_of_systems` and `physical_exam_findings` (both a simple `map[string]string` keyed by body
+   system), sitting alongside the existing `notes` field rather than replacing it. The schema change
+   itself is small; the real cost is a structured-form UI build on the hospital-ui side, flagged as
+   the larger half of this item.
+
+3. **Provisional vs. final diagnosis distinction.** `ExaminationRecord` has exactly one
+   `diagnosis_code`/`diagnosis_name` pair. The existing status lifecycle (`in_progress` →
+   `awaiting_lab` → `completed`, with `lab.Service.EnterResult` reopening a record to `in_progress`
+   once results return) already gives the WORKFLOW effect of "revisit the diagnosis after labs come
+   back," but the diagnosis fields themselves are overwritten in place with no record of what the
+   original working diagnosis was. **Proposed**: rather than a full provisional/final field split
+   (a larger, more invasive change touching every diagnosis-reading call site), an additive
+   `diagnosis_history JSON` array field that appends `{code, name, changed_by, changed_at}` on every
+   diagnosis write gives basic auditability at much lower cost, while `diagnosis_code`/`diagnosis_name`
+   keep meaning "the current, latest diagnosis" exactly as today.
+
+4. **Treatment plan / orders section.** Consultation today only produces two outcomes: a referral
+   (lab/pharmacy/another facility) or a plain-text note. There is no discrete field for "advice given,
+   no referral needed" (e.g. "rest, hydrate, follow up in 3 days if not improved"), a genuinely common
+   real encounter outcome that currently has nowhere structured to live except inside the free-text
+   `notes` field, indistinguishable from any other note. **Proposed**: an additive nullable
+   `ExaminationRecord.treatment_plan` text field, separate from `notes`, specifically for this
+   no-referral-needed case. Small, additive, no migration risk.
+
+See `hospital-api/docs/mvp-gap-backlog-2026-09-02.md` for this item's place in the full
+sprint-by-sprint backlog.

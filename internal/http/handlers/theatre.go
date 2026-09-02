@@ -157,6 +157,41 @@ func (h *TheatreHandler) UpdateChecklist(w http.ResponseWriter, r *http.Request)
 	respondJSON(w, http.StatusOK, booking)
 }
 
+type setBookingEquipmentRequest struct {
+	AssetIDs []string `json:"asset_ids"`
+}
+
+// SetEquipment handles PUT /{tenant}/hospital/theatre-bookings/{bookingID}/equipment
+func (h *TheatreHandler) SetEquipment(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	var in setBookingEquipmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	assetIDs := make([]uuid.UUID, 0, len(in.AssetIDs))
+	for _, s := range in.AssetIDs {
+		if id, perr := uuid.Parse(s); perr == nil {
+			assetIDs = append(assetIDs, id)
+		}
+	}
+	booking, err := h.svc.SetEquipment(r.Context(), tenantID, bookingID, assetIDs)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, booking)
+}
+
 // StartSurgery handles POST /{tenant}/hospital/theatre-bookings/{bookingID}/start
 func (h *TheatreHandler) StartSurgery(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

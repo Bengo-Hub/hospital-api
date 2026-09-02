@@ -81,6 +81,114 @@ clinics just use fewer wards/beds; the code path is identical.
 - [x] Atlas migration generated and applied to the local dev DB. `go build`/`go vet`/`go test`
       clean.
 
+## Gap audit and Sprint 6.1 candidates (2026-09-02, later the same day)
+
+A client-facing engineer reviewed the shipped module and flagged that "IPD is also not complete, so
+many sub modules still missing" — beds/assets weren't wired to inventory management, and the doc set
+didn't reflect it. This section is a **research-grounded gap audit, proposed design only, nothing
+below is built** — every field/entity here is additive to the shipped schema above, none of it
+changes or removes a shipped field. Sourcing: KenyaEMR/OpenMRS's real Bed Management module
+(`docs/kenyaemr-technical-reference.md`), OpenMRS's own `openmrs-module-bedmanagement` (confirmed via
+its GitHub source — ships bed *types* and bed *tags* as first-class configuration, distinct from the
+ward/bed identity fields themselves), the Joint Commission's discharge-summary content standard, and
+CDC's transmission-based-precaution categories.
+
+### Ward/bed types tied to billing rate
+
+`Ward.billable_item_code` (shipped) already lets one ward price its own day-rate — the real gap is
+that a ward has no *classification* of its own beyond its `name`, so there is nothing to drive a
+picker in the UI ("this is a Private ward" vs "this is a General ward") or to default
+`billable_item_code` sensibly when a ward is created. **Proposed**: a `ward.ward_type` enum
+(`general`|`private`|`semi_private`|`isolation`|`icu`), nullable, additive. This does not replace
+`billable_item_code` — a `private` ward still needs its own explicit code, since price varies by
+facility — it only gives the UI something to group/filter wards by and a sensible default suggestion
+when a new ward is created (e.g. suggest `BED_DAY_PRIVATE` for a `ward_type: private` ward, but let
+the tenant override it, same as today).
+
+**Isolation is deliberately NOT folded into `ward_type`.** A physical isolation ward is a real
+category (OpenMRS's own bed-management module models bed *tags*, separate from bed type, for exactly
+this kind of cross-cutting attribute), but infection-control isolation is also a per-PATIENT,
+per-STAY state that can apply to a bed in an ordinary general ward (a patient on droplet precautions
+in an otherwise general ward, pending an isolation bed becoming free) — it is not always tied to a
+dedicated isolation ward existing at all. **Proposed**: `bed.isolation_precaution` (nullable enum:
+`contact`|`droplet`|`airborne`|`none`, default `none`), set/cleared per admission, not a fixed
+property of the ward. This maps directly to CDC's own transmission-based precaution categories
+(Standard, Contact, Droplet, Airborne, and documented combinations of the three transmission-based
+categories) — confirmed via CDC's own infection-control guidance, not invented categories. Clearing
+it on discharge/bed-turnover is a workflow question for whoever implements this, not a schema
+question.
+
+### Structured discharge summary
+
+`Admission.discharge_summary` (shipped) is a single free-text field. The Joint Commission's own
+discharge-summary standard (confirmed via a direct read of its mandated-component definitions)
+requires six elements: reason for hospitalization, significant findings (primary diagnoses),
+procedures and treatment provided (hospital course/consults/procedures), the patient's condition at
+discharge, patient/family instructions (discharge medications, activity/therapy/dietary instructions,
+follow-up plans), and the attending physician's signature/attestation. **Proposed**: keep
+`discharge_summary` exactly as-is (free-text narrative, backward compatible with anything already
+written to it) and add structured, nullable, additive fields alongside it: `discharge_diagnosis`
+(text, or a reference to `diagnosis_catalog_entry`/`_default` if the implementer wants it coded
+rather than free text), `procedures_performed` (text), `discharge_medications` (text or JSON list),
+`follow_up_instructions` (text), `condition_at_discharge` (enum:
+`recovered`|`improved`|`unchanged`|`deteriorated`|`deceased`), and `discharged_by` already exists
+(shipped) to cover the attending-physician-of-record element. The free-text `discharge_summary`
+field remains available for anything that doesn't fit the structured fields — this is additive
+richness, not a schema replacement.
+
+### Nursing vitals during an inpatient stay — recommend a new entity, not `TriageRecord` reuse
+
+**Question posed**: does inpatient vitals charting duplicate Sprint 2's `TriageRecord`, or does it
+need its own entity? **Recommendation: a new entity.** `TriageRecord` is a single, one-shot
+acuity-at-arrival row per `PatientVisit` (nurse-captured vitals + a `priority` field that only makes
+sense once, at intake) — it was never designed to repeat. Inpatient vitals charting is structurally
+different: a repeated time series (multiple readings per nursing shift, over a multi-day admission),
+tied to the `admission_id` rather than the visit, with no meaningful "priority" concept at all.
+Reusing `TriageRecord` would force many rows into a table whose own schema (a single `priority` enum,
+no notion of "which reading in the series is this") was never built for repetition, and would blur an
+OPD-intake workflow table with an IPD nursing-round workflow table across what should stay separate
+RBAC/permission boundaries (`hospital.triage.*` vs an inpatient-nursing permission). **Proposed**: a
+new `vitals_chart_entry` entity — `admission_id`, `recorded_by`, `recorded_at`, the same vitals shape
+`TriageRecord` already uses for consistency (BP/temp/pulse/respiratory rate/SpO2), plus a `pain_score`
+and free-text `notes`. Deliberately minimal, mirroring the existing "small, additive table per
+workflow step" pattern this codebase already uses everywhere else, not a new subsystem.
+
+### Doctor's ward rounds / progress notes — a related but distinct proposed entity
+
+Closely related but a different author and cadence: a doctor's daily ward-round note is written once
+or twice a day by a clinician, not a nurse, and often includes a running diagnosis/plan update, not
+just vitals. **Proposed**: a second new entity, `ward_round_note` — `admission_id`, `clinician_id`,
+`recorded_at`, `notes`, `diagnosis_id` (nullable, same catalog `ExaminationRecord` already
+references) — conceptually `ExaminationRecord`'s shape, reapplied to an ongoing admission instead of
+a single OPD consultation. Kept as its own entity rather than folded into `vitals_chart_entry`
+because the two have different authors, different RBAC (`doctor` vs `nurse`), and different clinical
+content (structured vitals vs free-text clinical reasoning).
+
+### Next-of-kin / visitor logging
+
+`PatientNextOfKin` (shipped, Sprint 5) already answers "who may settle this bill or authorize this
+patient's discharge/release" — that is a legal/billing-authorization identity, and it is sufficient
+for that purpose as-is, no gap found there. It is patient-level (not per-admission) and does not
+model a physical visitor's check-in/check-out during a stay, which is a different concern (ward
+access control / potential infection-control contact-tracing), not a billing one. **Proposed, lower
+priority**: an optional `visitor_log` entity (`admission_id`, `visitor_name`, `relationship`,
+`checked_in_at`, `checked_out_at`) if a facility actually wants physical visitor tracking — this is a
+facilities/security feature more than a clinical one, and no research found it as a standard
+"inpatient module" component the way bed types or discharge summaries are, so it's flagged as a real
+but lower-confidence candidate: verify actual client demand before building it, rather than building
+it speculatively.
+
+### Asset/equipment wiring — see `docs/architecture.md` — shipped 2026-09-02
+
+The "beds and other assets" integration the client flagged shipped the same day: `Bed` gained
+`equipment_asset_ids` (a JSON array, not a single `asset_id` — `Ward` was NOT given this field,
+equipment lives at the bed level) so a specific piece of biomedical equipment (a ventilator, a
+monitor) can be linked to a physical bed, plus a read-only `/assets` "Biomedical Equipment" page
+and an `EquipmentPickerModal` reused on the ward board's bed tiles in hospital-ui. Full design,
+sourcing, and two concrete gaps found in inventory-api's own asset-reservation surface (and why
+that surface was deliberately NOT used for this linkage): see `docs/architecture.md`'s "Biomedical
+Equipment / Asset Integration" section and `erd.md`'s Bed row.
+
 ## Next Sprint
 
 Sprint 7 — Theatre/OT scheduling + ICU/Critical-care monitoring.

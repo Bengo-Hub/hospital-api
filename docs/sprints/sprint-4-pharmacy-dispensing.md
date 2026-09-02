@@ -78,3 +78,55 @@ hand-rolled `net/http` client and is explicitly not the pattern to copy (see `do
 ## Next Sprint
 
 Sprint 5 — Billing & Insurance.
+
+## Gap audit and MVP backlog candidates (2026-09-02)
+
+Completeness audit of the shipped Pharmacy/Dispensing module against real inpatient medication
+practice and chronic-medication workflows, done against the actual shipped
+`internal/ent/schema/prescription.go`/`prescription_line.go` and `internal/modules/pharmacy/
+service.go`, not this sprint doc's own text. All proposals below are **proposed, not yet built**,
+except item 3, which documents a real, already-shipped mechanism that just needs one more wiring
+call.
+
+1. **Medication Administration Record (MAR) for an inpatient.** Confirmed: `Prescription`/
+   `PrescriptionLine` model exactly one event, a pharmacist DISPENSE (`quantity_dispensed`,
+   `dispensed_by`, `dispensed_at`). There is no separate, per-dose record of a nurse actually
+   administering a drug to an admitted patient. This matters more now than it would have before
+   Sprint 6 shipped: an admitted patient on a multi-day IV antibiotic course has the WHOLE course
+   dispensed to the ward in one pharmacy transaction, but nothing records whether each individual
+   scheduled dose was actually given, by whom, at what time, or was missed/refused/held. Fresh web
+   research confirms this is a standard, distinct HMIS concept: a Medication Administration Record is
+   "the legal record of what was actually administered," explicitly separate from what pharmacy
+   dispensed, precisely because a nurse charting each dose is a different act performed by a
+   different role at a different time from the pharmacist's dispense. **Proposed**: a new, small
+   `MedicationAdministration` entity (`prescription_line_id`, `admission_id`, `scheduled_time`,
+   `administered_at` nullable, `administered_by` nullable, `status` enum
+   given/refused/missed/held, `notes`), plus a nurse-facing "chart a dose" screen on the admission
+   detail page. This is a genuinely new small module, not a field addition, and is the single item
+   in this whole audit round most directly tied to something Sprint 6 just shipped (Admission) rather
+   than to Sprint 4's own original scope, worth flagging for that reason.
+
+2. **Prescription refill / repeat workflow for chronic medication.** `Prescription` has no concept of
+   "this is a refill of prescription X." A chronic patient returning monthly for the same
+   antihypertensive creates an entirely new, independently-typed `Prescription` every visit, with no
+   linkage back to the original and no time saved for the prescriber. **Proposed**: an additive
+   nullable `Prescription.repeat_of_prescription_id` (self-referencing) field, plus one new
+   `CreateRefill(originalRxID)` service method that clones the original's lines into a new pending
+   prescription for the prescriber to confirm rather than re-type. Additive, no destructive schema
+   change, a genuinely useful quick win once the field and the one method exist.
+
+3. **Allergy cross-check timing, already built, wiring gap only.** This one is good news: the
+   mechanism this item asked about already exists. `pharmacy.Service.RecheckInteractions`
+   (`internal/modules/pharmacy/service.go`) was added specifically for "a late-disclosed allergy...
+   previously impossible: hospital-api only ever checked once, at creation" (2026-08-30). What is
+   still missing: `patients.Service.UpdatePatient` (`internal/modules/patients/service.go`), which
+   is what actually changes `Patient.allergy_flags`, has no hook that calls `RecheckInteractions` for
+   that patient's still-open prescriptions. The recheck mechanism is real and correct; it just never
+   fires automatically when the underlying allergy data changes upstream, only when someone manually
+   triggers it on a specific prescription. **Proposed**: when `UpdatePatient` changes `Allergies` and
+   the patient has any prescription in a pre-dispense state (pending/flagged/pharmacist_review/
+   approved/locked), automatically call `RecheckInteractions` for each. Small, wiring-only, no new
+   field or entity needed.
+
+See `hospital-api/docs/mvp-gap-backlog-2026-09-02.md` for this item's place in the full
+sprint-by-sprint backlog.

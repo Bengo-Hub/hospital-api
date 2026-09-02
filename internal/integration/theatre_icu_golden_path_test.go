@@ -135,6 +135,17 @@ func TestTheatreGoldenPath(t *testing.T) {
 		t.Fatalf("booking status after payment = %q, want %q", booking.Status, theatrebooking.StatusScheduled)
 	}
 
+	// Biomedical Equipment linkage (2026-09-02, brought forward from Sprint 9) — a theatre
+	// booking can reference inventory-api Asset IDs (e.g. an anaesthesia machine).
+	anaesthesiaMachineID := uuid.New()
+	bookingWithEquipment, err := theatreSvc.SetEquipment(ctx, tenantID, booking.ID, []uuid.UUID{anaesthesiaMachineID})
+	if err != nil {
+		t.Fatalf("set theatre equipment: %v", err)
+	}
+	if len(bookingWithEquipment.EquipmentAssetIds) != 1 || bookingWithEquipment.EquipmentAssetIds[0] != anaesthesiaMachineID {
+		t.Fatalf("booking equipment_asset_ids = %v, want [%v]", bookingWithEquipment.EquipmentAssetIds, anaesthesiaMachineID)
+	}
+
 	// Checklist, start, complete.
 	if _, err := theatreSvc.UpdateChecklist(ctx, tenantID, booking.ID, map[string]bool{"consent_signed": true, "site_marked": true}); err != nil {
 		t.Fatalf("update checklist: %v", err)
@@ -178,6 +189,19 @@ func TestTheatreGoldenPath(t *testing.T) {
 	}
 	if string(updated.SeverityFlag) != stable {
 		t.Fatalf("severity_flag after update = %q, want %q", updated.SeverityFlag, stable)
+	}
+
+	// Biomedical Equipment linkage — an ICU episode can reference inventory-api Asset IDs (e.g. a
+	// ventilator), updated via the same UpdateEpisode call as severity/notes.
+	ventilatorID := uuid.New()
+	withEquipment, err := icuSvc.UpdateEpisode(ctx, tenantID, episode.ID, icu.UpdateEpisodeRequest{
+		EquipmentAssetIDs: &[]uuid.UUID{ventilatorID},
+	})
+	if err != nil {
+		t.Fatalf("set ICU episode equipment: %v", err)
+	}
+	if len(withEquipment.EquipmentAssetIds) != 1 || withEquipment.EquipmentAssetIds[0] != ventilatorID {
+		t.Fatalf("episode equipment_asset_ids = %v, want [%v]", withEquipment.EquipmentAssetIds, ventilatorID)
 	}
 
 	ended, err := icuSvc.EndEpisode(ctx, tenantID, episode.ID)

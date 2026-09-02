@@ -226,6 +226,16 @@ func StatusNotIn(vs ...Status) predicate.Bed {
 	return predicate.Bed(sql.FieldNotIn(FieldStatus, vs...))
 }
 
+// EquipmentAssetIdsIsNil applies the IsNil predicate on the "equipment_asset_ids" field.
+func EquipmentAssetIdsIsNil() predicate.Bed {
+	return predicate.Bed(sql.FieldIsNull(FieldEquipmentAssetIds))
+}
+
+// EquipmentAssetIdsNotNil applies the NotNil predicate on the "equipment_asset_ids" field.
+func EquipmentAssetIdsNotNil() predicate.Bed {
+	return predicate.Bed(sql.FieldNotNull(FieldEquipmentAssetIds))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Bed {
 	return predicate.Bed(sql.FieldEQ(FieldCreatedAt, v))

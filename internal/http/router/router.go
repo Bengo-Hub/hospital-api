@@ -67,6 +67,9 @@ type Deps struct {
 	// Sprint 7: theatre/OT scheduling + ICU critical-care monitoring.
 	Theatre *handlers.TheatreHandler
 	ICU     *handlers.ICUHandler
+	// Biomedical Equipment — read-only inventory-api Asset integration, brought forward from
+	// Sprint 9 (see docs/architecture.md's "Biomedical Equipment / Asset Integration" section).
+	Assets *handlers.AssetsHandler
 }
 
 // New builds the chi router with the standard platform middleware stack.
@@ -256,9 +259,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
 					Get("/visits/{visitID}/account", d.Billing.GetAccountByVisit)
-			prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
-				outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
-				Get("/admissions/{admissionID}/account", d.Billing.GetAccountByAdmission)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+					Get("/admissions/{admissionID}/account", d.Billing.GetAccountByAdmission)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingCollectAny)).
 					Get("/billing/queue", d.Billing.ListPendingCharges)
@@ -483,6 +486,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
 					Patch("/beds/{bedID}/status", d.Inpatient.SetBedStatus)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
+					Put("/beds/{bedID}/equipment", d.Inpatient.SetBedEquipment)
 
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientAdd)).
@@ -531,6 +537,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreManage)).
 					Post("/theatre-bookings/{bookingID}/cancel", d.Theatre.CancelBooking)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Put("/theatre-bookings/{bookingID}/equipment", d.Theatre.SetEquipment)
 			}
 			if d.ICU != nil {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
@@ -548,6 +557,21 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermICUManage)).
 					Post("/icu-episodes/{episodeID}/end", d.ICU.EndEpisode)
+			}
+
+			// Biomedical Equipment — a read-only proxy over inventory-api's existing fixed-asset
+			// register, brought forward from Sprint 9 once Sprint 6/7 needed to link equipment to
+			// a Bed/TheatreBooking/ICUEpisode (see docs/architecture.md). No subscription-feature
+			// gate (a supporting cross-cutting view, not its own paywalled clinical module,
+			// mirrors Users/Config); gated on ANY module that would plausibly need to look up
+			// equipment (inpatient/theatre/ICU), same OR-gate shape as the insurance-providers
+			// picker route.
+			if d.Assets != nil {
+				equipmentViewers := outletmw.RequireServicePermission(d.RBACSvc,
+					rbacmodule.PermInpatientView, rbacmodule.PermTheatreView, rbacmodule.PermICUView)
+				prot.With(equipmentViewers).Get("/assets", d.Assets.ListAssets)
+				prot.With(equipmentViewers).Get("/assets/{assetID}", d.Assets.GetAsset)
+				prot.With(equipmentViewers).Get("/assets/{assetID}/maintenance", d.Assets.ListAssetMaintenance)
 			}
 
 			// Users / Config admin — tenant staff role-management and a read-only config view.

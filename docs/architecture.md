@@ -340,6 +340,139 @@ it, since the gap audit specifically asked for this to be named rather than left
 See `shared-docs/docs/architecture/cross-service-data-ownership.md` for the platform-wide version of
 this same boundary, updated the same day.
 
+## Biomedical Equipment / Asset Integration (2026-09-02, brought forward from Sprint 9)
+
+**The gap this section closes**: the same client-facing engineer's review that produced "Referral,
+Transfer & Ambulance Billing" above also flagged "i do not even see beds and other assets and
+management proper inventory wiring and integration" — Sprint 6/7 shipped `Ward`/`Bed`/
+`TheatreBooking`/`ICUEpisode` with no way to say which physical equipment (a ventilator, an
+anaesthesia machine, a specific bed-as-capital-asset) is tied to a given bed or booking. **Shipped
+2026-09-02, same session** (`hospital-api@<pending>`, `hospital-ui@<pending>`) — this section
+originally documented a concurrent in-progress design; it now describes the real shipped shape,
+corrected in two places from that original description (see "What actually shipped" below).
+
+### What already exists (confirmed, not new)
+
+`docs/integrations.md` §1.5 and the Data Authority table above already establish that inventory-api
+owns a full fixed-asset register — `Asset` (tag, category, serial/model/manufacturer, location,
+status, condition, warranty/maintenance schedule), `AssetMaintenance`, `AssetReservation`,
+`AssetTransfer`, `AssetDisposal`, `AssetInsurance`, `AssetAudit`, `AssetCategory` — and that
+hospital-api must never duplicate it locally. This audit (2026-09-02) directly re-read inventory-api's
+own router/middleware code (`internal/http/handlers/extras_assets.go`,
+`internal/http/handlers/extras_asset_ops.go`, `internal/http/middleware/rbac.go`, and the
+`shared-auth-client`/`auth-client` package's `RequirePermission`/`RequireFeatureCode`/`Claims`
+implementations) to confirm, rather than assume, the access story hospital-api's concurrent work
+depends on:
+
+- `GET /{tenant}/inventory/assets`, `GET .../{assetID}`, and every asset-detail-object `GET` route
+  (`/maintenance`, `/transfers`, `/disposals`, `/insurance`, `/audits`, `/reservations`) are registered
+  with **no middleware at all** — confirmed ungated, by direct route-table read, not inference.
+- Every mutating asset route (`POST`/`PUT`/`DELETE`) is wrapped in `authclient.RequireFeatureCode
+  ("fixed_assets")` then `perm(...)`. hospital-api's own `internal/modules/inventory/client.go`
+  authenticates with the static `X-API-Key` (`INTERNAL_SERVICE_KEY`) — the same header pos-api/
+  ordering-backend already use. inventory-api's `requireInternalKeyOrAuth` (its `/v1` tenant-tree
+  guard) recognizes that exact key and injects `Claims{IsService: true, SubscriptionExempt: true}`
+  (`ServiceName: "platform-internal"`) rather than resolving a real user. `RequirePermission`
+  short-circuits unconditionally on `claims.IsService`; `RequireFeatureCode` short-circuits on
+  `claims.IsGatingExempt()`, which is true whenever `SubscriptionExempt` is set. **Both gates are
+  therefore a genuine full bypass for this specific S2S path** — confirmed by reading the actual
+  bypass conditions in both middleware functions and the exact claims the static-key path constructs,
+  not taken on faith. (A caller using a different auth mode on that same tree — a registered `bng_*`
+  API key resolving to a real tenant/user — would NOT get this bypass and would need inventory-api's
+  own tenant to actually hold the `fixed_assets` feature entitlement; hospital-api's client does not
+  use that mode, so this caveat does not currently apply, but is worth knowing if the auth mode ever
+  changes.)
+
+### What actually shipped (corrected from the original concurrent-design description above)
+
+- `Bed`/`TheatreBooking`/`ICUEpisode` each gained `equipment_asset_ids` — a JSON array of
+  inventory-api `Asset` IDs (no local FK), not a single nullable `asset_id` as originally
+  described. A bed (especially in ICU) or a theatre booking commonly has more than one piece of
+  fixed equipment (a monitor AND a ventilator on the same ICU bed), so a list is the correct
+  shape, not a simplification of one. `Ward` was NOT given this field — equipment lives at the
+  bed/booking/episode level, not the ward level.
+- hospital-api gained a read-only `GET /{tenant}/hospital/assets`, `GET .../assets/{id}`,
+  `GET .../assets/{id}/maintenance` proxy (`internal/modules/inventory.Client`'s
+  `ListAssets`/`GetAsset`/`ListAssetMaintenance`, reusing the exact S2S client Sprint 4's pharmacy
+  drug-search already wired) plus `PUT /beds/{id}/equipment`, `PUT /theatre-bookings/{id}/equipment`,
+  and the existing ICU `PATCH /icu-episodes/{id}` (extended with an `equipment_asset_ids` field) to
+  set the linkage — surfaced in hospital-ui as a read-only `/assets` "Biomedical Equipment" page
+  plus a shared `EquipmentPickerModal` reused on the ward board's bed tiles, the theatre schedule's
+  row actions, and the ICU episode card.
+- **`AssetReservation` was deliberately NOT used**, unlike the original concurrent-design
+  description below proposed. The "Two real gaps found in `AssetReservation`" subsection right
+  below this one (written by a parallel research pass) confirmed it has no overlap/conflict check
+  on creation and no status-transition endpoint past `pending` — using it here would have silently
+  promised double-booking prevention it cannot actually provide. The shipped linkage is
+  deliberately a plain reference list with no availability/conflict semantics of its own; a
+  tenant's staff are trusted to coordinate shared equipment manually for this pass, same as they
+  already must for a shared theatre room before `TheatreBooking.hasOverlap` existed. Real
+  reservation-backed equipment conflict prevention is a documented future increment, gated on
+  inventory-api fixing the two gaps below first — see `docs/mvp-gap-backlog-2026-09-02.md`.
+
+The original description this section was first written against (kept below, unmodified, for the
+historical record of what was proposed before the naming/scope correction above):
+
+- `Ward`/`Bed`/`TheatreBooking`/`ICUEpisode` each gain a nullable `asset_id` (references
+  inventory-api's `Asset`, no local FK) — e.g. a ventilator assigned to an ICU bed, an anaesthesia
+  machine linked to a theatre booking. hospital-api surfaces a read-only "Biomedical Equipment"
+  list/detail view (as `docs/sprints/sprint-9-ambulance-assets.md` already planned) pulled forward
+  ahead of Sprint 9 rather than waiting for it.
+- Time-bound equipment bookings (an anaesthesia machine reserved for a specific theatre slot) reuse
+  inventory-api's existing `AssetReservation` (`asset_id`, `reserved_by`, `start_date`/`end_date`,
+  `purpose`, `status`) rather than a new hospital-api schema — consistent with this platform's
+  "reuse, don't duplicate" ownership rule.
+
+This is architecturally sound and consistent with the general finding from this round's research: real
+hospital CMMS/biomedical-equipment practice models a ventilator or anaesthesia machine as a tracked
+**asset assignable to a location** with its own maintenance/availability record (location updates
+when the device moves between departments, life-critical devices get the highest maintenance-priority
+classification), not as a plain checklist checkbox. The current `checklist.equipment_ready` boolean
+(Sprint 7, see `sprint-7-theatre-icu.md`'s gap audit) is exactly the kind of soft confirmation real
+practice backs with an actual asset record — the two are complementary, not redundant: the WHO
+checklist item stays a human verbal confirmation at the point of care, while the `asset_id`/
+`AssetReservation` linkage is the operational system of record that a specific ventilator physically
+exists, is not overdue for maintenance, and is not already committed elsewhere.
+
+### Two real gaps found in `AssetReservation`, flagged back rather than fixed here
+
+This audit is docs-only and does not touch inventory-api's code, but a direct read of
+`extras_asset_ops.go`'s `CreateAssetReservation` handler surfaced two concrete issues worth the
+concurrent implementer's attention before leaning on this endpoint for a patient-safety-adjacent
+booking (equipment double-booked between two theatre cases, or between a theatre case and an ICU
+bed, is a real clinical risk, the same class of problem `TheatreBooking.hasOverlap` exists to prevent
+for the room itself):
+
+1. **No overlap/conflict check on creation.** The handler unconditionally inserts a new row (default
+   `status: pending`) regardless of any existing reservation already covering that `asset_id` for an
+   overlapping `start_date`/`end_date` window. If hospital-api relies on `AssetReservation` to prevent
+   double-booking a shared ventilator, it currently cannot — inventory-api provides no such guarantee
+   today. hospital-api's own theatre/ICU booking logic would need to query existing reservations for
+   the same asset and time window itself before treating a reservation as safely exclusive, exactly
+   as `sprint-7-theatre-icu.md`'s gap audit now flags in its Conflict Detection section.
+2. **No status-transition endpoint exists past creation.** Only `GET` (list) and `POST` (create) are
+   registered for `/inventory/assets/{assetID}/reservations` — there is no `PUT`/`PATCH` anywhere in
+   inventory-api that moves a reservation from `pending` to `approved`/`active`/`completed`/
+   `cancelled` (confirmed by grepping the full `internal/ent` generated-update call sites — only
+   ent's own unused generated `AssetReservationUpdate` exists, no handler calls it). A reservation
+   created via this endpoint is, today, permanently `pending` from the API's point of view. hospital-
+   api should not assume a created reservation is "confirmed" or "active" in any operationally
+   meaningful sense until inventory-api adds a real transition endpoint — track the returned row as a
+   soft/tentative hold, not a binding confirmation, until this is addressed.
+
+Neither gap blocks the design (an `asset_id` reference and a read-only equipment surface don't need
+reservation mutation to be complete), but both matter the moment the concurrent work actually calls
+`POST .../reservations` to book equipment for a specific theatre slot. Worth a small, separate
+inventory-api fix at some point (an overlap check mirroring `TheatreBooking.hasOverlap`'s own shape,
+and a `PATCH`/status-transition route) — out of scope for this docs-only pass.
+
+### Data-ownership boundary (unchanged, made explicit)
+
+No change to the existing split in the Data Authority table above: inventory-api still owns the
+`Asset`/`AssetMaintenance`/`AssetReservation`/etc. rows in full; hospital-api stores only the
+reference `asset_id` (and, once reservations are wired, the returned `AssetReservation.id`) on its own
+`Ward`/`Bed`/`TheatreBooking`/`ICUEpisode` rows, never a local copy of the asset's own fields.
+
 ## Runtime Document Generation (future)
 
 Any hospital-api-owned PDF (lab report, discharge summary, prescription/dispensing label, patient
@@ -477,3 +610,18 @@ follow-up section.
   fare routes into `PatientAccount`/`BillableCharge` versus staying a standalone charge. See `erd.md`
   for the corresponding additive field lists and `docs/sprints/sprint-6-inpatient.md` /
   `sprint-9-ambulance-assets.md` / `sprint-12-compliance-hardening.md` for where this lands sprint-wise.
+- **2026-09-02 (later the same day)** — added the "Biomedical Equipment / Asset Integration" section
+  above after the same engineer flagged that Sprint 6/7 shipped with no bed/equipment inventory
+  wiring. Documents an `asset_id`-linkage design being implemented concurrently this session (not this
+  document's own work), confirms by direct code read that inventory-api's static-`X-API-Key` S2S path
+  gives hospital-api's calls a genuine full RBAC+feature-gate bypass for both GET and mutating asset
+  routes, and flags two real gaps found in inventory-api's `AssetReservation` HTTP surface (no
+  overlap/conflict check on creation, no status-transition endpoint past `pending`) for the concurrent
+  implementer to account for. Also added matching "gap audit" sections to `sprint-6-inpatient.md`
+  (ward/bed types tied to billing rate, a structured discharge summary, a new proposed
+  `vitals_chart_entry`/`ward_round_note` pair distinct from `TriageRecord`, next-of-kin/visitor-log
+  sufficiency) and `sprint-7-theatre-icu.md` (the real WHO Surgical Safety Checklist content to replace
+  the shipped 5 made-up items, a proposed `TheatreStaffAssignment` entity, staff-conflict detection,
+  a proposed `pacu_stay` entity, and a proposed `operative_note` entity) — all proposed-only, none of
+  it built. `erd.md` and `integrations.md` carry the corresponding field-level and integration-level
+  detail.

@@ -236,6 +236,110 @@ func (c *Client) SearchItems(ctx context.Context, tenantID uuid.UUID, search str
 	return out.Data, nil
 }
 
+// Asset is the read-only subset of inventory-api's Asset fixed-asset register (internal/ent/
+// schema/asset.go there) this service needs to surface as "Biomedical Equipment" — reference
+// only, hospital-api never owns or writes asset data (see docs/architecture.md's asset-integration
+// section). Field names match inventory-api's ent-generated JSON tags.
+type Asset struct {
+	ID              uuid.UUID  `json:"id"`
+	AssetTag        string     `json:"asset_tag"`
+	Name            string     `json:"name"`
+	CategoryID      *uuid.UUID `json:"category_id,omitempty"`
+	SerialNumber    string     `json:"serial_number,omitempty"`
+	Model           string     `json:"model,omitempty"`
+	Manufacturer    string     `json:"manufacturer,omitempty"`
+	Location        string     `json:"location,omitempty"`
+	Status          string     `json:"status"`
+	Condition       string     `json:"condition,omitempty"`
+	WarrantyExpiry  *time.Time `json:"warranty_expiry,omitempty"`
+	LastMaintenance *time.Time `json:"last_maintenance,omitempty"`
+	NextMaintenance *time.Time `json:"next_maintenance,omitempty"`
+}
+
+// AssetMaintenanceRecord is the read-only subset of inventory-api's AssetMaintenance this service
+// surfaces alongside an asset's detail view.
+type AssetMaintenanceRecord struct {
+	ID            uuid.UUID  `json:"id"`
+	AssetID       uuid.UUID  `json:"asset_id"`
+	ScheduledDate time.Time  `json:"scheduled_date"`
+	CompletedDate *time.Time `json:"completed_date,omitempty"`
+	Description   string     `json:"description,omitempty"`
+	Cost          float64    `json:"cost,omitempty"`
+	Status        string     `json:"status,omitempty"`
+}
+
+// ListAssets calls inventory-api's fixed-asset register (GET /v1/{tenant}/inventory/assets),
+// surfaced in hospital-api as "Biomedical Equipment" — a read-through view, never a local copy
+// (see docs/architecture.md). This is the integration the original Sprint 9 plan called for,
+// brought forward once a real need (linking equipment to a Bed/TheatreBooking/ICUEpisode)
+// appeared during Sprint 6/7's own build.
+func (c *Client) ListAssets(ctx context.Context, tenantID uuid.UUID, search string) ([]Asset, error) {
+	if !c.enabled {
+		return nil, fmt.Errorf("inventory client not configured")
+	}
+	q := url.Values{}
+	q.Set("limit", "100")
+	if search != "" {
+		q.Set("search", search)
+	}
+	path := fmt.Sprintf("/v1/%s/inventory/assets?%s", tenantID, q.Encode())
+	resp, err := c.sc.Get(ctx, path, c.headers())
+	if err != nil {
+		return nil, fmt.Errorf("inventory: list assets: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("inventory: list assets: status %d: %s", resp.StatusCode, string(resp.Body))
+	}
+	var out struct {
+		Data []Asset `json:"data"`
+	}
+	if err := resp.DecodeJSON(&out); err != nil {
+		return nil, fmt.Errorf("inventory: decode assets: %w", err)
+	}
+	return out.Data, nil
+}
+
+// GetAsset fetches one asset's detail (GET /v1/{tenant}/inventory/assets/{id}).
+func (c *Client) GetAsset(ctx context.Context, tenantID, assetID uuid.UUID) (*Asset, error) {
+	if !c.enabled {
+		return nil, fmt.Errorf("inventory client not configured")
+	}
+	path := fmt.Sprintf("/v1/%s/inventory/assets/%s", tenantID, assetID)
+	resp, err := c.sc.Get(ctx, path, c.headers())
+	if err != nil {
+		return nil, fmt.Errorf("inventory: get asset: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("inventory: get asset: status %d: %s", resp.StatusCode, string(resp.Body))
+	}
+	var a Asset
+	if err := resp.DecodeJSON(&a); err != nil {
+		return nil, fmt.Errorf("inventory: decode asset: %w", err)
+	}
+	return &a, nil
+}
+
+// ListAssetMaintenance fetches an asset's maintenance history
+// (GET /v1/{tenant}/inventory/assets/{id}/maintenance).
+func (c *Client) ListAssetMaintenance(ctx context.Context, tenantID, assetID uuid.UUID) ([]AssetMaintenanceRecord, error) {
+	if !c.enabled {
+		return nil, fmt.Errorf("inventory client not configured")
+	}
+	path := fmt.Sprintf("/v1/%s/inventory/assets/%s/maintenance", tenantID, assetID)
+	resp, err := c.sc.Get(ctx, path, c.headers())
+	if err != nil {
+		return nil, fmt.Errorf("inventory: list asset maintenance: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("inventory: list asset maintenance: status %d: %s", resp.StatusCode, string(resp.Body))
+	}
+	var out []AssetMaintenanceRecord
+	if err := resp.DecodeJSON(&out); err != nil {
+		return nil, fmt.Errorf("inventory: decode asset maintenance: %w", err)
+	}
+	return out, nil
+}
+
 // CheckInteractions calls inventory-api's drug-drug/allergy interaction engine. This is a
 // first-pass advisory check (an in-house curated rule table, NOT a licensed clinical database —
 // see inventory-api's seed_drug_interaction_rules.go) and should be surfaced to the prescriber

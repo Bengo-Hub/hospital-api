@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/icuepisode"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
@@ -102,6 +103,24 @@ func (_u *ICUEpisodeUpdate) SetNillableMonitoringNotes(v *string) *ICUEpisodeUpd
 // ClearMonitoringNotes clears the value of the "monitoring_notes" field.
 func (_u *ICUEpisodeUpdate) ClearMonitoringNotes() *ICUEpisodeUpdate {
 	_u.mutation.ClearMonitoringNotes()
+	return _u
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_u *ICUEpisodeUpdate) SetEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpdate {
+	_u.mutation.SetEquipmentAssetIds(v)
+	return _u
+}
+
+// AppendEquipmentAssetIds appends value to the "equipment_asset_ids" field.
+func (_u *ICUEpisodeUpdate) AppendEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpdate {
+	_u.mutation.AppendEquipmentAssetIds(v)
+	return _u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (_u *ICUEpisodeUpdate) ClearEquipmentAssetIds() *ICUEpisodeUpdate {
+	_u.mutation.ClearEquipmentAssetIds()
 	return _u
 }
 
@@ -232,6 +251,17 @@ func (_u *ICUEpisodeUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if _u.mutation.MonitoringNotesCleared() {
 		_spec.ClearField(icuepisode.FieldMonitoringNotes, field.TypeString)
 	}
+	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(icuepisode.FieldEquipmentAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedEquipmentAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, icuepisode.FieldEquipmentAssetIds, value)
+		})
+	}
+	if _u.mutation.EquipmentAssetIdsCleared() {
+		_spec.ClearField(icuepisode.FieldEquipmentAssetIds, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.StartedBy(); ok {
 		_spec.SetField(icuepisode.FieldStartedBy, field.TypeUUID, value)
 	}
@@ -340,6 +370,24 @@ func (_u *ICUEpisodeUpdateOne) SetNillableMonitoringNotes(v *string) *ICUEpisode
 // ClearMonitoringNotes clears the value of the "monitoring_notes" field.
 func (_u *ICUEpisodeUpdateOne) ClearMonitoringNotes() *ICUEpisodeUpdateOne {
 	_u.mutation.ClearMonitoringNotes()
+	return _u
+}
+
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (_u *ICUEpisodeUpdateOne) SetEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpdateOne {
+	_u.mutation.SetEquipmentAssetIds(v)
+	return _u
+}
+
+// AppendEquipmentAssetIds appends value to the "equipment_asset_ids" field.
+func (_u *ICUEpisodeUpdateOne) AppendEquipmentAssetIds(v []uuid.UUID) *ICUEpisodeUpdateOne {
+	_u.mutation.AppendEquipmentAssetIds(v)
+	return _u
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (_u *ICUEpisodeUpdateOne) ClearEquipmentAssetIds() *ICUEpisodeUpdateOne {
+	_u.mutation.ClearEquipmentAssetIds()
 	return _u
 }
 
@@ -499,6 +547,17 @@ func (_u *ICUEpisodeUpdateOne) sqlSave(ctx context.Context) (_node *ICUEpisode, 
 	}
 	if _u.mutation.MonitoringNotesCleared() {
 		_spec.ClearField(icuepisode.FieldMonitoringNotes, field.TypeString)
+	}
+	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
+		_spec.SetField(icuepisode.FieldEquipmentAssetIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedEquipmentAssetIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, icuepisode.FieldEquipmentAssetIds, value)
+		})
+	}
+	if _u.mutation.EquipmentAssetIdsCleared() {
+		_spec.ClearField(icuepisode.FieldEquipmentAssetIds, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.StartedBy(); ok {
 		_spec.SetField(icuepisode.FieldStartedBy, field.TypeUUID, value)

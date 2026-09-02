@@ -244,6 +244,23 @@ func (s *Service) UpdateChecklist(ctx context.Context, tenantID, bookingID uuid.
 	return s.client.TheatreBooking.UpdateOneID(bookingID).SetChecklist(checklist).Save(ctx)
 }
 
+// SetEquipment replaces the list of inventory-api Asset IDs (e.g. an anaesthesia machine) linked
+// to this booking — reference only, see docs/architecture.md's "Biomedical Equipment / Asset
+// Integration" section.
+func (s *Service) SetEquipment(ctx context.Context, tenantID, bookingID uuid.UUID, assetIDs []uuid.UUID) (*ent.TheatreBooking, error) {
+	if _, err := s.GetBooking(ctx, tenantID, bookingID); err != nil {
+		return nil, fmt.Errorf("theatre: booking not found: %w", err)
+	}
+	if assetIDs == nil {
+		assetIDs = []uuid.UUID{}
+	}
+	updated, err := s.client.TheatreBooking.UpdateOneID(bookingID).SetEquipmentAssetIds(assetIDs).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("theatre: set equipment: %w", err)
+	}
+	return updated, nil
+}
+
 // StartSurgery transitions a scheduled booking to in_progress.
 func (s *Service) StartSurgery(ctx context.Context, tenantID, bookingID uuid.UUID) (*ent.TheatreBooking, error) {
 	booking, err := s.GetBooking(ctx, tenantID, bookingID)

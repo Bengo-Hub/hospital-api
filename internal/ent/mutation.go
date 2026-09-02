@@ -1438,23 +1438,25 @@ func (m *AdmissionMutation) ResetEdge(name string) error {
 // BedMutation represents an operation that mutates the Bed nodes in the graph.
 type BedMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *uuid.UUID
-	tenant_id         *uuid.UUID
-	bed_number        *string
-	status            *bed.Status
-	created_at        *time.Time
-	updated_at        *time.Time
-	clearedFields     map[string]struct{}
-	ward              *uuid.UUID
-	clearedward       bool
-	admissions        map[uuid.UUID]struct{}
-	removedadmissions map[uuid.UUID]struct{}
-	clearedadmissions bool
-	done              bool
-	oldValue          func(context.Context) (*Bed, error)
-	predicates        []predicate.Bed
+	op                        Op
+	typ                       string
+	id                        *uuid.UUID
+	tenant_id                 *uuid.UUID
+	bed_number                *string
+	status                    *bed.Status
+	equipment_asset_ids       *[]uuid.UUID
+	appendequipment_asset_ids []uuid.UUID
+	created_at                *time.Time
+	updated_at                *time.Time
+	clearedFields             map[string]struct{}
+	ward                      *uuid.UUID
+	clearedward               bool
+	admissions                map[uuid.UUID]struct{}
+	removedadmissions         map[uuid.UUID]struct{}
+	clearedadmissions         bool
+	done                      bool
+	oldValue                  func(context.Context) (*Bed, error)
+	predicates                []predicate.Bed
 }
 
 var _ ent.Mutation = (*BedMutation)(nil)
@@ -1705,6 +1707,71 @@ func (m *BedMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (m *BedMutation) SetEquipmentAssetIds(u []uuid.UUID) {
+	m.equipment_asset_ids = &u
+	m.appendequipment_asset_ids = nil
+}
+
+// EquipmentAssetIds returns the value of the "equipment_asset_ids" field in the mutation.
+func (m *BedMutation) EquipmentAssetIds() (r []uuid.UUID, exists bool) {
+	v := m.equipment_asset_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEquipmentAssetIds returns the old "equipment_asset_ids" field's value of the Bed entity.
+// If the Bed object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BedMutation) OldEquipmentAssetIds(ctx context.Context) (v []uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEquipmentAssetIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEquipmentAssetIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEquipmentAssetIds: %w", err)
+	}
+	return oldValue.EquipmentAssetIds, nil
+}
+
+// AppendEquipmentAssetIds adds u to the "equipment_asset_ids" field.
+func (m *BedMutation) AppendEquipmentAssetIds(u []uuid.UUID) {
+	m.appendequipment_asset_ids = append(m.appendequipment_asset_ids, u...)
+}
+
+// AppendedEquipmentAssetIds returns the list of values that were appended to the "equipment_asset_ids" field in this mutation.
+func (m *BedMutation) AppendedEquipmentAssetIds() ([]uuid.UUID, bool) {
+	if len(m.appendequipment_asset_ids) == 0 {
+		return nil, false
+	}
+	return m.appendequipment_asset_ids, true
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (m *BedMutation) ClearEquipmentAssetIds() {
+	m.equipment_asset_ids = nil
+	m.appendequipment_asset_ids = nil
+	m.clearedFields[bed.FieldEquipmentAssetIds] = struct{}{}
+}
+
+// EquipmentAssetIdsCleared returns if the "equipment_asset_ids" field was cleared in this mutation.
+func (m *BedMutation) EquipmentAssetIdsCleared() bool {
+	_, ok := m.clearedFields[bed.FieldEquipmentAssetIds]
+	return ok
+}
+
+// ResetEquipmentAssetIds resets all changes to the "equipment_asset_ids" field.
+func (m *BedMutation) ResetEquipmentAssetIds() {
+	m.equipment_asset_ids = nil
+	m.appendequipment_asset_ids = nil
+	delete(m.clearedFields, bed.FieldEquipmentAssetIds)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *BedMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -1892,7 +1959,7 @@ func (m *BedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BedMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.tenant_id != nil {
 		fields = append(fields, bed.FieldTenantID)
 	}
@@ -1904,6 +1971,9 @@ func (m *BedMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, bed.FieldStatus)
+	}
+	if m.equipment_asset_ids != nil {
+		fields = append(fields, bed.FieldEquipmentAssetIds)
 	}
 	if m.created_at != nil {
 		fields = append(fields, bed.FieldCreatedAt)
@@ -1927,6 +1997,8 @@ func (m *BedMutation) Field(name string) (ent.Value, bool) {
 		return m.BedNumber()
 	case bed.FieldStatus:
 		return m.Status()
+	case bed.FieldEquipmentAssetIds:
+		return m.EquipmentAssetIds()
 	case bed.FieldCreatedAt:
 		return m.CreatedAt()
 	case bed.FieldUpdatedAt:
@@ -1948,6 +2020,8 @@ func (m *BedMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldBedNumber(ctx)
 	case bed.FieldStatus:
 		return m.OldStatus(ctx)
+	case bed.FieldEquipmentAssetIds:
+		return m.OldEquipmentAssetIds(ctx)
 	case bed.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case bed.FieldUpdatedAt:
@@ -1988,6 +2062,13 @@ func (m *BedMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case bed.FieldEquipmentAssetIds:
+		v, ok := value.([]uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEquipmentAssetIds(v)
 		return nil
 	case bed.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -2032,7 +2113,11 @@ func (m *BedMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *BedMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(bed.FieldEquipmentAssetIds) {
+		fields = append(fields, bed.FieldEquipmentAssetIds)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -2045,6 +2130,11 @@ func (m *BedMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *BedMutation) ClearField(name string) error {
+	switch name {
+	case bed.FieldEquipmentAssetIds:
+		m.ClearEquipmentAssetIds()
+		return nil
+	}
 	return fmt.Errorf("unknown Bed nullable field %s", name)
 }
 
@@ -2063,6 +2153,9 @@ func (m *BedMutation) ResetField(name string) error {
 		return nil
 	case bed.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case bed.FieldEquipmentAssetIds:
+		m.ResetEquipmentAssetIds()
 		return nil
 	case bed.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -13065,23 +13158,25 @@ func (m *HospitalUserOutletMutation) ResetEdge(name string) error {
 // ICUEpisodeMutation represents an operation that mutates the ICUEpisode nodes in the graph.
 type ICUEpisodeMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	tenant_id        *uuid.UUID
-	admission_id     *uuid.UUID
-	bed_id           *uuid.UUID
-	severity_flag    *icuepisode.SeverityFlag
-	monitoring_notes *string
-	started_by       *uuid.UUID
-	started_at       *time.Time
-	ended_at         *time.Time
-	created_at       *time.Time
-	updated_at       *time.Time
-	clearedFields    map[string]struct{}
-	done             bool
-	oldValue         func(context.Context) (*ICUEpisode, error)
-	predicates       []predicate.ICUEpisode
+	op                        Op
+	typ                       string
+	id                        *uuid.UUID
+	tenant_id                 *uuid.UUID
+	admission_id              *uuid.UUID
+	bed_id                    *uuid.UUID
+	severity_flag             *icuepisode.SeverityFlag
+	monitoring_notes          *string
+	equipment_asset_ids       *[]uuid.UUID
+	appendequipment_asset_ids []uuid.UUID
+	started_by                *uuid.UUID
+	started_at                *time.Time
+	ended_at                  *time.Time
+	created_at                *time.Time
+	updated_at                *time.Time
+	clearedFields             map[string]struct{}
+	done                      bool
+	oldValue                  func(context.Context) (*ICUEpisode, error)
+	predicates                []predicate.ICUEpisode
 }
 
 var _ ent.Mutation = (*ICUEpisodeMutation)(nil)
@@ -13381,6 +13476,71 @@ func (m *ICUEpisodeMutation) ResetMonitoringNotes() {
 	delete(m.clearedFields, icuepisode.FieldMonitoringNotes)
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (m *ICUEpisodeMutation) SetEquipmentAssetIds(u []uuid.UUID) {
+	m.equipment_asset_ids = &u
+	m.appendequipment_asset_ids = nil
+}
+
+// EquipmentAssetIds returns the value of the "equipment_asset_ids" field in the mutation.
+func (m *ICUEpisodeMutation) EquipmentAssetIds() (r []uuid.UUID, exists bool) {
+	v := m.equipment_asset_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEquipmentAssetIds returns the old "equipment_asset_ids" field's value of the ICUEpisode entity.
+// If the ICUEpisode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ICUEpisodeMutation) OldEquipmentAssetIds(ctx context.Context) (v []uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEquipmentAssetIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEquipmentAssetIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEquipmentAssetIds: %w", err)
+	}
+	return oldValue.EquipmentAssetIds, nil
+}
+
+// AppendEquipmentAssetIds adds u to the "equipment_asset_ids" field.
+func (m *ICUEpisodeMutation) AppendEquipmentAssetIds(u []uuid.UUID) {
+	m.appendequipment_asset_ids = append(m.appendequipment_asset_ids, u...)
+}
+
+// AppendedEquipmentAssetIds returns the list of values that were appended to the "equipment_asset_ids" field in this mutation.
+func (m *ICUEpisodeMutation) AppendedEquipmentAssetIds() ([]uuid.UUID, bool) {
+	if len(m.appendequipment_asset_ids) == 0 {
+		return nil, false
+	}
+	return m.appendequipment_asset_ids, true
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (m *ICUEpisodeMutation) ClearEquipmentAssetIds() {
+	m.equipment_asset_ids = nil
+	m.appendequipment_asset_ids = nil
+	m.clearedFields[icuepisode.FieldEquipmentAssetIds] = struct{}{}
+}
+
+// EquipmentAssetIdsCleared returns if the "equipment_asset_ids" field was cleared in this mutation.
+func (m *ICUEpisodeMutation) EquipmentAssetIdsCleared() bool {
+	_, ok := m.clearedFields[icuepisode.FieldEquipmentAssetIds]
+	return ok
+}
+
+// ResetEquipmentAssetIds resets all changes to the "equipment_asset_ids" field.
+func (m *ICUEpisodeMutation) ResetEquipmentAssetIds() {
+	m.equipment_asset_ids = nil
+	m.appendequipment_asset_ids = nil
+	delete(m.clearedFields, icuepisode.FieldEquipmentAssetIds)
+}
+
 // SetStartedBy sets the "started_by" field.
 func (m *ICUEpisodeMutation) SetStartedBy(u uuid.UUID) {
 	m.started_by = &u
@@ -13621,7 +13781,7 @@ func (m *ICUEpisodeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ICUEpisodeMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.tenant_id != nil {
 		fields = append(fields, icuepisode.FieldTenantID)
 	}
@@ -13636,6 +13796,9 @@ func (m *ICUEpisodeMutation) Fields() []string {
 	}
 	if m.monitoring_notes != nil {
 		fields = append(fields, icuepisode.FieldMonitoringNotes)
+	}
+	if m.equipment_asset_ids != nil {
+		fields = append(fields, icuepisode.FieldEquipmentAssetIds)
 	}
 	if m.started_by != nil {
 		fields = append(fields, icuepisode.FieldStartedBy)
@@ -13670,6 +13833,8 @@ func (m *ICUEpisodeMutation) Field(name string) (ent.Value, bool) {
 		return m.SeverityFlag()
 	case icuepisode.FieldMonitoringNotes:
 		return m.MonitoringNotes()
+	case icuepisode.FieldEquipmentAssetIds:
+		return m.EquipmentAssetIds()
 	case icuepisode.FieldStartedBy:
 		return m.StartedBy()
 	case icuepisode.FieldStartedAt:
@@ -13699,6 +13864,8 @@ func (m *ICUEpisodeMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldSeverityFlag(ctx)
 	case icuepisode.FieldMonitoringNotes:
 		return m.OldMonitoringNotes(ctx)
+	case icuepisode.FieldEquipmentAssetIds:
+		return m.OldEquipmentAssetIds(ctx)
 	case icuepisode.FieldStartedBy:
 		return m.OldStartedBy(ctx)
 	case icuepisode.FieldStartedAt:
@@ -13752,6 +13919,13 @@ func (m *ICUEpisodeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMonitoringNotes(v)
+		return nil
+	case icuepisode.FieldEquipmentAssetIds:
+		v, ok := value.([]uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEquipmentAssetIds(v)
 		return nil
 	case icuepisode.FieldStartedBy:
 		v, ok := value.(uuid.UUID)
@@ -13821,6 +13995,9 @@ func (m *ICUEpisodeMutation) ClearedFields() []string {
 	if m.FieldCleared(icuepisode.FieldMonitoringNotes) {
 		fields = append(fields, icuepisode.FieldMonitoringNotes)
 	}
+	if m.FieldCleared(icuepisode.FieldEquipmentAssetIds) {
+		fields = append(fields, icuepisode.FieldEquipmentAssetIds)
+	}
 	if m.FieldCleared(icuepisode.FieldStartedBy) {
 		fields = append(fields, icuepisode.FieldStartedBy)
 	}
@@ -13843,6 +14020,9 @@ func (m *ICUEpisodeMutation) ClearField(name string) error {
 	switch name {
 	case icuepisode.FieldMonitoringNotes:
 		m.ClearMonitoringNotes()
+		return nil
+	case icuepisode.FieldEquipmentAssetIds:
+		m.ClearEquipmentAssetIds()
 		return nil
 	case icuepisode.FieldStartedBy:
 		m.ClearStartedBy()
@@ -13872,6 +14052,9 @@ func (m *ICUEpisodeMutation) ResetField(name string) error {
 		return nil
 	case icuepisode.FieldMonitoringNotes:
 		m.ResetMonitoringNotes()
+		return nil
+	case icuepisode.FieldEquipmentAssetIds:
+		m.ResetEquipmentAssetIds()
 		return nil
 	case icuepisode.FieldStartedBy:
 		m.ResetStartedBy()
@@ -32185,32 +32368,34 @@ func (m *TenantMutation) ResetEdge(name string) error {
 // TheatreBookingMutation represents an operation that mutates the TheatreBooking nodes in the graph.
 type TheatreBookingMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *uuid.UUID
-	tenant_id           *uuid.UUID
-	outlet_id           *uuid.UUID
-	patient_visit_id    *uuid.UUID
-	patient_id          *uuid.UUID
-	theatre_room        *string
-	surgery_type        *string
-	surgeon_id          *uuid.UUID
-	scheduled_at        *time.Time
-	duration_minutes    *int
-	addduration_minutes *int
-	status              *theatrebooking.Status
-	checklist           *map[string]bool
-	fee_amount          *float64
-	addfee_amount       *float64
-	created_by          *uuid.UUID
-	started_at          *time.Time
-	completed_at        *time.Time
-	created_at          *time.Time
-	updated_at          *time.Time
-	clearedFields       map[string]struct{}
-	done                bool
-	oldValue            func(context.Context) (*TheatreBooking, error)
-	predicates          []predicate.TheatreBooking
+	op                        Op
+	typ                       string
+	id                        *uuid.UUID
+	tenant_id                 *uuid.UUID
+	outlet_id                 *uuid.UUID
+	patient_visit_id          *uuid.UUID
+	patient_id                *uuid.UUID
+	theatre_room              *string
+	surgery_type              *string
+	surgeon_id                *uuid.UUID
+	scheduled_at              *time.Time
+	duration_minutes          *int
+	addduration_minutes       *int
+	status                    *theatrebooking.Status
+	checklist                 *map[string]bool
+	fee_amount                *float64
+	addfee_amount             *float64
+	equipment_asset_ids       *[]uuid.UUID
+	appendequipment_asset_ids []uuid.UUID
+	created_by                *uuid.UUID
+	started_at                *time.Time
+	completed_at              *time.Time
+	created_at                *time.Time
+	updated_at                *time.Time
+	clearedFields             map[string]struct{}
+	done                      bool
+	oldValue                  func(context.Context) (*TheatreBooking, error)
+	predicates                []predicate.TheatreBooking
 }
 
 var _ ent.Mutation = (*TheatreBookingMutation)(nil)
@@ -32829,6 +33014,71 @@ func (m *TheatreBookingMutation) ResetFeeAmount() {
 	delete(m.clearedFields, theatrebooking.FieldFeeAmount)
 }
 
+// SetEquipmentAssetIds sets the "equipment_asset_ids" field.
+func (m *TheatreBookingMutation) SetEquipmentAssetIds(u []uuid.UUID) {
+	m.equipment_asset_ids = &u
+	m.appendequipment_asset_ids = nil
+}
+
+// EquipmentAssetIds returns the value of the "equipment_asset_ids" field in the mutation.
+func (m *TheatreBookingMutation) EquipmentAssetIds() (r []uuid.UUID, exists bool) {
+	v := m.equipment_asset_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEquipmentAssetIds returns the old "equipment_asset_ids" field's value of the TheatreBooking entity.
+// If the TheatreBooking object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TheatreBookingMutation) OldEquipmentAssetIds(ctx context.Context) (v []uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEquipmentAssetIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEquipmentAssetIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEquipmentAssetIds: %w", err)
+	}
+	return oldValue.EquipmentAssetIds, nil
+}
+
+// AppendEquipmentAssetIds adds u to the "equipment_asset_ids" field.
+func (m *TheatreBookingMutation) AppendEquipmentAssetIds(u []uuid.UUID) {
+	m.appendequipment_asset_ids = append(m.appendequipment_asset_ids, u...)
+}
+
+// AppendedEquipmentAssetIds returns the list of values that were appended to the "equipment_asset_ids" field in this mutation.
+func (m *TheatreBookingMutation) AppendedEquipmentAssetIds() ([]uuid.UUID, bool) {
+	if len(m.appendequipment_asset_ids) == 0 {
+		return nil, false
+	}
+	return m.appendequipment_asset_ids, true
+}
+
+// ClearEquipmentAssetIds clears the value of the "equipment_asset_ids" field.
+func (m *TheatreBookingMutation) ClearEquipmentAssetIds() {
+	m.equipment_asset_ids = nil
+	m.appendequipment_asset_ids = nil
+	m.clearedFields[theatrebooking.FieldEquipmentAssetIds] = struct{}{}
+}
+
+// EquipmentAssetIdsCleared returns if the "equipment_asset_ids" field was cleared in this mutation.
+func (m *TheatreBookingMutation) EquipmentAssetIdsCleared() bool {
+	_, ok := m.clearedFields[theatrebooking.FieldEquipmentAssetIds]
+	return ok
+}
+
+// ResetEquipmentAssetIds resets all changes to the "equipment_asset_ids" field.
+func (m *TheatreBookingMutation) ResetEquipmentAssetIds() {
+	m.equipment_asset_ids = nil
+	m.appendequipment_asset_ids = nil
+	delete(m.clearedFields, theatrebooking.FieldEquipmentAssetIds)
+}
+
 // SetCreatedBy sets the "created_by" field.
 func (m *TheatreBookingMutation) SetCreatedBy(u uuid.UUID) {
 	m.created_by = &u
@@ -33082,7 +33332,7 @@ func (m *TheatreBookingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TheatreBookingMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.tenant_id != nil {
 		fields = append(fields, theatrebooking.FieldTenantID)
 	}
@@ -33118,6 +33368,9 @@ func (m *TheatreBookingMutation) Fields() []string {
 	}
 	if m.fee_amount != nil {
 		fields = append(fields, theatrebooking.FieldFeeAmount)
+	}
+	if m.equipment_asset_ids != nil {
+		fields = append(fields, theatrebooking.FieldEquipmentAssetIds)
 	}
 	if m.created_by != nil {
 		fields = append(fields, theatrebooking.FieldCreatedBy)
@@ -33166,6 +33419,8 @@ func (m *TheatreBookingMutation) Field(name string) (ent.Value, bool) {
 		return m.Checklist()
 	case theatrebooking.FieldFeeAmount:
 		return m.FeeAmount()
+	case theatrebooking.FieldEquipmentAssetIds:
+		return m.EquipmentAssetIds()
 	case theatrebooking.FieldCreatedBy:
 		return m.CreatedBy()
 	case theatrebooking.FieldStartedAt:
@@ -33209,6 +33464,8 @@ func (m *TheatreBookingMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldChecklist(ctx)
 	case theatrebooking.FieldFeeAmount:
 		return m.OldFeeAmount(ctx)
+	case theatrebooking.FieldEquipmentAssetIds:
+		return m.OldEquipmentAssetIds(ctx)
 	case theatrebooking.FieldCreatedBy:
 		return m.OldCreatedBy(ctx)
 	case theatrebooking.FieldStartedAt:
@@ -33312,6 +33569,13 @@ func (m *TheatreBookingMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetFeeAmount(v)
 		return nil
+	case theatrebooking.FieldEquipmentAssetIds:
+		v, ok := value.([]uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEquipmentAssetIds(v)
+		return nil
 	case theatrebooking.FieldCreatedBy:
 		v, ok := value.(uuid.UUID)
 		if !ok {
@@ -33413,6 +33677,9 @@ func (m *TheatreBookingMutation) ClearedFields() []string {
 	if m.FieldCleared(theatrebooking.FieldFeeAmount) {
 		fields = append(fields, theatrebooking.FieldFeeAmount)
 	}
+	if m.FieldCleared(theatrebooking.FieldEquipmentAssetIds) {
+		fields = append(fields, theatrebooking.FieldEquipmentAssetIds)
+	}
 	if m.FieldCleared(theatrebooking.FieldCreatedBy) {
 		fields = append(fields, theatrebooking.FieldCreatedBy)
 	}
@@ -33444,6 +33711,9 @@ func (m *TheatreBookingMutation) ClearField(name string) error {
 		return nil
 	case theatrebooking.FieldFeeAmount:
 		m.ClearFeeAmount()
+		return nil
+	case theatrebooking.FieldEquipmentAssetIds:
+		m.ClearEquipmentAssetIds()
 		return nil
 	case theatrebooking.FieldCreatedBy:
 		m.ClearCreatedBy()
@@ -33497,6 +33767,9 @@ func (m *TheatreBookingMutation) ResetField(name string) error {
 		return nil
 	case theatrebooking.FieldFeeAmount:
 		m.ResetFeeAmount()
+		return nil
+	case theatrebooking.FieldEquipmentAssetIds:
+		m.ResetEquipmentAssetIds()
 		return nil
 	case theatrebooking.FieldCreatedBy:
 		m.ResetCreatedBy()

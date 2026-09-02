@@ -39,6 +39,10 @@ func (TheatreBooking) Fields() []ent.Field {
 			Comment("Pre-op checklist items — normalized as JSON rather than a rigid new table per item"),
 		field.Float("fee_amount").Optional().Nillable().
 			Comment("Snapshotted procedure fee at booking time; nil = no charge posted (tenant hasn't priced this booking)"),
+		// EquipmentAssetIDs (2026-09-02, Biomedical Equipment integration brought forward from
+		// Sprint 9): references to inventory-api's Asset register (e.g. an anaesthesia machine)
+		// reserved for this booking — reference only. See docs/architecture.md.
+		field.JSON("equipment_asset_ids", []uuid.UUID{}).Optional().Default([]uuid.UUID{}),
 		field.UUID("created_by", uuid.UUID{}).Optional().Nillable(),
 		field.Time("started_at").Optional().Nillable(),
 		field.Time("completed_at").Optional().Nillable(),
