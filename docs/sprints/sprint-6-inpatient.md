@@ -1,6 +1,6 @@
 # Hospital API — Sprint 6: Inpatient
 
-**Status:** ✅ Shipped 2026-09-02 (`hospital-api@<pending-commit>` — see `.claude/plans/hospital-sprint6-inpatient-2026-09-02.md` for the full execution record). `go build`/`go vet`/`go test` green, Atlas migration generated + applied to the local dev DB, real integration test (`internal/integration/inpatient_golden_path_test.go`).
+**Status:** ✅ Shipped 2026-09-02 (`hospital-api@f0cdf9d` — see `.claude/plans/hospital-sprint6-inpatient-2026-09-02.md` for the full execution record). `go build`/`go vet`/`go test` green, Atlas migration generated + applied to the local dev DB, real integration test (`internal/integration/inpatient_golden_path_test.go`).
 **Depends on:** Sprint 5 (Billing, for folio charges at discharge)
 **Goal:** Ward/bed assignment, admission-to-discharge lifecycle, discharge summaries. First Afya Facility-tier-only feature (Afya Clinic tenants with the Inpatient add-on get a lightweight version — see below).
 
