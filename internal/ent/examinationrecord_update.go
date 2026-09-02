@@ -10,10 +10,12 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
+	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/google/uuid"
 )
 
@@ -143,6 +145,68 @@ func (_u *ExaminationRecordUpdate) SetNillableDiagnosisName(v *string) *Examinat
 // ClearDiagnosisName clears the value of the "diagnosis_name" field.
 func (_u *ExaminationRecordUpdate) ClearDiagnosisName() *ExaminationRecordUpdate {
 	_u.mutation.ClearDiagnosisName()
+	return _u
+}
+
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (_u *ExaminationRecordUpdate) SetDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpdate {
+	_u.mutation.SetDiagnosisHistory(v)
+	return _u
+}
+
+// AppendDiagnosisHistory appends value to the "diagnosis_history" field.
+func (_u *ExaminationRecordUpdate) AppendDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpdate {
+	_u.mutation.AppendDiagnosisHistory(v)
+	return _u
+}
+
+// ClearDiagnosisHistory clears the value of the "diagnosis_history" field.
+func (_u *ExaminationRecordUpdate) ClearDiagnosisHistory() *ExaminationRecordUpdate {
+	_u.mutation.ClearDiagnosisHistory()
+	return _u
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (_u *ExaminationRecordUpdate) SetReviewOfSystems(v map[string]string) *ExaminationRecordUpdate {
+	_u.mutation.SetReviewOfSystems(v)
+	return _u
+}
+
+// ClearReviewOfSystems clears the value of the "review_of_systems" field.
+func (_u *ExaminationRecordUpdate) ClearReviewOfSystems() *ExaminationRecordUpdate {
+	_u.mutation.ClearReviewOfSystems()
+	return _u
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (_u *ExaminationRecordUpdate) SetPhysicalExamFindings(v map[string]string) *ExaminationRecordUpdate {
+	_u.mutation.SetPhysicalExamFindings(v)
+	return _u
+}
+
+// ClearPhysicalExamFindings clears the value of the "physical_exam_findings" field.
+func (_u *ExaminationRecordUpdate) ClearPhysicalExamFindings() *ExaminationRecordUpdate {
+	_u.mutation.ClearPhysicalExamFindings()
+	return _u
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (_u *ExaminationRecordUpdate) SetTreatmentPlan(v string) *ExaminationRecordUpdate {
+	_u.mutation.SetTreatmentPlan(v)
+	return _u
+}
+
+// SetNillableTreatmentPlan sets the "treatment_plan" field if the given value is not nil.
+func (_u *ExaminationRecordUpdate) SetNillableTreatmentPlan(v *string) *ExaminationRecordUpdate {
+	if v != nil {
+		_u.SetTreatmentPlan(*v)
+	}
+	return _u
+}
+
+// ClearTreatmentPlan clears the value of the "treatment_plan" field.
+func (_u *ExaminationRecordUpdate) ClearTreatmentPlan() *ExaminationRecordUpdate {
+	_u.mutation.ClearTreatmentPlan()
 	return _u
 }
 
@@ -299,6 +363,35 @@ func (_u *ExaminationRecordUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if _u.mutation.DiagnosisNameCleared() {
 		_spec.ClearField(examinationrecord.FieldDiagnosisName, field.TypeString)
+	}
+	if value, ok := _u.mutation.DiagnosisHistory(); ok {
+		_spec.SetField(examinationrecord.FieldDiagnosisHistory, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDiagnosisHistory(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, examinationrecord.FieldDiagnosisHistory, value)
+		})
+	}
+	if _u.mutation.DiagnosisHistoryCleared() {
+		_spec.ClearField(examinationrecord.FieldDiagnosisHistory, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.ReviewOfSystems(); ok {
+		_spec.SetField(examinationrecord.FieldReviewOfSystems, field.TypeJSON, value)
+	}
+	if _u.mutation.ReviewOfSystemsCleared() {
+		_spec.ClearField(examinationrecord.FieldReviewOfSystems, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PhysicalExamFindings(); ok {
+		_spec.SetField(examinationrecord.FieldPhysicalExamFindings, field.TypeJSON, value)
+	}
+	if _u.mutation.PhysicalExamFindingsCleared() {
+		_spec.ClearField(examinationrecord.FieldPhysicalExamFindings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TreatmentPlan(); ok {
+		_spec.SetField(examinationrecord.FieldTreatmentPlan, field.TypeString, value)
+	}
+	if _u.mutation.TreatmentPlanCleared() {
+		_spec.ClearField(examinationrecord.FieldTreatmentPlan, field.TypeString)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(examinationrecord.FieldNotes, field.TypeString, value)
@@ -477,6 +570,68 @@ func (_u *ExaminationRecordUpdateOne) SetNillableDiagnosisName(v *string) *Exami
 // ClearDiagnosisName clears the value of the "diagnosis_name" field.
 func (_u *ExaminationRecordUpdateOne) ClearDiagnosisName() *ExaminationRecordUpdateOne {
 	_u.mutation.ClearDiagnosisName()
+	return _u
+}
+
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (_u *ExaminationRecordUpdateOne) SetDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpdateOne {
+	_u.mutation.SetDiagnosisHistory(v)
+	return _u
+}
+
+// AppendDiagnosisHistory appends value to the "diagnosis_history" field.
+func (_u *ExaminationRecordUpdateOne) AppendDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpdateOne {
+	_u.mutation.AppendDiagnosisHistory(v)
+	return _u
+}
+
+// ClearDiagnosisHistory clears the value of the "diagnosis_history" field.
+func (_u *ExaminationRecordUpdateOne) ClearDiagnosisHistory() *ExaminationRecordUpdateOne {
+	_u.mutation.ClearDiagnosisHistory()
+	return _u
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (_u *ExaminationRecordUpdateOne) SetReviewOfSystems(v map[string]string) *ExaminationRecordUpdateOne {
+	_u.mutation.SetReviewOfSystems(v)
+	return _u
+}
+
+// ClearReviewOfSystems clears the value of the "review_of_systems" field.
+func (_u *ExaminationRecordUpdateOne) ClearReviewOfSystems() *ExaminationRecordUpdateOne {
+	_u.mutation.ClearReviewOfSystems()
+	return _u
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (_u *ExaminationRecordUpdateOne) SetPhysicalExamFindings(v map[string]string) *ExaminationRecordUpdateOne {
+	_u.mutation.SetPhysicalExamFindings(v)
+	return _u
+}
+
+// ClearPhysicalExamFindings clears the value of the "physical_exam_findings" field.
+func (_u *ExaminationRecordUpdateOne) ClearPhysicalExamFindings() *ExaminationRecordUpdateOne {
+	_u.mutation.ClearPhysicalExamFindings()
+	return _u
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (_u *ExaminationRecordUpdateOne) SetTreatmentPlan(v string) *ExaminationRecordUpdateOne {
+	_u.mutation.SetTreatmentPlan(v)
+	return _u
+}
+
+// SetNillableTreatmentPlan sets the "treatment_plan" field if the given value is not nil.
+func (_u *ExaminationRecordUpdateOne) SetNillableTreatmentPlan(v *string) *ExaminationRecordUpdateOne {
+	if v != nil {
+		_u.SetTreatmentPlan(*v)
+	}
+	return _u
+}
+
+// ClearTreatmentPlan clears the value of the "treatment_plan" field.
+func (_u *ExaminationRecordUpdateOne) ClearTreatmentPlan() *ExaminationRecordUpdateOne {
+	_u.mutation.ClearTreatmentPlan()
 	return _u
 }
 
@@ -663,6 +818,35 @@ func (_u *ExaminationRecordUpdateOne) sqlSave(ctx context.Context) (_node *Exami
 	}
 	if _u.mutation.DiagnosisNameCleared() {
 		_spec.ClearField(examinationrecord.FieldDiagnosisName, field.TypeString)
+	}
+	if value, ok := _u.mutation.DiagnosisHistory(); ok {
+		_spec.SetField(examinationrecord.FieldDiagnosisHistory, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDiagnosisHistory(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, examinationrecord.FieldDiagnosisHistory, value)
+		})
+	}
+	if _u.mutation.DiagnosisHistoryCleared() {
+		_spec.ClearField(examinationrecord.FieldDiagnosisHistory, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.ReviewOfSystems(); ok {
+		_spec.SetField(examinationrecord.FieldReviewOfSystems, field.TypeJSON, value)
+	}
+	if _u.mutation.ReviewOfSystemsCleared() {
+		_spec.ClearField(examinationrecord.FieldReviewOfSystems, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PhysicalExamFindings(); ok {
+		_spec.SetField(examinationrecord.FieldPhysicalExamFindings, field.TypeJSON, value)
+	}
+	if _u.mutation.PhysicalExamFindingsCleared() {
+		_spec.ClearField(examinationrecord.FieldPhysicalExamFindings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TreatmentPlan(); ok {
+		_spec.SetField(examinationrecord.FieldTreatmentPlan, field.TypeString, value)
+	}
+	if _u.mutation.TreatmentPlanCleared() {
+		_spec.ClearField(examinationrecord.FieldTreatmentPlan, field.TypeString)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(examinationrecord.FieldNotes, field.TypeString, value)

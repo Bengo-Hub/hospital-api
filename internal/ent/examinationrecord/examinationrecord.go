@@ -30,6 +30,14 @@ const (
 	FieldDiagnosisCode = "diagnosis_code"
 	// FieldDiagnosisName holds the string denoting the diagnosis_name field in the database.
 	FieldDiagnosisName = "diagnosis_name"
+	// FieldDiagnosisHistory holds the string denoting the diagnosis_history field in the database.
+	FieldDiagnosisHistory = "diagnosis_history"
+	// FieldReviewOfSystems holds the string denoting the review_of_systems field in the database.
+	FieldReviewOfSystems = "review_of_systems"
+	// FieldPhysicalExamFindings holds the string denoting the physical_exam_findings field in the database.
+	FieldPhysicalExamFindings = "physical_exam_findings"
+	// FieldTreatmentPlan holds the string denoting the treatment_plan field in the database.
+	FieldTreatmentPlan = "treatment_plan"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -61,6 +69,10 @@ var Columns = []string{
 	FieldChiefComplaint,
 	FieldDiagnosisCode,
 	FieldDiagnosisName,
+	FieldDiagnosisHistory,
+	FieldReviewOfSystems,
+	FieldPhysicalExamFindings,
+	FieldTreatmentPlan,
 	FieldNotes,
 	FieldStatus,
 	FieldExaminedAt,
@@ -180,6 +192,11 @@ func ByDiagnosisCode(opts ...sql.OrderTermOption) OrderOption {
 // ByDiagnosisName orders the results by the diagnosis_name field.
 func ByDiagnosisName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiagnosisName, opts...).ToFunc()
+}
+
+// ByTreatmentPlan orders the results by the treatment_plan field.
+func ByTreatmentPlan(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTreatmentPlan, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.

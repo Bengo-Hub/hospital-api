@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/google/uuid"
 )
 
@@ -95,6 +96,38 @@ func (_c *ExaminationRecordCreate) SetDiagnosisName(v string) *ExaminationRecord
 func (_c *ExaminationRecordCreate) SetNillableDiagnosisName(v *string) *ExaminationRecordCreate {
 	if v != nil {
 		_c.SetDiagnosisName(*v)
+	}
+	return _c
+}
+
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (_c *ExaminationRecordCreate) SetDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordCreate {
+	_c.mutation.SetDiagnosisHistory(v)
+	return _c
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (_c *ExaminationRecordCreate) SetReviewOfSystems(v map[string]string) *ExaminationRecordCreate {
+	_c.mutation.SetReviewOfSystems(v)
+	return _c
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (_c *ExaminationRecordCreate) SetPhysicalExamFindings(v map[string]string) *ExaminationRecordCreate {
+	_c.mutation.SetPhysicalExamFindings(v)
+	return _c
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (_c *ExaminationRecordCreate) SetTreatmentPlan(v string) *ExaminationRecordCreate {
+	_c.mutation.SetTreatmentPlan(v)
+	return _c
+}
+
+// SetNillableTreatmentPlan sets the "treatment_plan" field if the given value is not nil.
+func (_c *ExaminationRecordCreate) SetNillableTreatmentPlan(v *string) *ExaminationRecordCreate {
+	if v != nil {
+		_c.SetTreatmentPlan(*v)
 	}
 	return _c
 }
@@ -320,6 +353,22 @@ func (_c *ExaminationRecordCreate) createSpec() (*ExaminationRecord, *sqlgraph.C
 		_spec.SetField(examinationrecord.FieldDiagnosisName, field.TypeString, value)
 		_node.DiagnosisName = value
 	}
+	if value, ok := _c.mutation.DiagnosisHistory(); ok {
+		_spec.SetField(examinationrecord.FieldDiagnosisHistory, field.TypeJSON, value)
+		_node.DiagnosisHistory = value
+	}
+	if value, ok := _c.mutation.ReviewOfSystems(); ok {
+		_spec.SetField(examinationrecord.FieldReviewOfSystems, field.TypeJSON, value)
+		_node.ReviewOfSystems = value
+	}
+	if value, ok := _c.mutation.PhysicalExamFindings(); ok {
+		_spec.SetField(examinationrecord.FieldPhysicalExamFindings, field.TypeJSON, value)
+		_node.PhysicalExamFindings = value
+	}
+	if value, ok := _c.mutation.TreatmentPlan(); ok {
+		_spec.SetField(examinationrecord.FieldTreatmentPlan, field.TypeString, value)
+		_node.TreatmentPlan = value
+	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(examinationrecord.FieldNotes, field.TypeString, value)
 		_node.Notes = value
@@ -504,6 +553,78 @@ func (u *ExaminationRecordUpsert) UpdateDiagnosisName() *ExaminationRecordUpsert
 // ClearDiagnosisName clears the value of the "diagnosis_name" field.
 func (u *ExaminationRecordUpsert) ClearDiagnosisName() *ExaminationRecordUpsert {
 	u.SetNull(examinationrecord.FieldDiagnosisName)
+	return u
+}
+
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (u *ExaminationRecordUpsert) SetDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpsert {
+	u.Set(examinationrecord.FieldDiagnosisHistory, v)
+	return u
+}
+
+// UpdateDiagnosisHistory sets the "diagnosis_history" field to the value that was provided on create.
+func (u *ExaminationRecordUpsert) UpdateDiagnosisHistory() *ExaminationRecordUpsert {
+	u.SetExcluded(examinationrecord.FieldDiagnosisHistory)
+	return u
+}
+
+// ClearDiagnosisHistory clears the value of the "diagnosis_history" field.
+func (u *ExaminationRecordUpsert) ClearDiagnosisHistory() *ExaminationRecordUpsert {
+	u.SetNull(examinationrecord.FieldDiagnosisHistory)
+	return u
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (u *ExaminationRecordUpsert) SetReviewOfSystems(v map[string]string) *ExaminationRecordUpsert {
+	u.Set(examinationrecord.FieldReviewOfSystems, v)
+	return u
+}
+
+// UpdateReviewOfSystems sets the "review_of_systems" field to the value that was provided on create.
+func (u *ExaminationRecordUpsert) UpdateReviewOfSystems() *ExaminationRecordUpsert {
+	u.SetExcluded(examinationrecord.FieldReviewOfSystems)
+	return u
+}
+
+// ClearReviewOfSystems clears the value of the "review_of_systems" field.
+func (u *ExaminationRecordUpsert) ClearReviewOfSystems() *ExaminationRecordUpsert {
+	u.SetNull(examinationrecord.FieldReviewOfSystems)
+	return u
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (u *ExaminationRecordUpsert) SetPhysicalExamFindings(v map[string]string) *ExaminationRecordUpsert {
+	u.Set(examinationrecord.FieldPhysicalExamFindings, v)
+	return u
+}
+
+// UpdatePhysicalExamFindings sets the "physical_exam_findings" field to the value that was provided on create.
+func (u *ExaminationRecordUpsert) UpdatePhysicalExamFindings() *ExaminationRecordUpsert {
+	u.SetExcluded(examinationrecord.FieldPhysicalExamFindings)
+	return u
+}
+
+// ClearPhysicalExamFindings clears the value of the "physical_exam_findings" field.
+func (u *ExaminationRecordUpsert) ClearPhysicalExamFindings() *ExaminationRecordUpsert {
+	u.SetNull(examinationrecord.FieldPhysicalExamFindings)
+	return u
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (u *ExaminationRecordUpsert) SetTreatmentPlan(v string) *ExaminationRecordUpsert {
+	u.Set(examinationrecord.FieldTreatmentPlan, v)
+	return u
+}
+
+// UpdateTreatmentPlan sets the "treatment_plan" field to the value that was provided on create.
+func (u *ExaminationRecordUpsert) UpdateTreatmentPlan() *ExaminationRecordUpsert {
+	u.SetExcluded(examinationrecord.FieldTreatmentPlan)
+	return u
+}
+
+// ClearTreatmentPlan clears the value of the "treatment_plan" field.
+func (u *ExaminationRecordUpsert) ClearTreatmentPlan() *ExaminationRecordUpsert {
+	u.SetNull(examinationrecord.FieldTreatmentPlan)
 	return u
 }
 
@@ -722,6 +843,90 @@ func (u *ExaminationRecordUpsertOne) UpdateDiagnosisName() *ExaminationRecordUps
 func (u *ExaminationRecordUpsertOne) ClearDiagnosisName() *ExaminationRecordUpsertOne {
 	return u.Update(func(s *ExaminationRecordUpsert) {
 		s.ClearDiagnosisName()
+	})
+}
+
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (u *ExaminationRecordUpsertOne) SetDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetDiagnosisHistory(v)
+	})
+}
+
+// UpdateDiagnosisHistory sets the "diagnosis_history" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertOne) UpdateDiagnosisHistory() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdateDiagnosisHistory()
+	})
+}
+
+// ClearDiagnosisHistory clears the value of the "diagnosis_history" field.
+func (u *ExaminationRecordUpsertOne) ClearDiagnosisHistory() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearDiagnosisHistory()
+	})
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (u *ExaminationRecordUpsertOne) SetReviewOfSystems(v map[string]string) *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetReviewOfSystems(v)
+	})
+}
+
+// UpdateReviewOfSystems sets the "review_of_systems" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertOne) UpdateReviewOfSystems() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdateReviewOfSystems()
+	})
+}
+
+// ClearReviewOfSystems clears the value of the "review_of_systems" field.
+func (u *ExaminationRecordUpsertOne) ClearReviewOfSystems() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearReviewOfSystems()
+	})
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (u *ExaminationRecordUpsertOne) SetPhysicalExamFindings(v map[string]string) *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetPhysicalExamFindings(v)
+	})
+}
+
+// UpdatePhysicalExamFindings sets the "physical_exam_findings" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertOne) UpdatePhysicalExamFindings() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdatePhysicalExamFindings()
+	})
+}
+
+// ClearPhysicalExamFindings clears the value of the "physical_exam_findings" field.
+func (u *ExaminationRecordUpsertOne) ClearPhysicalExamFindings() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearPhysicalExamFindings()
+	})
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (u *ExaminationRecordUpsertOne) SetTreatmentPlan(v string) *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetTreatmentPlan(v)
+	})
+}
+
+// UpdateTreatmentPlan sets the "treatment_plan" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertOne) UpdateTreatmentPlan() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdateTreatmentPlan()
+	})
+}
+
+// ClearTreatmentPlan clears the value of the "treatment_plan" field.
+func (u *ExaminationRecordUpsertOne) ClearTreatmentPlan() *ExaminationRecordUpsertOne {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearTreatmentPlan()
 	})
 }
 
@@ -1115,6 +1320,90 @@ func (u *ExaminationRecordUpsertBulk) UpdateDiagnosisName() *ExaminationRecordUp
 func (u *ExaminationRecordUpsertBulk) ClearDiagnosisName() *ExaminationRecordUpsertBulk {
 	return u.Update(func(s *ExaminationRecordUpsert) {
 		s.ClearDiagnosisName()
+	})
+}
+
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (u *ExaminationRecordUpsertBulk) SetDiagnosisHistory(v []schema.DiagnosisHistoryEntry) *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetDiagnosisHistory(v)
+	})
+}
+
+// UpdateDiagnosisHistory sets the "diagnosis_history" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertBulk) UpdateDiagnosisHistory() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdateDiagnosisHistory()
+	})
+}
+
+// ClearDiagnosisHistory clears the value of the "diagnosis_history" field.
+func (u *ExaminationRecordUpsertBulk) ClearDiagnosisHistory() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearDiagnosisHistory()
+	})
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (u *ExaminationRecordUpsertBulk) SetReviewOfSystems(v map[string]string) *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetReviewOfSystems(v)
+	})
+}
+
+// UpdateReviewOfSystems sets the "review_of_systems" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertBulk) UpdateReviewOfSystems() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdateReviewOfSystems()
+	})
+}
+
+// ClearReviewOfSystems clears the value of the "review_of_systems" field.
+func (u *ExaminationRecordUpsertBulk) ClearReviewOfSystems() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearReviewOfSystems()
+	})
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (u *ExaminationRecordUpsertBulk) SetPhysicalExamFindings(v map[string]string) *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetPhysicalExamFindings(v)
+	})
+}
+
+// UpdatePhysicalExamFindings sets the "physical_exam_findings" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertBulk) UpdatePhysicalExamFindings() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdatePhysicalExamFindings()
+	})
+}
+
+// ClearPhysicalExamFindings clears the value of the "physical_exam_findings" field.
+func (u *ExaminationRecordUpsertBulk) ClearPhysicalExamFindings() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearPhysicalExamFindings()
+	})
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (u *ExaminationRecordUpsertBulk) SetTreatmentPlan(v string) *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.SetTreatmentPlan(v)
+	})
+}
+
+// UpdateTreatmentPlan sets the "treatment_plan" field to the value that was provided on create.
+func (u *ExaminationRecordUpsertBulk) UpdateTreatmentPlan() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.UpdateTreatmentPlan()
+	})
+}
+
+// ClearTreatmentPlan clears the value of the "treatment_plan" field.
+func (u *ExaminationRecordUpsertBulk) ClearTreatmentPlan() *ExaminationRecordUpsertBulk {
+	return u.Update(func(s *ExaminationRecordUpsert) {
+		s.ClearTreatmentPlan()
 	})
 }
 

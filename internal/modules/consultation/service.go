@@ -6,6 +6,7 @@ package consultation
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -17,6 +18,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
+	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 )
 
@@ -34,14 +36,17 @@ func NewService(client *ent.Client, billingSvc *billing.Service, log *zap.Logger
 
 // RecordExaminationRequest is the input to RecordExamination.
 type RecordExaminationRequest struct {
-	VisitID        uuid.UUID
-	ClinicianID    uuid.UUID
-	QueueType      string // doctor|dental|mch|specialist
-	ChiefComplaint string
-	DiagnosisCode  string
-	DiagnosisName  string
-	Notes          string
-	Complete       bool // true = record is final (status "completed"); false = still "in_progress"
+	VisitID              uuid.UUID
+	ClinicianID          uuid.UUID
+	QueueType            string // doctor|dental|mch|specialist
+	ChiefComplaint       string
+	DiagnosisCode        string
+	DiagnosisName        string
+	ReviewOfSystems      map[string]string
+	PhysicalExamFindings map[string]string
+	TreatmentPlan        string
+	Notes                string
+	Complete             bool // true = record is final (status "completed"); false = still "in_progress"
 }
 
 // RecordExamination records a consultation note (optionally with a final diagnosis) against a
@@ -80,6 +85,17 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		priorExamCount = -1 // suppress charging below rather than risk a double-charge on a failed count
 	}
 
+	// Latest prior record for THIS visit (if any) — carries forward diagnosis_history, and its
+	// own diagnosis_code/name is the baseline this write's diagnosis is compared against.
+	prior, perr := tx.ExaminationRecord.Query().
+		Where(examinationrecord.TenantID(tenantID), examinationrecord.VisitID(req.VisitID)).
+		Order(ent.Desc(examinationrecord.FieldExaminedAt)).
+		First(ctx)
+	if perr != nil && !ent.IsNotFound(perr) {
+		s.log.Warn("diagnosis history: fetch prior examination failed", zap.Error(perr))
+	}
+	diagnosisHistory := appendDiagnosisHistory(prior, req.DiagnosisCode, req.DiagnosisName, req.ClinicianID)
+
 	queueType := resolveQueueType(req.QueueType)
 	create := tx.ExaminationRecord.Create().
 		SetTenantID(tenantID).
@@ -89,6 +105,10 @@ func (s *Service) RecordExamination(ctx context.Context, tenantID uuid.UUID, req
 		SetChiefComplaint(req.ChiefComplaint).
 		SetDiagnosisCode(req.DiagnosisCode).
 		SetDiagnosisName(req.DiagnosisName).
+		SetDiagnosisHistory(diagnosisHistory).
+		SetReviewOfSystems(req.ReviewOfSystems).
+		SetPhysicalExamFindings(req.PhysicalExamFindings).
+		SetTreatmentPlan(req.TreatmentPlan).
 		SetNotes(req.Notes)
 	if req.Complete {
 		create = create.SetStatus(examinationrecord.StatusCompleted)
@@ -142,6 +162,29 @@ func (s *Service) chargeConsultationFee(ctx context.Context, tx *ent.Tx, tenantI
 	}
 }
 
+// appendDiagnosisHistory carries forward the prior examination record's diagnosis_history (or
+// starts a fresh one if this is the visit's first record) and appends a new entry when this
+// write's diagnosis differs from the prior record's — giving a "previously: X, changed to: Y"
+// trail without a full provisional/final field split. An unset/unchanged diagnosis never spams a
+// duplicate entry. prior may be nil (no earlier record for this visit yet, or the lookup failed).
+func appendDiagnosisHistory(prior *ent.ExaminationRecord, newCode, newName string, changedBy uuid.UUID) []schema.DiagnosisHistoryEntry {
+	var history []schema.DiagnosisHistoryEntry
+	var priorCode, priorName string
+	if prior != nil {
+		history = append(history, prior.DiagnosisHistory...)
+		priorCode, priorName = prior.DiagnosisCode, prior.DiagnosisName
+	}
+	if newCode == "" && newName == "" {
+		return history // nothing diagnosed on this write — leave the trail exactly as inherited
+	}
+	if newCode == priorCode && newName == priorName {
+		return history // unchanged from the prior record — not a new diagnosis event
+	}
+	return append(history, schema.DiagnosisHistoryEntry{
+		Code: newCode, Name: newName, ChangedBy: changedBy, ChangedAt: time.Now(),
+	})
+}
+
 // resolveQueueType normalizes the requested queue type to an examinationrecord.QueueType,
 // defaulting to "doctor" when the caller didn't specify one. It does NOT validate the value
 // against the enum's legal set (doctor/dental/mch/specialist) — an unrecognised non-empty string
@@ -176,6 +219,18 @@ func (s *Service) GetExamination(ctx context.Context, tenantID, id uuid.UUID) (*
 	return s.client.ExaminationRecord.Query().
 		Where(examinationrecord.ID(id), examinationrecord.TenantID(tenantID)).
 		Only(ctx)
+}
+
+// GetLatestExaminationByVisit returns a visit's most recent ExaminationRecord (by examined_at),
+// or ent.IsNotFound if the visit has never been examined yet. Lets the examination UI show the
+// diagnosis_history trail and any already-recorded structured findings when a case is reopened
+// (e.g. after lab results return, see lab.Service.EnterResult's reopen-to-in_progress behaviour)
+// instead of only ever seeing history after this session's own save.
+func (s *Service) GetLatestExaminationByVisit(ctx context.Context, tenantID, visitID uuid.UUID) (*ent.ExaminationRecord, error) {
+	return s.client.ExaminationRecord.Query().
+		Where(examinationrecord.TenantID(tenantID), examinationrecord.VisitID(visitID)).
+		Order(ent.Desc(examinationrecord.FieldExaminedAt)).
+		First(ctx)
 }
 
 // DiagnosisEntry is the merged global+tenant diagnosis catalogue row returned to callers.

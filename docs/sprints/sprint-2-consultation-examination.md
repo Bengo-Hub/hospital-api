@@ -49,6 +49,16 @@ Sprint 3 — Laboratory.
 
 ## Gap audit and MVP backlog candidates (2026-09-02)
 
+**Shipped 2026-09-03**: all four items are live. `ExaminationRecord` gained `review_of_systems`/
+`physical_exam_findings` (JSON `map[string]string`, per-body-system), `diagnosis_history` (JSON
+array, `consultation.Service.appendDiagnosisHistory` carries the prior record's trail forward and
+appends a new entry whenever the diagnosis actually changes), and `treatment_plan`. A new
+`GET /visits/{visitID}/examination` (latest-by-visit) endpoint lets the UI show the diagnosis trail
+and prefill structured findings when a case reopens. Item 1's "Recheck vitals" ships as a real
+inline entry point — `TriageModal` was extracted to `hospital-ui`'s `components/clinical/` so the
+Consultation queue can open it without navigating to `/triage`; no `vitals_snapshot` field was
+added (the lower-priority follow-on this item's own text flagged as not proposed this pass).
+
 Completeness audit of the shipped Consultation/Examination module against what a real examination
 record captures in production HMIS systems, done against the actual shipped
 `internal/ent/schema/examination_record.go` and `internal/modules/consultation/service.go`, not

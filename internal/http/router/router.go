@@ -253,6 +253,9 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
 					Post("/visits/{visitID}/examination", d.Consultation.RecordExamination)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
+					Get("/visits/{visitID}/examination", d.Consultation.GetLatestExamination)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationAdd)).
 					Post("/visits/{visitID}/refer", d.Consultation.CreateReferral)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),

@@ -288,7 +288,7 @@ func init() {
 	examinationrecordFields := schema.ExaminationRecord{}.Fields()
 	_ = examinationrecordFields
 	// examinationrecordDescExaminedAt is the schema descriptor for examined_at field.
-	examinationrecordDescExaminedAt := examinationrecordFields[10].Descriptor()
+	examinationrecordDescExaminedAt := examinationrecordFields[14].Descriptor()
 	// examinationrecord.DefaultExaminedAt holds the default value on creation for the examined_at field.
 	examinationrecord.DefaultExaminedAt = examinationrecordDescExaminedAt.Default.(func() time.Time)
 	// examinationrecordDescID is the schema descriptor for id field.

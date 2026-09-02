@@ -348,6 +348,10 @@ var (
 		{Name: "chief_complaint", Type: field.TypeString, Nullable: true},
 		{Name: "diagnosis_code", Type: field.TypeString, Nullable: true},
 		{Name: "diagnosis_name", Type: field.TypeString, Nullable: true},
+		{Name: "diagnosis_history", Type: field.TypeJSON, Nullable: true},
+		{Name: "review_of_systems", Type: field.TypeJSON, Nullable: true},
+		{Name: "physical_exam_findings", Type: field.TypeJSON, Nullable: true},
+		{Name: "treatment_plan", Type: field.TypeString, Nullable: true},
 		{Name: "notes", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"in_progress", "awaiting_lab", "completed"}, Default: "in_progress"},
 		{Name: "examined_at", Type: field.TypeTime},
@@ -362,7 +366,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "examination_records_patient_visits_examination_records",
-				Columns:    []*schema.Column{ExaminationRecordsColumns[11]},
+				Columns:    []*schema.Column{ExaminationRecordsColumns[15]},
 				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -371,12 +375,12 @@ var (
 			{
 				Name:    "examinationrecord_tenant_id_visit_id",
 				Unique:  false,
-				Columns: []*schema.Column{ExaminationRecordsColumns[1], ExaminationRecordsColumns[11]},
+				Columns: []*schema.Column{ExaminationRecordsColumns[1], ExaminationRecordsColumns[15]},
 			},
 			{
 				Name:    "examinationrecord_tenant_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{ExaminationRecordsColumns[1], ExaminationRecordsColumns[8]},
+				Columns: []*schema.Column{ExaminationRecordsColumns[1], ExaminationRecordsColumns[12]},
 			},
 		},
 	}

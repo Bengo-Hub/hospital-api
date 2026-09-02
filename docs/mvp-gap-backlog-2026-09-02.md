@@ -50,10 +50,10 @@ matching section (frontend).
 
 | Gap | Effort | Notes |
 |---|---|---|
-| No vitals recheck workflow at consultation time (relies entirely on triage-time vitals) | Quick, UI wiring only | `TriageRecord` already supports re-triage; only a "Recheck vitals" entry point from consultation is missing. |
-| No structured review-of-systems / physical-exam-by-system fields (`notes` is free text only) | Moderate, small schema plus real form-building UI | Schema change is small; the structured-form UI is the larger half. |
-| No provisional-vs-final diagnosis distinction; diagnosis fields overwrite in place | Quick, additive `diagnosis_history` log | Simpler than a full provisional/final field split; gives basic auditability. |
-| No discrete treatment-plan/no-referral-needed field | Quick, additive field | A common real outcome currently has nowhere to go but undifferentiated free text. |
+| No vitals recheck workflow at consultation time (relies entirely on triage-time vitals) | Quick, UI wiring only | **Shipped 2026-09-03.** `TriageModal` extracted to a shared component, opened inline from a new "Recheck vitals" button in the examination modal. |
+| No structured review-of-systems / physical-exam-by-system fields (`notes` is free text only) | Moderate, small schema plus real form-building UI | **Shipped 2026-09-03.** Additive JSON fields + a per-body-system `SystemsGrid` UI for both. |
+| No provisional-vs-final diagnosis distinction; diagnosis fields overwrite in place | Quick, additive `diagnosis_history` log | **Shipped 2026-09-03.** Appends on every diagnosis-changing write; a new `GET .../examination` endpoint + UI trail line shows it. |
+| No discrete treatment-plan/no-referral-needed field | Quick, additive field | **Shipped 2026-09-03.** Additive `treatment_plan` field + a dedicated textarea. |
 
 ## Sprint 3: Laboratory
 

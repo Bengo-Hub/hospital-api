@@ -44,6 +44,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/rbacauditlog"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
+	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
@@ -8664,25 +8665,30 @@ func (m *DrugInteractionCheckMutation) ResetEdge(name string) error {
 // ExaminationRecordMutation represents an operation that mutates the ExaminationRecord nodes in the graph.
 type ExaminationRecordMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *uuid.UUID
-	tenant_id       *uuid.UUID
-	clinician_id    *uuid.UUID
-	queue_type      *examinationrecord.QueueType
-	chief_complaint *string
-	diagnosis_code  *string
-	diagnosis_name  *string
-	notes           *string
-	status          *examinationrecord.Status
-	examined_at     *time.Time
-	completed_at    *time.Time
-	clearedFields   map[string]struct{}
-	visit           *uuid.UUID
-	clearedvisit    bool
-	done            bool
-	oldValue        func(context.Context) (*ExaminationRecord, error)
-	predicates      []predicate.ExaminationRecord
+	op                      Op
+	typ                     string
+	id                      *uuid.UUID
+	tenant_id               *uuid.UUID
+	clinician_id            *uuid.UUID
+	queue_type              *examinationrecord.QueueType
+	chief_complaint         *string
+	diagnosis_code          *string
+	diagnosis_name          *string
+	diagnosis_history       *[]schema.DiagnosisHistoryEntry
+	appenddiagnosis_history []schema.DiagnosisHistoryEntry
+	review_of_systems       *map[string]string
+	physical_exam_findings  *map[string]string
+	treatment_plan          *string
+	notes                   *string
+	status                  *examinationrecord.Status
+	examined_at             *time.Time
+	completed_at            *time.Time
+	clearedFields           map[string]struct{}
+	visit                   *uuid.UUID
+	clearedvisit            bool
+	done                    bool
+	oldValue                func(context.Context) (*ExaminationRecord, error)
+	predicates              []predicate.ExaminationRecord
 }
 
 var _ ent.Mutation = (*ExaminationRecordMutation)(nil)
@@ -9080,6 +9086,218 @@ func (m *ExaminationRecordMutation) ResetDiagnosisName() {
 	delete(m.clearedFields, examinationrecord.FieldDiagnosisName)
 }
 
+// SetDiagnosisHistory sets the "diagnosis_history" field.
+func (m *ExaminationRecordMutation) SetDiagnosisHistory(she []schema.DiagnosisHistoryEntry) {
+	m.diagnosis_history = &she
+	m.appenddiagnosis_history = nil
+}
+
+// DiagnosisHistory returns the value of the "diagnosis_history" field in the mutation.
+func (m *ExaminationRecordMutation) DiagnosisHistory() (r []schema.DiagnosisHistoryEntry, exists bool) {
+	v := m.diagnosis_history
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiagnosisHistory returns the old "diagnosis_history" field's value of the ExaminationRecord entity.
+// If the ExaminationRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExaminationRecordMutation) OldDiagnosisHistory(ctx context.Context) (v []schema.DiagnosisHistoryEntry, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiagnosisHistory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiagnosisHistory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiagnosisHistory: %w", err)
+	}
+	return oldValue.DiagnosisHistory, nil
+}
+
+// AppendDiagnosisHistory adds she to the "diagnosis_history" field.
+func (m *ExaminationRecordMutation) AppendDiagnosisHistory(she []schema.DiagnosisHistoryEntry) {
+	m.appenddiagnosis_history = append(m.appenddiagnosis_history, she...)
+}
+
+// AppendedDiagnosisHistory returns the list of values that were appended to the "diagnosis_history" field in this mutation.
+func (m *ExaminationRecordMutation) AppendedDiagnosisHistory() ([]schema.DiagnosisHistoryEntry, bool) {
+	if len(m.appenddiagnosis_history) == 0 {
+		return nil, false
+	}
+	return m.appenddiagnosis_history, true
+}
+
+// ClearDiagnosisHistory clears the value of the "diagnosis_history" field.
+func (m *ExaminationRecordMutation) ClearDiagnosisHistory() {
+	m.diagnosis_history = nil
+	m.appenddiagnosis_history = nil
+	m.clearedFields[examinationrecord.FieldDiagnosisHistory] = struct{}{}
+}
+
+// DiagnosisHistoryCleared returns if the "diagnosis_history" field was cleared in this mutation.
+func (m *ExaminationRecordMutation) DiagnosisHistoryCleared() bool {
+	_, ok := m.clearedFields[examinationrecord.FieldDiagnosisHistory]
+	return ok
+}
+
+// ResetDiagnosisHistory resets all changes to the "diagnosis_history" field.
+func (m *ExaminationRecordMutation) ResetDiagnosisHistory() {
+	m.diagnosis_history = nil
+	m.appenddiagnosis_history = nil
+	delete(m.clearedFields, examinationrecord.FieldDiagnosisHistory)
+}
+
+// SetReviewOfSystems sets the "review_of_systems" field.
+func (m *ExaminationRecordMutation) SetReviewOfSystems(value map[string]string) {
+	m.review_of_systems = &value
+}
+
+// ReviewOfSystems returns the value of the "review_of_systems" field in the mutation.
+func (m *ExaminationRecordMutation) ReviewOfSystems() (r map[string]string, exists bool) {
+	v := m.review_of_systems
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewOfSystems returns the old "review_of_systems" field's value of the ExaminationRecord entity.
+// If the ExaminationRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExaminationRecordMutation) OldReviewOfSystems(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewOfSystems is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewOfSystems requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewOfSystems: %w", err)
+	}
+	return oldValue.ReviewOfSystems, nil
+}
+
+// ClearReviewOfSystems clears the value of the "review_of_systems" field.
+func (m *ExaminationRecordMutation) ClearReviewOfSystems() {
+	m.review_of_systems = nil
+	m.clearedFields[examinationrecord.FieldReviewOfSystems] = struct{}{}
+}
+
+// ReviewOfSystemsCleared returns if the "review_of_systems" field was cleared in this mutation.
+func (m *ExaminationRecordMutation) ReviewOfSystemsCleared() bool {
+	_, ok := m.clearedFields[examinationrecord.FieldReviewOfSystems]
+	return ok
+}
+
+// ResetReviewOfSystems resets all changes to the "review_of_systems" field.
+func (m *ExaminationRecordMutation) ResetReviewOfSystems() {
+	m.review_of_systems = nil
+	delete(m.clearedFields, examinationrecord.FieldReviewOfSystems)
+}
+
+// SetPhysicalExamFindings sets the "physical_exam_findings" field.
+func (m *ExaminationRecordMutation) SetPhysicalExamFindings(value map[string]string) {
+	m.physical_exam_findings = &value
+}
+
+// PhysicalExamFindings returns the value of the "physical_exam_findings" field in the mutation.
+func (m *ExaminationRecordMutation) PhysicalExamFindings() (r map[string]string, exists bool) {
+	v := m.physical_exam_findings
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhysicalExamFindings returns the old "physical_exam_findings" field's value of the ExaminationRecord entity.
+// If the ExaminationRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExaminationRecordMutation) OldPhysicalExamFindings(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhysicalExamFindings is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhysicalExamFindings requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhysicalExamFindings: %w", err)
+	}
+	return oldValue.PhysicalExamFindings, nil
+}
+
+// ClearPhysicalExamFindings clears the value of the "physical_exam_findings" field.
+func (m *ExaminationRecordMutation) ClearPhysicalExamFindings() {
+	m.physical_exam_findings = nil
+	m.clearedFields[examinationrecord.FieldPhysicalExamFindings] = struct{}{}
+}
+
+// PhysicalExamFindingsCleared returns if the "physical_exam_findings" field was cleared in this mutation.
+func (m *ExaminationRecordMutation) PhysicalExamFindingsCleared() bool {
+	_, ok := m.clearedFields[examinationrecord.FieldPhysicalExamFindings]
+	return ok
+}
+
+// ResetPhysicalExamFindings resets all changes to the "physical_exam_findings" field.
+func (m *ExaminationRecordMutation) ResetPhysicalExamFindings() {
+	m.physical_exam_findings = nil
+	delete(m.clearedFields, examinationrecord.FieldPhysicalExamFindings)
+}
+
+// SetTreatmentPlan sets the "treatment_plan" field.
+func (m *ExaminationRecordMutation) SetTreatmentPlan(s string) {
+	m.treatment_plan = &s
+}
+
+// TreatmentPlan returns the value of the "treatment_plan" field in the mutation.
+func (m *ExaminationRecordMutation) TreatmentPlan() (r string, exists bool) {
+	v := m.treatment_plan
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTreatmentPlan returns the old "treatment_plan" field's value of the ExaminationRecord entity.
+// If the ExaminationRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ExaminationRecordMutation) OldTreatmentPlan(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTreatmentPlan is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTreatmentPlan requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTreatmentPlan: %w", err)
+	}
+	return oldValue.TreatmentPlan, nil
+}
+
+// ClearTreatmentPlan clears the value of the "treatment_plan" field.
+func (m *ExaminationRecordMutation) ClearTreatmentPlan() {
+	m.treatment_plan = nil
+	m.clearedFields[examinationrecord.FieldTreatmentPlan] = struct{}{}
+}
+
+// TreatmentPlanCleared returns if the "treatment_plan" field was cleared in this mutation.
+func (m *ExaminationRecordMutation) TreatmentPlanCleared() bool {
+	_, ok := m.clearedFields[examinationrecord.FieldTreatmentPlan]
+	return ok
+}
+
+// ResetTreatmentPlan resets all changes to the "treatment_plan" field.
+func (m *ExaminationRecordMutation) ResetTreatmentPlan() {
+	m.treatment_plan = nil
+	delete(m.clearedFields, examinationrecord.FieldTreatmentPlan)
+}
+
 // SetNotes sets the "notes" field.
 func (m *ExaminationRecordMutation) SetNotes(s string) {
 	m.notes = &s
@@ -9311,7 +9529,7 @@ func (m *ExaminationRecordMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ExaminationRecordMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 15)
 	if m.tenant_id != nil {
 		fields = append(fields, examinationrecord.FieldTenantID)
 	}
@@ -9332,6 +9550,18 @@ func (m *ExaminationRecordMutation) Fields() []string {
 	}
 	if m.diagnosis_name != nil {
 		fields = append(fields, examinationrecord.FieldDiagnosisName)
+	}
+	if m.diagnosis_history != nil {
+		fields = append(fields, examinationrecord.FieldDiagnosisHistory)
+	}
+	if m.review_of_systems != nil {
+		fields = append(fields, examinationrecord.FieldReviewOfSystems)
+	}
+	if m.physical_exam_findings != nil {
+		fields = append(fields, examinationrecord.FieldPhysicalExamFindings)
+	}
+	if m.treatment_plan != nil {
+		fields = append(fields, examinationrecord.FieldTreatmentPlan)
 	}
 	if m.notes != nil {
 		fields = append(fields, examinationrecord.FieldNotes)
@@ -9367,6 +9597,14 @@ func (m *ExaminationRecordMutation) Field(name string) (ent.Value, bool) {
 		return m.DiagnosisCode()
 	case examinationrecord.FieldDiagnosisName:
 		return m.DiagnosisName()
+	case examinationrecord.FieldDiagnosisHistory:
+		return m.DiagnosisHistory()
+	case examinationrecord.FieldReviewOfSystems:
+		return m.ReviewOfSystems()
+	case examinationrecord.FieldPhysicalExamFindings:
+		return m.PhysicalExamFindings()
+	case examinationrecord.FieldTreatmentPlan:
+		return m.TreatmentPlan()
 	case examinationrecord.FieldNotes:
 		return m.Notes()
 	case examinationrecord.FieldStatus:
@@ -9398,6 +9636,14 @@ func (m *ExaminationRecordMutation) OldField(ctx context.Context, name string) (
 		return m.OldDiagnosisCode(ctx)
 	case examinationrecord.FieldDiagnosisName:
 		return m.OldDiagnosisName(ctx)
+	case examinationrecord.FieldDiagnosisHistory:
+		return m.OldDiagnosisHistory(ctx)
+	case examinationrecord.FieldReviewOfSystems:
+		return m.OldReviewOfSystems(ctx)
+	case examinationrecord.FieldPhysicalExamFindings:
+		return m.OldPhysicalExamFindings(ctx)
+	case examinationrecord.FieldTreatmentPlan:
+		return m.OldTreatmentPlan(ctx)
 	case examinationrecord.FieldNotes:
 		return m.OldNotes(ctx)
 	case examinationrecord.FieldStatus:
@@ -9463,6 +9709,34 @@ func (m *ExaminationRecordMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDiagnosisName(v)
+		return nil
+	case examinationrecord.FieldDiagnosisHistory:
+		v, ok := value.([]schema.DiagnosisHistoryEntry)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiagnosisHistory(v)
+		return nil
+	case examinationrecord.FieldReviewOfSystems:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewOfSystems(v)
+		return nil
+	case examinationrecord.FieldPhysicalExamFindings:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhysicalExamFindings(v)
+		return nil
+	case examinationrecord.FieldTreatmentPlan:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTreatmentPlan(v)
 		return nil
 	case examinationrecord.FieldNotes:
 		v, ok := value.(string)
@@ -9531,6 +9805,18 @@ func (m *ExaminationRecordMutation) ClearedFields() []string {
 	if m.FieldCleared(examinationrecord.FieldDiagnosisName) {
 		fields = append(fields, examinationrecord.FieldDiagnosisName)
 	}
+	if m.FieldCleared(examinationrecord.FieldDiagnosisHistory) {
+		fields = append(fields, examinationrecord.FieldDiagnosisHistory)
+	}
+	if m.FieldCleared(examinationrecord.FieldReviewOfSystems) {
+		fields = append(fields, examinationrecord.FieldReviewOfSystems)
+	}
+	if m.FieldCleared(examinationrecord.FieldPhysicalExamFindings) {
+		fields = append(fields, examinationrecord.FieldPhysicalExamFindings)
+	}
+	if m.FieldCleared(examinationrecord.FieldTreatmentPlan) {
+		fields = append(fields, examinationrecord.FieldTreatmentPlan)
+	}
 	if m.FieldCleared(examinationrecord.FieldNotes) {
 		fields = append(fields, examinationrecord.FieldNotes)
 	}
@@ -9559,6 +9845,18 @@ func (m *ExaminationRecordMutation) ClearField(name string) error {
 		return nil
 	case examinationrecord.FieldDiagnosisName:
 		m.ClearDiagnosisName()
+		return nil
+	case examinationrecord.FieldDiagnosisHistory:
+		m.ClearDiagnosisHistory()
+		return nil
+	case examinationrecord.FieldReviewOfSystems:
+		m.ClearReviewOfSystems()
+		return nil
+	case examinationrecord.FieldPhysicalExamFindings:
+		m.ClearPhysicalExamFindings()
+		return nil
+	case examinationrecord.FieldTreatmentPlan:
+		m.ClearTreatmentPlan()
 		return nil
 	case examinationrecord.FieldNotes:
 		m.ClearNotes()
@@ -9594,6 +9892,18 @@ func (m *ExaminationRecordMutation) ResetField(name string) error {
 		return nil
 	case examinationrecord.FieldDiagnosisName:
 		m.ResetDiagnosisName()
+		return nil
+	case examinationrecord.FieldDiagnosisHistory:
+		m.ResetDiagnosisHistory()
+		return nil
+	case examinationrecord.FieldReviewOfSystems:
+		m.ResetReviewOfSystems()
+		return nil
+	case examinationrecord.FieldPhysicalExamFindings:
+		m.ResetPhysicalExamFindings()
+		return nil
+	case examinationrecord.FieldTreatmentPlan:
+		m.ResetTreatmentPlan()
 		return nil
 	case examinationrecord.FieldNotes:
 		m.ResetNotes()

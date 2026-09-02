@@ -86,6 +86,11 @@ func DiagnosisName(v string) predicate.ExaminationRecord {
 	return predicate.ExaminationRecord(sql.FieldEQ(FieldDiagnosisName, v))
 }
 
+// TreatmentPlan applies equality check predicate on the "treatment_plan" field. It's identical to TreatmentPlanEQ.
+func TreatmentPlan(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldEQ(FieldTreatmentPlan, v))
+}
+
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.ExaminationRecord {
 	return predicate.ExaminationRecord(sql.FieldEQ(FieldNotes, v))
@@ -444,6 +449,111 @@ func DiagnosisNameEqualFold(v string) predicate.ExaminationRecord {
 // DiagnosisNameContainsFold applies the ContainsFold predicate on the "diagnosis_name" field.
 func DiagnosisNameContainsFold(v string) predicate.ExaminationRecord {
 	return predicate.ExaminationRecord(sql.FieldContainsFold(FieldDiagnosisName, v))
+}
+
+// DiagnosisHistoryIsNil applies the IsNil predicate on the "diagnosis_history" field.
+func DiagnosisHistoryIsNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldIsNull(FieldDiagnosisHistory))
+}
+
+// DiagnosisHistoryNotNil applies the NotNil predicate on the "diagnosis_history" field.
+func DiagnosisHistoryNotNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldNotNull(FieldDiagnosisHistory))
+}
+
+// ReviewOfSystemsIsNil applies the IsNil predicate on the "review_of_systems" field.
+func ReviewOfSystemsIsNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldIsNull(FieldReviewOfSystems))
+}
+
+// ReviewOfSystemsNotNil applies the NotNil predicate on the "review_of_systems" field.
+func ReviewOfSystemsNotNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldNotNull(FieldReviewOfSystems))
+}
+
+// PhysicalExamFindingsIsNil applies the IsNil predicate on the "physical_exam_findings" field.
+func PhysicalExamFindingsIsNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldIsNull(FieldPhysicalExamFindings))
+}
+
+// PhysicalExamFindingsNotNil applies the NotNil predicate on the "physical_exam_findings" field.
+func PhysicalExamFindingsNotNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldNotNull(FieldPhysicalExamFindings))
+}
+
+// TreatmentPlanEQ applies the EQ predicate on the "treatment_plan" field.
+func TreatmentPlanEQ(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldEQ(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanNEQ applies the NEQ predicate on the "treatment_plan" field.
+func TreatmentPlanNEQ(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldNEQ(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanIn applies the In predicate on the "treatment_plan" field.
+func TreatmentPlanIn(vs ...string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldIn(FieldTreatmentPlan, vs...))
+}
+
+// TreatmentPlanNotIn applies the NotIn predicate on the "treatment_plan" field.
+func TreatmentPlanNotIn(vs ...string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldNotIn(FieldTreatmentPlan, vs...))
+}
+
+// TreatmentPlanGT applies the GT predicate on the "treatment_plan" field.
+func TreatmentPlanGT(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldGT(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanGTE applies the GTE predicate on the "treatment_plan" field.
+func TreatmentPlanGTE(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldGTE(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanLT applies the LT predicate on the "treatment_plan" field.
+func TreatmentPlanLT(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldLT(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanLTE applies the LTE predicate on the "treatment_plan" field.
+func TreatmentPlanLTE(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldLTE(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanContains applies the Contains predicate on the "treatment_plan" field.
+func TreatmentPlanContains(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldContains(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanHasPrefix applies the HasPrefix predicate on the "treatment_plan" field.
+func TreatmentPlanHasPrefix(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldHasPrefix(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanHasSuffix applies the HasSuffix predicate on the "treatment_plan" field.
+func TreatmentPlanHasSuffix(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldHasSuffix(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanIsNil applies the IsNil predicate on the "treatment_plan" field.
+func TreatmentPlanIsNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldIsNull(FieldTreatmentPlan))
+}
+
+// TreatmentPlanNotNil applies the NotNil predicate on the "treatment_plan" field.
+func TreatmentPlanNotNil() predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldNotNull(FieldTreatmentPlan))
+}
+
+// TreatmentPlanEqualFold applies the EqualFold predicate on the "treatment_plan" field.
+func TreatmentPlanEqualFold(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldEqualFold(FieldTreatmentPlan, v))
+}
+
+// TreatmentPlanContainsFold applies the ContainsFold predicate on the "treatment_plan" field.
+func TreatmentPlanContainsFold(v string) predicate.ExaminationRecord {
+	return predicate.ExaminationRecord(sql.FieldContainsFold(FieldTreatmentPlan, v))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.

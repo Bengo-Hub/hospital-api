@@ -3,9 +3,67 @@ package consultation
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
+	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/schema"
 )
+
+func TestAppendDiagnosisHistory(t *testing.T) {
+	clinician := uuid.New()
+
+	t.Run("first record with no diagnosis yet appends nothing", func(t *testing.T) {
+		got := appendDiagnosisHistory(nil, "", "", clinician)
+		if len(got) != 0 {
+			t.Errorf("expected no history entries, got %d", len(got))
+		}
+	})
+
+	t.Run("first record WITH a diagnosis appends one entry", func(t *testing.T) {
+		got := appendDiagnosisHistory(nil, "J00", "Common cold", clinician)
+		if len(got) != 1 || got[0].Code != "J00" || got[0].ChangedBy != clinician {
+			t.Errorf("expected one entry for J00/%s, got %+v", clinician, got)
+		}
+	})
+
+	t.Run("unchanged diagnosis from prior record does not duplicate", func(t *testing.T) {
+		prior := &ent.ExaminationRecord{
+			DiagnosisCode: "J00", DiagnosisName: "Common cold",
+			DiagnosisHistory: []schema.DiagnosisHistoryEntry{{Code: "J00", Name: "Common cold", ChangedBy: clinician}},
+		}
+		got := appendDiagnosisHistory(prior, "J00", "Common cold", clinician)
+		if len(got) != 1 {
+			t.Errorf("expected history to stay at 1 entry (no duplicate), got %d", len(got))
+		}
+	})
+
+	t.Run("changed diagnosis carries forward prior history and appends the new value", func(t *testing.T) {
+		prior := &ent.ExaminationRecord{
+			DiagnosisCode: "J00", DiagnosisName: "Common cold",
+			DiagnosisHistory: []schema.DiagnosisHistoryEntry{{Code: "J00", Name: "Common cold"}},
+		}
+		got := appendDiagnosisHistory(prior, "J45", "Asthma", clinician)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 entries (carried forward + new), got %d", len(got))
+		}
+		if got[0].Code != "J00" || got[1].Code != "J45" || got[1].ChangedBy != clinician {
+			t.Errorf("expected trail [J00, J45] with the new entry attributed to the clinician, got %+v", got)
+		}
+	})
+
+	t.Run("clearing a diagnosis on this write leaves the trail as inherited", func(t *testing.T) {
+		prior := &ent.ExaminationRecord{
+			DiagnosisCode: "J00", DiagnosisName: "Common cold",
+			DiagnosisHistory: []schema.DiagnosisHistoryEntry{{Code: "J00", Name: "Common cold"}},
+		}
+		got := appendDiagnosisHistory(prior, "", "", clinician)
+		if len(got) != 1 || got[0].Code != "J00" {
+			t.Errorf("expected the inherited single entry unchanged, got %+v", got)
+		}
+	})
+}
 
 func TestResolveQueueType(t *testing.T) {
 	cases := []struct {

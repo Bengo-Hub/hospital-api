@@ -10,6 +10,17 @@ import (
 	"github.com/google/uuid"
 )
 
+// DiagnosisHistoryEntry is one snapshot in ExaminationRecord.diagnosis_history — appended
+// whenever a write changes diagnosis_code/diagnosis_name, so a clinician reopening a case (e.g.
+// after lab results return) can see what the working diagnosis was before it changed, without a
+// full provisional/final field split.
+type DiagnosisHistoryEntry struct {
+	Code      string    `json:"code,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	ChangedBy uuid.UUID `json:"changed_by,omitempty"`
+	ChangedAt time.Time `json:"changed_at"`
+}
+
 // ExaminationRecord is the doctor/dental/MCH/specialist consultation record for a PatientVisit.
 // diagnosis_code/diagnosis_name are a SNAPSHOT of the chosen catalogue entry at examination
 // time, not a live FK into DiagnosisCatalogDefault/Entry — a later edit or deactivation of the
@@ -27,6 +38,14 @@ func (ExaminationRecord) Fields() []ent.Field {
 		field.String("chief_complaint").Optional().Comment("Refined from the visit's intake complaint"),
 		field.String("diagnosis_code").Optional().Comment("Snapshotted ICD-11 code at examination time"),
 		field.String("diagnosis_name").Optional(),
+		field.JSON("diagnosis_history", []DiagnosisHistoryEntry{}).Optional().
+			Comment("Append-only trail of prior diagnosis_code/diagnosis_name values, newest last — carried forward + appended to on every diagnosis-changing write for this visit"),
+		field.JSON("review_of_systems", map[string]string{}).Optional().
+			Comment("Structured per-body-system findings (e.g. cardiovascular/respiratory/abdominal), alongside the free-text notes field"),
+		field.JSON("physical_exam_findings", map[string]string{}).Optional().
+			Comment("Structured per-body-system physical exam findings, same shape/purpose as review_of_systems"),
+		field.String("treatment_plan").Optional().
+			Comment("Advice/plan given with no referral needed — distinct from notes, for the common no-referral encounter outcome"),
 		field.String("notes").Optional(),
 		field.Enum("status").Values("in_progress", "awaiting_lab", "completed").Default("in_progress"),
 		field.Time("examined_at").Default(time.Now).Immutable(),

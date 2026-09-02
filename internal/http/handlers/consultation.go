@@ -21,12 +21,15 @@ func NewConsultationHandler(svc *consultation.Service) *ConsultationHandler {
 }
 
 type recordExaminationRequest struct {
-	QueueType      string `json:"queue_type,omitempty"`
-	ChiefComplaint string `json:"chief_complaint,omitempty"`
-	DiagnosisCode  string `json:"diagnosis_code,omitempty"`
-	DiagnosisName  string `json:"diagnosis_name,omitempty"`
-	Notes          string `json:"notes,omitempty"`
-	Complete       bool   `json:"complete,omitempty"`
+	QueueType            string            `json:"queue_type,omitempty"`
+	ChiefComplaint       string            `json:"chief_complaint,omitempty"`
+	DiagnosisCode        string            `json:"diagnosis_code,omitempty"`
+	DiagnosisName        string            `json:"diagnosis_name,omitempty"`
+	ReviewOfSystems      map[string]string `json:"review_of_systems,omitempty"`
+	PhysicalExamFindings map[string]string `json:"physical_exam_findings,omitempty"`
+	TreatmentPlan        string            `json:"treatment_plan,omitempty"`
+	Notes                string            `json:"notes,omitempty"`
+	Complete             bool              `json:"complete,omitempty"`
 }
 
 // RecordExamination handles POST /{tenant}/hospital/visits/{visitID}/examination
@@ -49,13 +52,37 @@ func (h *ConsultationHandler) RecordExamination(w http.ResponseWriter, r *http.R
 	rec, err := h.svc.RecordExamination(r.Context(), tenantID, consultation.RecordExaminationRequest{
 		VisitID: visitID, ClinicianID: currentUserID(r), QueueType: in.QueueType,
 		ChiefComplaint: in.ChiefComplaint, DiagnosisCode: in.DiagnosisCode,
-		DiagnosisName: in.DiagnosisName, Notes: in.Notes, Complete: in.Complete,
+		DiagnosisName: in.DiagnosisName, ReviewOfSystems: in.ReviewOfSystems,
+		PhysicalExamFindings: in.PhysicalExamFindings, TreatmentPlan: in.TreatmentPlan,
+		Notes: in.Notes, Complete: in.Complete,
 	})
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	respondJSON(w, http.StatusCreated, rec)
+}
+
+// GetLatestExamination handles GET /{tenant}/hospital/visits/{visitID}/examination
+// Returns 404 (via respondError, not a raw ent.NotFoundError) when the visit hasn't been
+// examined yet — a normal, expected state for a freshly-triaged visit, not a real error.
+func (h *ConsultationHandler) GetLatestExamination(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	visitID, err := uuid.Parse(chi.URLParam(r, "visitID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid visit ID")
+		return
+	}
+	rec, err := h.svc.GetLatestExaminationByVisit(r.Context(), tenantID, visitID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "no examination recorded for this visit yet")
+		return
+	}
+	respondJSON(w, http.StatusOK, rec)
 }
 
 // ListDiagnosisCatalog handles GET /{tenant}/hospital/diagnosis-catalog

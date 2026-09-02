@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/bengobox/hospital-service/internal/ent/examinationrecord"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/google/uuid"
 )
 
@@ -33,6 +35,14 @@ type ExaminationRecord struct {
 	DiagnosisCode string `json:"diagnosis_code,omitempty"`
 	// DiagnosisName holds the value of the "diagnosis_name" field.
 	DiagnosisName string `json:"diagnosis_name,omitempty"`
+	// Append-only trail of prior diagnosis_code/diagnosis_name values, newest last — carried forward + appended to on every diagnosis-changing write for this visit
+	DiagnosisHistory []schema.DiagnosisHistoryEntry `json:"diagnosis_history,omitempty"`
+	// Structured per-body-system findings (e.g. cardiovascular/respiratory/abdominal), alongside the free-text notes field
+	ReviewOfSystems map[string]string `json:"review_of_systems,omitempty"`
+	// Structured per-body-system physical exam findings, same shape/purpose as review_of_systems
+	PhysicalExamFindings map[string]string `json:"physical_exam_findings,omitempty"`
+	// Advice/plan given with no referral needed — distinct from notes, for the common no-referral encounter outcome
+	TreatmentPlan string `json:"treatment_plan,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
 	// Status holds the value of the "status" field.
@@ -72,7 +82,9 @@ func (*ExaminationRecord) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case examinationrecord.FieldQueueType, examinationrecord.FieldChiefComplaint, examinationrecord.FieldDiagnosisCode, examinationrecord.FieldDiagnosisName, examinationrecord.FieldNotes, examinationrecord.FieldStatus:
+		case examinationrecord.FieldDiagnosisHistory, examinationrecord.FieldReviewOfSystems, examinationrecord.FieldPhysicalExamFindings:
+			values[i] = new([]byte)
+		case examinationrecord.FieldQueueType, examinationrecord.FieldChiefComplaint, examinationrecord.FieldDiagnosisCode, examinationrecord.FieldDiagnosisName, examinationrecord.FieldTreatmentPlan, examinationrecord.FieldNotes, examinationrecord.FieldStatus:
 			values[i] = new(sql.NullString)
 		case examinationrecord.FieldExaminedAt, examinationrecord.FieldCompletedAt:
 			values[i] = new(sql.NullTime)
@@ -140,6 +152,36 @@ func (_m *ExaminationRecord) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field diagnosis_name", values[i])
 			} else if value.Valid {
 				_m.DiagnosisName = value.String
+			}
+		case examinationrecord.FieldDiagnosisHistory:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field diagnosis_history", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.DiagnosisHistory); err != nil {
+					return fmt.Errorf("unmarshal field diagnosis_history: %w", err)
+				}
+			}
+		case examinationrecord.FieldReviewOfSystems:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field review_of_systems", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ReviewOfSystems); err != nil {
+					return fmt.Errorf("unmarshal field review_of_systems: %w", err)
+				}
+			}
+		case examinationrecord.FieldPhysicalExamFindings:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field physical_exam_findings", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.PhysicalExamFindings); err != nil {
+					return fmt.Errorf("unmarshal field physical_exam_findings: %w", err)
+				}
+			}
+		case examinationrecord.FieldTreatmentPlan:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field treatment_plan", values[i])
+			} else if value.Valid {
+				_m.TreatmentPlan = value.String
 			}
 		case examinationrecord.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -227,6 +269,18 @@ func (_m *ExaminationRecord) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("diagnosis_name=")
 	builder.WriteString(_m.DiagnosisName)
+	builder.WriteString(", ")
+	builder.WriteString("diagnosis_history=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DiagnosisHistory))
+	builder.WriteString(", ")
+	builder.WriteString("review_of_systems=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ReviewOfSystems))
+	builder.WriteString(", ")
+	builder.WriteString("physical_exam_findings=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PhysicalExamFindings))
+	builder.WriteString(", ")
+	builder.WriteString("treatment_plan=")
+	builder.WriteString(_m.TreatmentPlan)
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
