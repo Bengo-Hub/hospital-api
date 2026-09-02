@@ -316,6 +316,15 @@ func (s *Service) RecheckInteractions(ctx context.Context, tenantID, rxID uuid.U
 	return check, updated, nil
 }
 
+// SearchDrugs proxies to inventory-api's real drug catalog for the New Prescription form's line
+// picker — replaces free-text SKU/name entry with a live search.
+func (s *Service) SearchDrugs(ctx context.Context, tenantID uuid.UUID, search string) ([]inventory.SearchItem, error) {
+	if !s.inventory.Enabled() {
+		return nil, fmt.Errorf("pharmacy: inventory client not configured")
+	}
+	return s.inventory.SearchItems(ctx, tenantID, search)
+}
+
 // GetPrescription fetches a prescription with its lines and any walk-in sale(s) it generated,
 // tenant-scoped.
 func (s *Service) GetPrescription(ctx context.Context, tenantID, id uuid.UUID) (*ent.Prescription, error) {

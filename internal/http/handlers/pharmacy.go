@@ -530,6 +530,24 @@ func (h *PharmacyHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Re
 	respondJSON(w, http.StatusOK, map[string]any{"prescription": rx, "claim": claim})
 }
 
+// SearchDrugs handles GET /{tenant}/hospital/pharmacy/drug-search?q= — a thin proxy to
+// inventory-api's real item catalog so a prescription line can be picked from a live search
+// instead of hand-typed free text, and so the frontend never needs its own inventory-api
+// credentials.
+func (h *PharmacyHandler) SearchDrugs(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	items, err := h.svc.SearchDrugs(r.Context(), tenantID, r.URL.Query().Get("q"))
+	if err != nil {
+		respondError(w, http.StatusBadGateway, "drug search failed")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": items})
+}
+
 // ListWalkInSales handles GET /{tenant}/hospital/pharmacy/walk-in-sales?status=
 func (h *PharmacyHandler) ListWalkInSales(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

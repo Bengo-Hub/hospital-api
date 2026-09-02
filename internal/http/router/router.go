@@ -379,6 +379,9 @@ func New(d Deps) http.Handler {
 			if d.Pharmacy != nil {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyPrescribe)).
+					Get("/pharmacy/drug-search", d.Pharmacy.SearchDrugs)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyPrescribe)).
 					Post("/prescriptions", d.Pharmacy.CreatePrescription)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView)).

@@ -8,6 +8,7 @@ package inventory
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -178,6 +179,53 @@ type AllergyMatch struct {
 type InteractionCheckResult struct {
 	Interactions   []InteractionFinding `json:"interactions"`
 	AllergyMatches []AllergyMatch       `json:"allergy_matches"`
+}
+
+// SearchItem is the subset of inventory-api's items.ItemDTO a drug-search picker needs — mirrors
+// the field names docs/integrations.md §1.1 already documented as "read" by this client, even
+// though (before this fix) no method here actually called the endpoint that returns them.
+type SearchItem struct {
+	SKU                   string   `json:"sku"`
+	Name                  string   `json:"name"`
+	GenericName           string   `json:"generic_name,omitempty"`
+	DosageForm            string   `json:"dosage_form,omitempty"`
+	Strength              string   `json:"strength,omitempty"`
+	DrugClass             string   `json:"drug_class,omitempty"`
+	IsControlledSubstance bool     `json:"is_controlled_substance"`
+	SellingPrice          *float64 `json:"selling_price,omitempty"`
+	Available             *float64 `json:"available,omitempty"`
+}
+
+// SearchItems calls inventory-api's real item list/search endpoint (GET /v1/{tenant}/inventory/
+// items) scoped to type=DRUG, for a prescription-line autocomplete with a live stock preview —
+// previously prescription lines were pure free-text SKU/name/price with no lookup at all. `lean`
+// is always set (this caller never needs the image-gallery/preferred-supplier eager loads).
+func (c *Client) SearchItems(ctx context.Context, tenantID uuid.UUID, search string) ([]SearchItem, error) {
+	if !c.enabled {
+		return nil, fmt.Errorf("inventory client not configured")
+	}
+	q := url.Values{}
+	q.Set("type", "DRUG")
+	q.Set("lean", "1")
+	q.Set("limit", "20")
+	if search != "" {
+		q.Set("search", search)
+	}
+	path := fmt.Sprintf("/v1/%s/inventory/items?%s", tenantID, q.Encode())
+	resp, err := c.sc.Get(ctx, path, c.headers())
+	if err != nil {
+		return nil, fmt.Errorf("inventory: search items: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("inventory: search items: status %d: %s", resp.StatusCode, string(resp.Body))
+	}
+	var out struct {
+		Data []SearchItem `json:"data"`
+	}
+	if err := resp.DecodeJSON(&out); err != nil {
+		return nil, fmt.Errorf("inventory: decode search items: %w", err)
+	}
+	return out.Data, nil
 }
 
 // CheckInteractions calls inventory-api's drug-drug/allergy interaction engine. This is a
