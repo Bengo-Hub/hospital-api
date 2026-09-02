@@ -23,8 +23,11 @@ func (LabOrder) Fields() []ent.Field {
 		field.UUID("visit_id", uuid.UUID{}),
 		field.UUID("examination_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("ordered_by", uuid.UUID{}),
+		// "collected" was removed 2026-09-02 — confirmed dead (never set by any service method;
+		// EnterResult's only real gating condition is requested/resulted, per the frontend's own
+		// LabOrderStatus type) and zero live rows used it before removal.
 		field.Enum("status").
-			Values("requested", "awaiting_payment", "collected", "resulted", "cancelled").
+			Values("requested", "awaiting_payment", "resulted", "cancelled").
 			Default("requested"),
 		field.String("notes").Optional(),
 		field.Time("ordered_at").Default(time.Now).Immutable(),

@@ -94,7 +94,6 @@ const DefaultStatus = StatusRequested
 const (
 	StatusRequested       Status = "requested"
 	StatusAwaitingPayment Status = "awaiting_payment"
-	StatusCollected       Status = "collected"
 	StatusResulted        Status = "resulted"
 	StatusCancelled       Status = "cancelled"
 )
@@ -106,7 +105,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusRequested, StatusAwaitingPayment, StatusCollected, StatusResulted, StatusCancelled:
+	case StatusRequested, StatusAwaitingPayment, StatusResulted, StatusCancelled:
 		return nil
 	default:
 		return fmt.Errorf("laborder: invalid enum value for status field: %q", s)

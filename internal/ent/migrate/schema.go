@@ -449,7 +449,7 @@ var (
 		{Name: "tenant_id", Type: field.TypeUUID},
 		{Name: "examination_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "ordered_by", Type: field.TypeUUID},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"requested", "awaiting_payment", "collected", "resulted", "cancelled"}, Default: "requested"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"requested", "awaiting_payment", "resulted", "cancelled"}, Default: "requested"},
 		{Name: "notes", Type: field.TypeString, Nullable: true},
 		{Name: "ordered_at", Type: field.TypeTime},
 		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
