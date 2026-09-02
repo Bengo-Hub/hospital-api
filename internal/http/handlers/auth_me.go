@@ -34,10 +34,15 @@ func (h *AuthMeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	if roles == nil {
 		roles = []string{}
 	}
-	permissions := claims.Permissions
-	if permissions == nil {
-		permissions = []string{}
-	}
+	// Deliberately NOT seeded from claims.Permissions: that's the raw JWT's cross-vertical
+	// permission dump (every permission the caller's global SSO role maps to across
+	// pos/inventory/ordering/logistics/treasury/auth, not just hospital-service), since the
+	// token is shared platform-wide. Permissions here must come exclusively from local hospital
+	// RBAC below, so a user with no local role assignment correctly gets an empty array —
+	// hospital-ui's useAppPermissions only falls back to its client-side ROLE_PERMISSIONS map
+	// when the server array is empty, and a non-empty-but-irrelevant array silently defeated
+	// that fallback.
+	permissions := []string{}
 
 	ctx := r.Context()
 	tenantID := httpware.GetTenantID(ctx)
