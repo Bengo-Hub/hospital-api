@@ -54,6 +54,7 @@ func (Prescription) Fields() []ent.Field {
 func (Prescription) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("lines", PrescriptionLine.Type),
+		edge.To("walk_in_sales", WalkInSale.Type),
 	}
 }
 

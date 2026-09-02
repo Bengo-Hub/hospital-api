@@ -95,3 +95,6 @@ type TriageRecord func(*sql.Selector)
 
 // UserRoleAssignment is the predicate function for userroleassignment builders.
 type UserRoleAssignment func(*sql.Selector)
+
+// WalkInSale is the predicate function for walkinsale builders.
+type WalkInSale func(*sql.Selector)

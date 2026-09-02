@@ -16,18 +16,20 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/google/uuid"
 )
 
 // PrescriptionQuery is the builder for querying Prescription entities.
 type PrescriptionQuery struct {
 	config
-	ctx        *QueryContext
-	order      []prescription.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Prescription
-	withLines  *PrescriptionLineQuery
-	modifiers  []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []prescription.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Prescription
+	withLines       *PrescriptionLineQuery
+	withWalkInSales *WalkInSaleQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -79,6 +81,28 @@ func (_q *PrescriptionQuery) QueryLines() *PrescriptionLineQuery {
 			sqlgraph.From(prescription.Table, prescription.FieldID, selector),
 			sqlgraph.To(prescriptionline.Table, prescriptionline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, prescription.LinesTable, prescription.LinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWalkInSales chains the current query on the "walk_in_sales" edge.
+func (_q *PrescriptionQuery) QueryWalkInSales() *WalkInSaleQuery {
+	query := (&WalkInSaleClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prescription.Table, prescription.FieldID, selector),
+			sqlgraph.To(walkinsale.Table, walkinsale.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prescription.WalkInSalesTable, prescription.WalkInSalesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -273,12 +297,13 @@ func (_q *PrescriptionQuery) Clone() *PrescriptionQuery {
 		return nil
 	}
 	return &PrescriptionQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]prescription.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Prescription{}, _q.predicates...),
-		withLines:  _q.withLines.Clone(),
+		config:          _q.config,
+		ctx:             _q.ctx.Clone(),
+		order:           append([]prescription.OrderOption{}, _q.order...),
+		inters:          append([]Interceptor{}, _q.inters...),
+		predicates:      append([]predicate.Prescription{}, _q.predicates...),
+		withLines:       _q.withLines.Clone(),
+		withWalkInSales: _q.withWalkInSales.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -293,6 +318,17 @@ func (_q *PrescriptionQuery) WithLines(opts ...func(*PrescriptionLineQuery)) *Pr
 		opt(query)
 	}
 	_q.withLines = query
+	return _q
+}
+
+// WithWalkInSales tells the query-builder to eager-load the nodes that are connected to
+// the "walk_in_sales" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PrescriptionQuery) WithWalkInSales(opts ...func(*WalkInSaleQuery)) *PrescriptionQuery {
+	query := (&WalkInSaleClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withWalkInSales = query
 	return _q
 }
 
@@ -374,8 +410,9 @@ func (_q *PrescriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Prescription{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withLines != nil,
+			_q.withWalkInSales != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -406,6 +443,13 @@ func (_q *PrescriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			return nil, err
 		}
 	}
+	if query := _q.withWalkInSales; query != nil {
+		if err := _q.loadWalkInSales(ctx, query, nodes,
+			func(n *Prescription) { n.Edges.WalkInSales = []*WalkInSale{} },
+			func(n *Prescription, e *WalkInSale) { n.Edges.WalkInSales = append(n.Edges.WalkInSales, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -424,6 +468,36 @@ func (_q *PrescriptionQuery) loadLines(ctx context.Context, query *PrescriptionL
 	}
 	query.Where(predicate.PrescriptionLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(prescription.LinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PrescriptionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "prescription_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *PrescriptionQuery) loadWalkInSales(ctx context.Context, query *WalkInSaleQuery, nodes []*Prescription, init func(*Prescription), assign func(*Prescription, *WalkInSale)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Prescription)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(walkinsale.FieldPrescriptionID)
+	}
+	query.Where(predicate.WalkInSale(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(prescription.WalkInSalesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

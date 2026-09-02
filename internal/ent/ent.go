@@ -42,6 +42,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -132,6 +133,7 @@ func checkColumn(t, c string) error {
 			tenant.Table:                  tenant.ValidColumn,
 			triagerecord.Table:            triagerecord.ValidColumn,
 			userroleassignment.Table:      userroleassignment.ValidColumn,
+			walkinsale.Table:              walkinsale.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

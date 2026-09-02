@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/google/uuid"
 )
 
@@ -288,6 +289,21 @@ func (_c *PrescriptionCreate) AddLines(v ...*PrescriptionLine) *PrescriptionCrea
 	return _c.AddLineIDs(ids...)
 }
 
+// AddWalkInSaleIDs adds the "walk_in_sales" edge to the WalkInSale entity by IDs.
+func (_c *PrescriptionCreate) AddWalkInSaleIDs(ids ...uuid.UUID) *PrescriptionCreate {
+	_c.mutation.AddWalkInSaleIDs(ids...)
+	return _c
+}
+
+// AddWalkInSales adds the "walk_in_sales" edges to the WalkInSale entity.
+func (_c *PrescriptionCreate) AddWalkInSales(v ...*WalkInSale) *PrescriptionCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddWalkInSaleIDs(ids...)
+}
+
 // Mutation returns the PrescriptionMutation object of the builder.
 func (_c *PrescriptionCreate) Mutation() *PrescriptionMutation {
 	return _c.mutation
@@ -492,6 +508,22 @@ func (_c *PrescriptionCreate) createSpec() (*Prescription, *sqlgraph.CreateSpec)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(prescriptionline.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.WalkInSalesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

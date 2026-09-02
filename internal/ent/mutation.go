@@ -43,6 +43,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/google/uuid"
 )
 
@@ -85,6 +86,7 @@ const (
 	TypeTenant                  = "Tenant"
 	TypeTriageRecord            = "TriageRecord"
 	TypeUserRoleAssignment      = "UserRoleAssignment"
+	TypeWalkInSale              = "WalkInSale"
 )
 
 // BillableChargeMutation represents an operation that mutates the BillableCharge nodes in the graph.
@@ -21861,6 +21863,9 @@ type PrescriptionMutation struct {
 	lines                  map[uuid.UUID]struct{}
 	removedlines           map[uuid.UUID]struct{}
 	clearedlines           bool
+	walk_in_sales          map[uuid.UUID]struct{}
+	removedwalk_in_sales   map[uuid.UUID]struct{}
+	clearedwalk_in_sales   bool
 	done                   bool
 	oldValue               func(context.Context) (*Prescription, error)
 	predicates             []predicate.Prescription
@@ -22877,6 +22882,60 @@ func (m *PrescriptionMutation) ResetLines() {
 	m.removedlines = nil
 }
 
+// AddWalkInSaleIDs adds the "walk_in_sales" edge to the WalkInSale entity by ids.
+func (m *PrescriptionMutation) AddWalkInSaleIDs(ids ...uuid.UUID) {
+	if m.walk_in_sales == nil {
+		m.walk_in_sales = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.walk_in_sales[ids[i]] = struct{}{}
+	}
+}
+
+// ClearWalkInSales clears the "walk_in_sales" edge to the WalkInSale entity.
+func (m *PrescriptionMutation) ClearWalkInSales() {
+	m.clearedwalk_in_sales = true
+}
+
+// WalkInSalesCleared reports if the "walk_in_sales" edge to the WalkInSale entity was cleared.
+func (m *PrescriptionMutation) WalkInSalesCleared() bool {
+	return m.clearedwalk_in_sales
+}
+
+// RemoveWalkInSaleIDs removes the "walk_in_sales" edge to the WalkInSale entity by IDs.
+func (m *PrescriptionMutation) RemoveWalkInSaleIDs(ids ...uuid.UUID) {
+	if m.removedwalk_in_sales == nil {
+		m.removedwalk_in_sales = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.walk_in_sales, ids[i])
+		m.removedwalk_in_sales[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedWalkInSales returns the removed IDs of the "walk_in_sales" edge to the WalkInSale entity.
+func (m *PrescriptionMutation) RemovedWalkInSalesIDs() (ids []uuid.UUID) {
+	for id := range m.removedwalk_in_sales {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// WalkInSalesIDs returns the "walk_in_sales" edge IDs in the mutation.
+func (m *PrescriptionMutation) WalkInSalesIDs() (ids []uuid.UUID) {
+	for id := range m.walk_in_sales {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetWalkInSales resets all changes to the "walk_in_sales" edge.
+func (m *PrescriptionMutation) ResetWalkInSales() {
+	m.walk_in_sales = nil
+	m.clearedwalk_in_sales = false
+	m.removedwalk_in_sales = nil
+}
+
 // Where appends a list predicates to the PrescriptionMutation builder.
 func (m *PrescriptionMutation) Where(ps ...predicate.Prescription) {
 	m.predicates = append(m.predicates, ps...)
@@ -23397,9 +23456,12 @@ func (m *PrescriptionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PrescriptionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.lines != nil {
 		edges = append(edges, prescription.EdgeLines)
+	}
+	if m.walk_in_sales != nil {
+		edges = append(edges, prescription.EdgeWalkInSales)
 	}
 	return edges
 }
@@ -23414,15 +23476,24 @@ func (m *PrescriptionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case prescription.EdgeWalkInSales:
+		ids := make([]ent.Value, 0, len(m.walk_in_sales))
+		for id := range m.walk_in_sales {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PrescriptionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedlines != nil {
 		edges = append(edges, prescription.EdgeLines)
+	}
+	if m.removedwalk_in_sales != nil {
+		edges = append(edges, prescription.EdgeWalkInSales)
 	}
 	return edges
 }
@@ -23437,15 +23508,24 @@ func (m *PrescriptionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case prescription.EdgeWalkInSales:
+		ids := make([]ent.Value, 0, len(m.removedwalk_in_sales))
+		for id := range m.removedwalk_in_sales {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PrescriptionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedlines {
 		edges = append(edges, prescription.EdgeLines)
+	}
+	if m.clearedwalk_in_sales {
+		edges = append(edges, prescription.EdgeWalkInSales)
 	}
 	return edges
 }
@@ -23456,6 +23536,8 @@ func (m *PrescriptionMutation) EdgeCleared(name string) bool {
 	switch name {
 	case prescription.EdgeLines:
 		return m.clearedlines
+	case prescription.EdgeWalkInSales:
+		return m.clearedwalk_in_sales
 	}
 	return false
 }
@@ -23474,6 +23556,9 @@ func (m *PrescriptionMutation) ResetEdge(name string) error {
 	switch name {
 	case prescription.EdgeLines:
 		m.ResetLines()
+		return nil
+	case prescription.EdgeWalkInSales:
+		m.ResetWalkInSales()
 		return nil
 	}
 	return fmt.Errorf("unknown Prescription edge %s", name)
@@ -30138,4 +30223,1608 @@ func (m *UserRoleAssignmentMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown UserRoleAssignment edge %s", name)
+}
+
+// WalkInSaleMutation represents an operation that mutates the WalkInSale nodes in the graph.
+type WalkInSaleMutation struct {
+	config
+	op                         Op
+	typ                        string
+	id                         *uuid.UUID
+	tenant_id                  *uuid.UUID
+	outlet_id                  *uuid.UUID
+	prescription_number        *string
+	sale_number                *string
+	patient_name               *string
+	line_items                 *[]map[string]interface{}
+	appendline_items           []map[string]interface{}
+	amount                     *float64
+	addamount                  *float64
+	status                     *walkinsale.Status
+	payment_method             *string
+	treasury_invoice_id        *uuid.UUID
+	treasury_payment_intent_id *uuid.UUID
+	etims_invoice_number       *string
+	etims_qr_code_url          *string
+	collected_by               *uuid.UUID
+	created_by_user_id         *uuid.UUID
+	paid_at                    *time.Time
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	clearedFields              map[string]struct{}
+	prescription               *uuid.UUID
+	clearedprescription        bool
+	done                       bool
+	oldValue                   func(context.Context) (*WalkInSale, error)
+	predicates                 []predicate.WalkInSale
+}
+
+var _ ent.Mutation = (*WalkInSaleMutation)(nil)
+
+// walkinsaleOption allows management of the mutation configuration using functional options.
+type walkinsaleOption func(*WalkInSaleMutation)
+
+// newWalkInSaleMutation creates new mutation for the WalkInSale entity.
+func newWalkInSaleMutation(c config, op Op, opts ...walkinsaleOption) *WalkInSaleMutation {
+	m := &WalkInSaleMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWalkInSale,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWalkInSaleID sets the ID field of the mutation.
+func withWalkInSaleID(id uuid.UUID) walkinsaleOption {
+	return func(m *WalkInSaleMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WalkInSale
+		)
+		m.oldValue = func(ctx context.Context) (*WalkInSale, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WalkInSale.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWalkInSale sets the old WalkInSale of the mutation.
+func withWalkInSale(node *WalkInSale) walkinsaleOption {
+	return func(m *WalkInSaleMutation) {
+		m.oldValue = func(context.Context) (*WalkInSale, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WalkInSaleMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WalkInSaleMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of WalkInSale entities.
+func (m *WalkInSaleMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WalkInSaleMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WalkInSaleMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WalkInSale.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTenantID sets the "tenant_id" field.
+func (m *WalkInSaleMutation) SetTenantID(u uuid.UUID) {
+	m.tenant_id = &u
+}
+
+// TenantID returns the value of the "tenant_id" field in the mutation.
+func (m *WalkInSaleMutation) TenantID() (r uuid.UUID, exists bool) {
+	v := m.tenant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantID returns the old "tenant_id" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldTenantID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantID: %w", err)
+	}
+	return oldValue.TenantID, nil
+}
+
+// ResetTenantID resets all changes to the "tenant_id" field.
+func (m *WalkInSaleMutation) ResetTenantID() {
+	m.tenant_id = nil
+}
+
+// SetOutletID sets the "outlet_id" field.
+func (m *WalkInSaleMutation) SetOutletID(u uuid.UUID) {
+	m.outlet_id = &u
+}
+
+// OutletID returns the value of the "outlet_id" field in the mutation.
+func (m *WalkInSaleMutation) OutletID() (r uuid.UUID, exists bool) {
+	v := m.outlet_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutletID returns the old "outlet_id" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldOutletID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutletID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutletID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutletID: %w", err)
+	}
+	return oldValue.OutletID, nil
+}
+
+// ResetOutletID resets all changes to the "outlet_id" field.
+func (m *WalkInSaleMutation) ResetOutletID() {
+	m.outlet_id = nil
+}
+
+// SetPrescriptionID sets the "prescription_id" field.
+func (m *WalkInSaleMutation) SetPrescriptionID(u uuid.UUID) {
+	m.prescription = &u
+}
+
+// PrescriptionID returns the value of the "prescription_id" field in the mutation.
+func (m *WalkInSaleMutation) PrescriptionID() (r uuid.UUID, exists bool) {
+	v := m.prescription
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrescriptionID returns the old "prescription_id" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldPrescriptionID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrescriptionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrescriptionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrescriptionID: %w", err)
+	}
+	return oldValue.PrescriptionID, nil
+}
+
+// ResetPrescriptionID resets all changes to the "prescription_id" field.
+func (m *WalkInSaleMutation) ResetPrescriptionID() {
+	m.prescription = nil
+}
+
+// SetPrescriptionNumber sets the "prescription_number" field.
+func (m *WalkInSaleMutation) SetPrescriptionNumber(s string) {
+	m.prescription_number = &s
+}
+
+// PrescriptionNumber returns the value of the "prescription_number" field in the mutation.
+func (m *WalkInSaleMutation) PrescriptionNumber() (r string, exists bool) {
+	v := m.prescription_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrescriptionNumber returns the old "prescription_number" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldPrescriptionNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrescriptionNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrescriptionNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrescriptionNumber: %w", err)
+	}
+	return oldValue.PrescriptionNumber, nil
+}
+
+// ResetPrescriptionNumber resets all changes to the "prescription_number" field.
+func (m *WalkInSaleMutation) ResetPrescriptionNumber() {
+	m.prescription_number = nil
+}
+
+// SetSaleNumber sets the "sale_number" field.
+func (m *WalkInSaleMutation) SetSaleNumber(s string) {
+	m.sale_number = &s
+}
+
+// SaleNumber returns the value of the "sale_number" field in the mutation.
+func (m *WalkInSaleMutation) SaleNumber() (r string, exists bool) {
+	v := m.sale_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSaleNumber returns the old "sale_number" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldSaleNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSaleNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSaleNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSaleNumber: %w", err)
+	}
+	return oldValue.SaleNumber, nil
+}
+
+// ResetSaleNumber resets all changes to the "sale_number" field.
+func (m *WalkInSaleMutation) ResetSaleNumber() {
+	m.sale_number = nil
+}
+
+// SetPatientName sets the "patient_name" field.
+func (m *WalkInSaleMutation) SetPatientName(s string) {
+	m.patient_name = &s
+}
+
+// PatientName returns the value of the "patient_name" field in the mutation.
+func (m *WalkInSaleMutation) PatientName() (r string, exists bool) {
+	v := m.patient_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPatientName returns the old "patient_name" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldPatientName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPatientName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPatientName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPatientName: %w", err)
+	}
+	return oldValue.PatientName, nil
+}
+
+// ClearPatientName clears the value of the "patient_name" field.
+func (m *WalkInSaleMutation) ClearPatientName() {
+	m.patient_name = nil
+	m.clearedFields[walkinsale.FieldPatientName] = struct{}{}
+}
+
+// PatientNameCleared returns if the "patient_name" field was cleared in this mutation.
+func (m *WalkInSaleMutation) PatientNameCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldPatientName]
+	return ok
+}
+
+// ResetPatientName resets all changes to the "patient_name" field.
+func (m *WalkInSaleMutation) ResetPatientName() {
+	m.patient_name = nil
+	delete(m.clearedFields, walkinsale.FieldPatientName)
+}
+
+// SetLineItems sets the "line_items" field.
+func (m *WalkInSaleMutation) SetLineItems(value []map[string]interface{}) {
+	m.line_items = &value
+	m.appendline_items = nil
+}
+
+// LineItems returns the value of the "line_items" field in the mutation.
+func (m *WalkInSaleMutation) LineItems() (r []map[string]interface{}, exists bool) {
+	v := m.line_items
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLineItems returns the old "line_items" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldLineItems(ctx context.Context) (v []map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLineItems is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLineItems requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLineItems: %w", err)
+	}
+	return oldValue.LineItems, nil
+}
+
+// AppendLineItems adds value to the "line_items" field.
+func (m *WalkInSaleMutation) AppendLineItems(value []map[string]interface{}) {
+	m.appendline_items = append(m.appendline_items, value...)
+}
+
+// AppendedLineItems returns the list of values that were appended to the "line_items" field in this mutation.
+func (m *WalkInSaleMutation) AppendedLineItems() ([]map[string]interface{}, bool) {
+	if len(m.appendline_items) == 0 {
+		return nil, false
+	}
+	return m.appendline_items, true
+}
+
+// ClearLineItems clears the value of the "line_items" field.
+func (m *WalkInSaleMutation) ClearLineItems() {
+	m.line_items = nil
+	m.appendline_items = nil
+	m.clearedFields[walkinsale.FieldLineItems] = struct{}{}
+}
+
+// LineItemsCleared returns if the "line_items" field was cleared in this mutation.
+func (m *WalkInSaleMutation) LineItemsCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldLineItems]
+	return ok
+}
+
+// ResetLineItems resets all changes to the "line_items" field.
+func (m *WalkInSaleMutation) ResetLineItems() {
+	m.line_items = nil
+	m.appendline_items = nil
+	delete(m.clearedFields, walkinsale.FieldLineItems)
+}
+
+// SetAmount sets the "amount" field.
+func (m *WalkInSaleMutation) SetAmount(f float64) {
+	m.amount = &f
+	m.addamount = nil
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *WalkInSaleMutation) Amount() (r float64, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldAmount(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// AddAmount adds f to the "amount" field.
+func (m *WalkInSaleMutation) AddAmount(f float64) {
+	if m.addamount != nil {
+		*m.addamount += f
+	} else {
+		m.addamount = &f
+	}
+}
+
+// AddedAmount returns the value that was added to the "amount" field in this mutation.
+func (m *WalkInSaleMutation) AddedAmount() (r float64, exists bool) {
+	v := m.addamount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *WalkInSaleMutation) ResetAmount() {
+	m.amount = nil
+	m.addamount = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *WalkInSaleMutation) SetStatus(w walkinsale.Status) {
+	m.status = &w
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *WalkInSaleMutation) Status() (r walkinsale.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldStatus(ctx context.Context) (v walkinsale.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *WalkInSaleMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetPaymentMethod sets the "payment_method" field.
+func (m *WalkInSaleMutation) SetPaymentMethod(s string) {
+	m.payment_method = &s
+}
+
+// PaymentMethod returns the value of the "payment_method" field in the mutation.
+func (m *WalkInSaleMutation) PaymentMethod() (r string, exists bool) {
+	v := m.payment_method
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaymentMethod returns the old "payment_method" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldPaymentMethod(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaymentMethod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaymentMethod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaymentMethod: %w", err)
+	}
+	return oldValue.PaymentMethod, nil
+}
+
+// ClearPaymentMethod clears the value of the "payment_method" field.
+func (m *WalkInSaleMutation) ClearPaymentMethod() {
+	m.payment_method = nil
+	m.clearedFields[walkinsale.FieldPaymentMethod] = struct{}{}
+}
+
+// PaymentMethodCleared returns if the "payment_method" field was cleared in this mutation.
+func (m *WalkInSaleMutation) PaymentMethodCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldPaymentMethod]
+	return ok
+}
+
+// ResetPaymentMethod resets all changes to the "payment_method" field.
+func (m *WalkInSaleMutation) ResetPaymentMethod() {
+	m.payment_method = nil
+	delete(m.clearedFields, walkinsale.FieldPaymentMethod)
+}
+
+// SetTreasuryInvoiceID sets the "treasury_invoice_id" field.
+func (m *WalkInSaleMutation) SetTreasuryInvoiceID(u uuid.UUID) {
+	m.treasury_invoice_id = &u
+}
+
+// TreasuryInvoiceID returns the value of the "treasury_invoice_id" field in the mutation.
+func (m *WalkInSaleMutation) TreasuryInvoiceID() (r uuid.UUID, exists bool) {
+	v := m.treasury_invoice_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTreasuryInvoiceID returns the old "treasury_invoice_id" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldTreasuryInvoiceID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTreasuryInvoiceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTreasuryInvoiceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTreasuryInvoiceID: %w", err)
+	}
+	return oldValue.TreasuryInvoiceID, nil
+}
+
+// ClearTreasuryInvoiceID clears the value of the "treasury_invoice_id" field.
+func (m *WalkInSaleMutation) ClearTreasuryInvoiceID() {
+	m.treasury_invoice_id = nil
+	m.clearedFields[walkinsale.FieldTreasuryInvoiceID] = struct{}{}
+}
+
+// TreasuryInvoiceIDCleared returns if the "treasury_invoice_id" field was cleared in this mutation.
+func (m *WalkInSaleMutation) TreasuryInvoiceIDCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldTreasuryInvoiceID]
+	return ok
+}
+
+// ResetTreasuryInvoiceID resets all changes to the "treasury_invoice_id" field.
+func (m *WalkInSaleMutation) ResetTreasuryInvoiceID() {
+	m.treasury_invoice_id = nil
+	delete(m.clearedFields, walkinsale.FieldTreasuryInvoiceID)
+}
+
+// SetTreasuryPaymentIntentID sets the "treasury_payment_intent_id" field.
+func (m *WalkInSaleMutation) SetTreasuryPaymentIntentID(u uuid.UUID) {
+	m.treasury_payment_intent_id = &u
+}
+
+// TreasuryPaymentIntentID returns the value of the "treasury_payment_intent_id" field in the mutation.
+func (m *WalkInSaleMutation) TreasuryPaymentIntentID() (r uuid.UUID, exists bool) {
+	v := m.treasury_payment_intent_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTreasuryPaymentIntentID returns the old "treasury_payment_intent_id" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldTreasuryPaymentIntentID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTreasuryPaymentIntentID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTreasuryPaymentIntentID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTreasuryPaymentIntentID: %w", err)
+	}
+	return oldValue.TreasuryPaymentIntentID, nil
+}
+
+// ClearTreasuryPaymentIntentID clears the value of the "treasury_payment_intent_id" field.
+func (m *WalkInSaleMutation) ClearTreasuryPaymentIntentID() {
+	m.treasury_payment_intent_id = nil
+	m.clearedFields[walkinsale.FieldTreasuryPaymentIntentID] = struct{}{}
+}
+
+// TreasuryPaymentIntentIDCleared returns if the "treasury_payment_intent_id" field was cleared in this mutation.
+func (m *WalkInSaleMutation) TreasuryPaymentIntentIDCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldTreasuryPaymentIntentID]
+	return ok
+}
+
+// ResetTreasuryPaymentIntentID resets all changes to the "treasury_payment_intent_id" field.
+func (m *WalkInSaleMutation) ResetTreasuryPaymentIntentID() {
+	m.treasury_payment_intent_id = nil
+	delete(m.clearedFields, walkinsale.FieldTreasuryPaymentIntentID)
+}
+
+// SetEtimsInvoiceNumber sets the "etims_invoice_number" field.
+func (m *WalkInSaleMutation) SetEtimsInvoiceNumber(s string) {
+	m.etims_invoice_number = &s
+}
+
+// EtimsInvoiceNumber returns the value of the "etims_invoice_number" field in the mutation.
+func (m *WalkInSaleMutation) EtimsInvoiceNumber() (r string, exists bool) {
+	v := m.etims_invoice_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEtimsInvoiceNumber returns the old "etims_invoice_number" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldEtimsInvoiceNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEtimsInvoiceNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEtimsInvoiceNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEtimsInvoiceNumber: %w", err)
+	}
+	return oldValue.EtimsInvoiceNumber, nil
+}
+
+// ClearEtimsInvoiceNumber clears the value of the "etims_invoice_number" field.
+func (m *WalkInSaleMutation) ClearEtimsInvoiceNumber() {
+	m.etims_invoice_number = nil
+	m.clearedFields[walkinsale.FieldEtimsInvoiceNumber] = struct{}{}
+}
+
+// EtimsInvoiceNumberCleared returns if the "etims_invoice_number" field was cleared in this mutation.
+func (m *WalkInSaleMutation) EtimsInvoiceNumberCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldEtimsInvoiceNumber]
+	return ok
+}
+
+// ResetEtimsInvoiceNumber resets all changes to the "etims_invoice_number" field.
+func (m *WalkInSaleMutation) ResetEtimsInvoiceNumber() {
+	m.etims_invoice_number = nil
+	delete(m.clearedFields, walkinsale.FieldEtimsInvoiceNumber)
+}
+
+// SetEtimsQrCodeURL sets the "etims_qr_code_url" field.
+func (m *WalkInSaleMutation) SetEtimsQrCodeURL(s string) {
+	m.etims_qr_code_url = &s
+}
+
+// EtimsQrCodeURL returns the value of the "etims_qr_code_url" field in the mutation.
+func (m *WalkInSaleMutation) EtimsQrCodeURL() (r string, exists bool) {
+	v := m.etims_qr_code_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEtimsQrCodeURL returns the old "etims_qr_code_url" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldEtimsQrCodeURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEtimsQrCodeURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEtimsQrCodeURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEtimsQrCodeURL: %w", err)
+	}
+	return oldValue.EtimsQrCodeURL, nil
+}
+
+// ClearEtimsQrCodeURL clears the value of the "etims_qr_code_url" field.
+func (m *WalkInSaleMutation) ClearEtimsQrCodeURL() {
+	m.etims_qr_code_url = nil
+	m.clearedFields[walkinsale.FieldEtimsQrCodeURL] = struct{}{}
+}
+
+// EtimsQrCodeURLCleared returns if the "etims_qr_code_url" field was cleared in this mutation.
+func (m *WalkInSaleMutation) EtimsQrCodeURLCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldEtimsQrCodeURL]
+	return ok
+}
+
+// ResetEtimsQrCodeURL resets all changes to the "etims_qr_code_url" field.
+func (m *WalkInSaleMutation) ResetEtimsQrCodeURL() {
+	m.etims_qr_code_url = nil
+	delete(m.clearedFields, walkinsale.FieldEtimsQrCodeURL)
+}
+
+// SetCollectedBy sets the "collected_by" field.
+func (m *WalkInSaleMutation) SetCollectedBy(u uuid.UUID) {
+	m.collected_by = &u
+}
+
+// CollectedBy returns the value of the "collected_by" field in the mutation.
+func (m *WalkInSaleMutation) CollectedBy() (r uuid.UUID, exists bool) {
+	v := m.collected_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollectedBy returns the old "collected_by" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldCollectedBy(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollectedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollectedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollectedBy: %w", err)
+	}
+	return oldValue.CollectedBy, nil
+}
+
+// ClearCollectedBy clears the value of the "collected_by" field.
+func (m *WalkInSaleMutation) ClearCollectedBy() {
+	m.collected_by = nil
+	m.clearedFields[walkinsale.FieldCollectedBy] = struct{}{}
+}
+
+// CollectedByCleared returns if the "collected_by" field was cleared in this mutation.
+func (m *WalkInSaleMutation) CollectedByCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldCollectedBy]
+	return ok
+}
+
+// ResetCollectedBy resets all changes to the "collected_by" field.
+func (m *WalkInSaleMutation) ResetCollectedBy() {
+	m.collected_by = nil
+	delete(m.clearedFields, walkinsale.FieldCollectedBy)
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (m *WalkInSaleMutation) SetCreatedByUserID(u uuid.UUID) {
+	m.created_by_user_id = &u
+}
+
+// CreatedByUserID returns the value of the "created_by_user_id" field in the mutation.
+func (m *WalkInSaleMutation) CreatedByUserID() (r uuid.UUID, exists bool) {
+	v := m.created_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedByUserID returns the old "created_by_user_id" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldCreatedByUserID(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedByUserID: %w", err)
+	}
+	return oldValue.CreatedByUserID, nil
+}
+
+// ClearCreatedByUserID clears the value of the "created_by_user_id" field.
+func (m *WalkInSaleMutation) ClearCreatedByUserID() {
+	m.created_by_user_id = nil
+	m.clearedFields[walkinsale.FieldCreatedByUserID] = struct{}{}
+}
+
+// CreatedByUserIDCleared returns if the "created_by_user_id" field was cleared in this mutation.
+func (m *WalkInSaleMutation) CreatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldCreatedByUserID]
+	return ok
+}
+
+// ResetCreatedByUserID resets all changes to the "created_by_user_id" field.
+func (m *WalkInSaleMutation) ResetCreatedByUserID() {
+	m.created_by_user_id = nil
+	delete(m.clearedFields, walkinsale.FieldCreatedByUserID)
+}
+
+// SetPaidAt sets the "paid_at" field.
+func (m *WalkInSaleMutation) SetPaidAt(t time.Time) {
+	m.paid_at = &t
+}
+
+// PaidAt returns the value of the "paid_at" field in the mutation.
+func (m *WalkInSaleMutation) PaidAt() (r time.Time, exists bool) {
+	v := m.paid_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPaidAt returns the old "paid_at" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldPaidAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPaidAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPaidAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPaidAt: %w", err)
+	}
+	return oldValue.PaidAt, nil
+}
+
+// ClearPaidAt clears the value of the "paid_at" field.
+func (m *WalkInSaleMutation) ClearPaidAt() {
+	m.paid_at = nil
+	m.clearedFields[walkinsale.FieldPaidAt] = struct{}{}
+}
+
+// PaidAtCleared returns if the "paid_at" field was cleared in this mutation.
+func (m *WalkInSaleMutation) PaidAtCleared() bool {
+	_, ok := m.clearedFields[walkinsale.FieldPaidAt]
+	return ok
+}
+
+// ResetPaidAt resets all changes to the "paid_at" field.
+func (m *WalkInSaleMutation) ResetPaidAt() {
+	m.paid_at = nil
+	delete(m.clearedFields, walkinsale.FieldPaidAt)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *WalkInSaleMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *WalkInSaleMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *WalkInSaleMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *WalkInSaleMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *WalkInSaleMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the WalkInSale entity.
+// If the WalkInSale object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WalkInSaleMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *WalkInSaleMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// ClearPrescription clears the "prescription" edge to the Prescription entity.
+func (m *WalkInSaleMutation) ClearPrescription() {
+	m.clearedprescription = true
+	m.clearedFields[walkinsale.FieldPrescriptionID] = struct{}{}
+}
+
+// PrescriptionCleared reports if the "prescription" edge to the Prescription entity was cleared.
+func (m *WalkInSaleMutation) PrescriptionCleared() bool {
+	return m.clearedprescription
+}
+
+// PrescriptionIDs returns the "prescription" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PrescriptionID instead. It exists only for internal usage by the builders.
+func (m *WalkInSaleMutation) PrescriptionIDs() (ids []uuid.UUID) {
+	if id := m.prescription; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPrescription resets all changes to the "prescription" edge.
+func (m *WalkInSaleMutation) ResetPrescription() {
+	m.prescription = nil
+	m.clearedprescription = false
+}
+
+// Where appends a list predicates to the WalkInSaleMutation builder.
+func (m *WalkInSaleMutation) Where(ps ...predicate.WalkInSale) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WalkInSaleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WalkInSaleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WalkInSale, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WalkInSaleMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WalkInSaleMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WalkInSale).
+func (m *WalkInSaleMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WalkInSaleMutation) Fields() []string {
+	fields := make([]string, 0, 19)
+	if m.tenant_id != nil {
+		fields = append(fields, walkinsale.FieldTenantID)
+	}
+	if m.outlet_id != nil {
+		fields = append(fields, walkinsale.FieldOutletID)
+	}
+	if m.prescription != nil {
+		fields = append(fields, walkinsale.FieldPrescriptionID)
+	}
+	if m.prescription_number != nil {
+		fields = append(fields, walkinsale.FieldPrescriptionNumber)
+	}
+	if m.sale_number != nil {
+		fields = append(fields, walkinsale.FieldSaleNumber)
+	}
+	if m.patient_name != nil {
+		fields = append(fields, walkinsale.FieldPatientName)
+	}
+	if m.line_items != nil {
+		fields = append(fields, walkinsale.FieldLineItems)
+	}
+	if m.amount != nil {
+		fields = append(fields, walkinsale.FieldAmount)
+	}
+	if m.status != nil {
+		fields = append(fields, walkinsale.FieldStatus)
+	}
+	if m.payment_method != nil {
+		fields = append(fields, walkinsale.FieldPaymentMethod)
+	}
+	if m.treasury_invoice_id != nil {
+		fields = append(fields, walkinsale.FieldTreasuryInvoiceID)
+	}
+	if m.treasury_payment_intent_id != nil {
+		fields = append(fields, walkinsale.FieldTreasuryPaymentIntentID)
+	}
+	if m.etims_invoice_number != nil {
+		fields = append(fields, walkinsale.FieldEtimsInvoiceNumber)
+	}
+	if m.etims_qr_code_url != nil {
+		fields = append(fields, walkinsale.FieldEtimsQrCodeURL)
+	}
+	if m.collected_by != nil {
+		fields = append(fields, walkinsale.FieldCollectedBy)
+	}
+	if m.created_by_user_id != nil {
+		fields = append(fields, walkinsale.FieldCreatedByUserID)
+	}
+	if m.paid_at != nil {
+		fields = append(fields, walkinsale.FieldPaidAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, walkinsale.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, walkinsale.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WalkInSaleMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case walkinsale.FieldTenantID:
+		return m.TenantID()
+	case walkinsale.FieldOutletID:
+		return m.OutletID()
+	case walkinsale.FieldPrescriptionID:
+		return m.PrescriptionID()
+	case walkinsale.FieldPrescriptionNumber:
+		return m.PrescriptionNumber()
+	case walkinsale.FieldSaleNumber:
+		return m.SaleNumber()
+	case walkinsale.FieldPatientName:
+		return m.PatientName()
+	case walkinsale.FieldLineItems:
+		return m.LineItems()
+	case walkinsale.FieldAmount:
+		return m.Amount()
+	case walkinsale.FieldStatus:
+		return m.Status()
+	case walkinsale.FieldPaymentMethod:
+		return m.PaymentMethod()
+	case walkinsale.FieldTreasuryInvoiceID:
+		return m.TreasuryInvoiceID()
+	case walkinsale.FieldTreasuryPaymentIntentID:
+		return m.TreasuryPaymentIntentID()
+	case walkinsale.FieldEtimsInvoiceNumber:
+		return m.EtimsInvoiceNumber()
+	case walkinsale.FieldEtimsQrCodeURL:
+		return m.EtimsQrCodeURL()
+	case walkinsale.FieldCollectedBy:
+		return m.CollectedBy()
+	case walkinsale.FieldCreatedByUserID:
+		return m.CreatedByUserID()
+	case walkinsale.FieldPaidAt:
+		return m.PaidAt()
+	case walkinsale.FieldCreatedAt:
+		return m.CreatedAt()
+	case walkinsale.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WalkInSaleMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case walkinsale.FieldTenantID:
+		return m.OldTenantID(ctx)
+	case walkinsale.FieldOutletID:
+		return m.OldOutletID(ctx)
+	case walkinsale.FieldPrescriptionID:
+		return m.OldPrescriptionID(ctx)
+	case walkinsale.FieldPrescriptionNumber:
+		return m.OldPrescriptionNumber(ctx)
+	case walkinsale.FieldSaleNumber:
+		return m.OldSaleNumber(ctx)
+	case walkinsale.FieldPatientName:
+		return m.OldPatientName(ctx)
+	case walkinsale.FieldLineItems:
+		return m.OldLineItems(ctx)
+	case walkinsale.FieldAmount:
+		return m.OldAmount(ctx)
+	case walkinsale.FieldStatus:
+		return m.OldStatus(ctx)
+	case walkinsale.FieldPaymentMethod:
+		return m.OldPaymentMethod(ctx)
+	case walkinsale.FieldTreasuryInvoiceID:
+		return m.OldTreasuryInvoiceID(ctx)
+	case walkinsale.FieldTreasuryPaymentIntentID:
+		return m.OldTreasuryPaymentIntentID(ctx)
+	case walkinsale.FieldEtimsInvoiceNumber:
+		return m.OldEtimsInvoiceNumber(ctx)
+	case walkinsale.FieldEtimsQrCodeURL:
+		return m.OldEtimsQrCodeURL(ctx)
+	case walkinsale.FieldCollectedBy:
+		return m.OldCollectedBy(ctx)
+	case walkinsale.FieldCreatedByUserID:
+		return m.OldCreatedByUserID(ctx)
+	case walkinsale.FieldPaidAt:
+		return m.OldPaidAt(ctx)
+	case walkinsale.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case walkinsale.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown WalkInSale field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WalkInSaleMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case walkinsale.FieldTenantID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantID(v)
+		return nil
+	case walkinsale.FieldOutletID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutletID(v)
+		return nil
+	case walkinsale.FieldPrescriptionID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrescriptionID(v)
+		return nil
+	case walkinsale.FieldPrescriptionNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrescriptionNumber(v)
+		return nil
+	case walkinsale.FieldSaleNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSaleNumber(v)
+		return nil
+	case walkinsale.FieldPatientName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPatientName(v)
+		return nil
+	case walkinsale.FieldLineItems:
+		v, ok := value.([]map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLineItems(v)
+		return nil
+	case walkinsale.FieldAmount:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case walkinsale.FieldStatus:
+		v, ok := value.(walkinsale.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case walkinsale.FieldPaymentMethod:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaymentMethod(v)
+		return nil
+	case walkinsale.FieldTreasuryInvoiceID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTreasuryInvoiceID(v)
+		return nil
+	case walkinsale.FieldTreasuryPaymentIntentID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTreasuryPaymentIntentID(v)
+		return nil
+	case walkinsale.FieldEtimsInvoiceNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEtimsInvoiceNumber(v)
+		return nil
+	case walkinsale.FieldEtimsQrCodeURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEtimsQrCodeURL(v)
+		return nil
+	case walkinsale.FieldCollectedBy:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollectedBy(v)
+		return nil
+	case walkinsale.FieldCreatedByUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedByUserID(v)
+		return nil
+	case walkinsale.FieldPaidAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPaidAt(v)
+		return nil
+	case walkinsale.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case walkinsale.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WalkInSale field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WalkInSaleMutation) AddedFields() []string {
+	var fields []string
+	if m.addamount != nil {
+		fields = append(fields, walkinsale.FieldAmount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WalkInSaleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case walkinsale.FieldAmount:
+		return m.AddedAmount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WalkInSaleMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case walkinsale.FieldAmount:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAmount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown WalkInSale numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WalkInSaleMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(walkinsale.FieldPatientName) {
+		fields = append(fields, walkinsale.FieldPatientName)
+	}
+	if m.FieldCleared(walkinsale.FieldLineItems) {
+		fields = append(fields, walkinsale.FieldLineItems)
+	}
+	if m.FieldCleared(walkinsale.FieldPaymentMethod) {
+		fields = append(fields, walkinsale.FieldPaymentMethod)
+	}
+	if m.FieldCleared(walkinsale.FieldTreasuryInvoiceID) {
+		fields = append(fields, walkinsale.FieldTreasuryInvoiceID)
+	}
+	if m.FieldCleared(walkinsale.FieldTreasuryPaymentIntentID) {
+		fields = append(fields, walkinsale.FieldTreasuryPaymentIntentID)
+	}
+	if m.FieldCleared(walkinsale.FieldEtimsInvoiceNumber) {
+		fields = append(fields, walkinsale.FieldEtimsInvoiceNumber)
+	}
+	if m.FieldCleared(walkinsale.FieldEtimsQrCodeURL) {
+		fields = append(fields, walkinsale.FieldEtimsQrCodeURL)
+	}
+	if m.FieldCleared(walkinsale.FieldCollectedBy) {
+		fields = append(fields, walkinsale.FieldCollectedBy)
+	}
+	if m.FieldCleared(walkinsale.FieldCreatedByUserID) {
+		fields = append(fields, walkinsale.FieldCreatedByUserID)
+	}
+	if m.FieldCleared(walkinsale.FieldPaidAt) {
+		fields = append(fields, walkinsale.FieldPaidAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WalkInSaleMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WalkInSaleMutation) ClearField(name string) error {
+	switch name {
+	case walkinsale.FieldPatientName:
+		m.ClearPatientName()
+		return nil
+	case walkinsale.FieldLineItems:
+		m.ClearLineItems()
+		return nil
+	case walkinsale.FieldPaymentMethod:
+		m.ClearPaymentMethod()
+		return nil
+	case walkinsale.FieldTreasuryInvoiceID:
+		m.ClearTreasuryInvoiceID()
+		return nil
+	case walkinsale.FieldTreasuryPaymentIntentID:
+		m.ClearTreasuryPaymentIntentID()
+		return nil
+	case walkinsale.FieldEtimsInvoiceNumber:
+		m.ClearEtimsInvoiceNumber()
+		return nil
+	case walkinsale.FieldEtimsQrCodeURL:
+		m.ClearEtimsQrCodeURL()
+		return nil
+	case walkinsale.FieldCollectedBy:
+		m.ClearCollectedBy()
+		return nil
+	case walkinsale.FieldCreatedByUserID:
+		m.ClearCreatedByUserID()
+		return nil
+	case walkinsale.FieldPaidAt:
+		m.ClearPaidAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WalkInSale nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WalkInSaleMutation) ResetField(name string) error {
+	switch name {
+	case walkinsale.FieldTenantID:
+		m.ResetTenantID()
+		return nil
+	case walkinsale.FieldOutletID:
+		m.ResetOutletID()
+		return nil
+	case walkinsale.FieldPrescriptionID:
+		m.ResetPrescriptionID()
+		return nil
+	case walkinsale.FieldPrescriptionNumber:
+		m.ResetPrescriptionNumber()
+		return nil
+	case walkinsale.FieldSaleNumber:
+		m.ResetSaleNumber()
+		return nil
+	case walkinsale.FieldPatientName:
+		m.ResetPatientName()
+		return nil
+	case walkinsale.FieldLineItems:
+		m.ResetLineItems()
+		return nil
+	case walkinsale.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case walkinsale.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case walkinsale.FieldPaymentMethod:
+		m.ResetPaymentMethod()
+		return nil
+	case walkinsale.FieldTreasuryInvoiceID:
+		m.ResetTreasuryInvoiceID()
+		return nil
+	case walkinsale.FieldTreasuryPaymentIntentID:
+		m.ResetTreasuryPaymentIntentID()
+		return nil
+	case walkinsale.FieldEtimsInvoiceNumber:
+		m.ResetEtimsInvoiceNumber()
+		return nil
+	case walkinsale.FieldEtimsQrCodeURL:
+		m.ResetEtimsQrCodeURL()
+		return nil
+	case walkinsale.FieldCollectedBy:
+		m.ResetCollectedBy()
+		return nil
+	case walkinsale.FieldCreatedByUserID:
+		m.ResetCreatedByUserID()
+		return nil
+	case walkinsale.FieldPaidAt:
+		m.ResetPaidAt()
+		return nil
+	case walkinsale.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case walkinsale.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown WalkInSale field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WalkInSaleMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.prescription != nil {
+		edges = append(edges, walkinsale.EdgePrescription)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WalkInSaleMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case walkinsale.EdgePrescription:
+		if id := m.prescription; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WalkInSaleMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WalkInSaleMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WalkInSaleMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedprescription {
+		edges = append(edges, walkinsale.EdgePrescription)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WalkInSaleMutation) EdgeCleared(name string) bool {
+	switch name {
+	case walkinsale.EdgePrescription:
+		return m.clearedprescription
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WalkInSaleMutation) ClearEdge(name string) error {
+	switch name {
+	case walkinsale.EdgePrescription:
+		m.ClearPrescription()
+		return nil
+	}
+	return fmt.Errorf("unknown WalkInSale unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WalkInSaleMutation) ResetEdge(name string) error {
+	switch name {
+	case walkinsale.EdgePrescription:
+		m.ResetPrescription()
+		return nil
+	}
+	return fmt.Errorf("unknown WalkInSale edge %s", name)
 }

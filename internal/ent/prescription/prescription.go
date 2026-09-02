@@ -56,6 +56,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeLines holds the string denoting the lines edge name in mutations.
 	EdgeLines = "lines"
+	// EdgeWalkInSales holds the string denoting the walk_in_sales edge name in mutations.
+	EdgeWalkInSales = "walk_in_sales"
 	// Table holds the table name of the prescription in the database.
 	Table = "prescriptions"
 	// LinesTable is the table that holds the lines relation/edge.
@@ -65,6 +67,13 @@ const (
 	LinesInverseTable = "prescription_lines"
 	// LinesColumn is the table column denoting the lines relation/edge.
 	LinesColumn = "prescription_id"
+	// WalkInSalesTable is the table that holds the walk_in_sales relation/edge.
+	WalkInSalesTable = "walk_in_sales"
+	// WalkInSalesInverseTable is the table name for the WalkInSale entity.
+	// It exists in this package in order to avoid circular dependency with the "walkinsale" package.
+	WalkInSalesInverseTable = "walk_in_sales"
+	// WalkInSalesColumn is the table column denoting the walk_in_sales relation/edge.
+	WalkInSalesColumn = "prescription_id"
 )
 
 // Columns holds all SQL columns for prescription fields.
@@ -258,10 +267,31 @@ func ByLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByWalkInSalesCount orders the results by walk_in_sales count.
+func ByWalkInSalesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newWalkInSalesStep(), opts...)
+	}
+}
+
+// ByWalkInSales orders the results by walk_in_sales terms.
+func ByWalkInSales(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWalkInSalesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(LinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, LinesTable, LinesColumn),
+	)
+}
+func newWalkInSalesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WalkInSalesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, WalkInSalesTable, WalkInSalesColumn),
 	)
 }

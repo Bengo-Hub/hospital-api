@@ -1,4 +1,4 @@
-h1:+cF23QQZVj9wxBI1tQvqJE8OeXAEaryZiZkZy1oEqMw=
+h1:UydZ6uwaGMWqU67BpWPqPytA6LwcbvJY3WmcN5clhYA=
 20260731212101_add_rbac_and_sync_schemas.sql h1:k+F/1ko7AGn0h9CZoWquPgsfoCCH+wMm8/wdycvUnxs=
 20260829112442_tenant_facility_metadata.sql h1:NaPnpW01TiNmyX6U6hQR2bIZekD6r7QqiIjU+HM5Aaw=
 20260829120437_sprint1_patient_opd_triage.sql h1:Qya7Ud7B6bbQMJHBecWOtx5+KFtu74ROeeRFHnCrLPw=
@@ -10,3 +10,4 @@ h1:+cF23QQZVj9wxBI1tQvqJE8OeXAEaryZiZkZy1oEqMw=
 20260830130000_hospital_user_tenant_scoped_identity.sql h1:bKy5P+VGLcmmdowHPQYeZ3wBUW73djf20xg8Zf/yCuQ=
 20260830140000_role_tenant_customization_and_audit_log.sql h1:+46Fe8xeAjFGhophaH9ab3LQNPokVxI0jsOt2nWJiwg=
 20260830150000_user_outlets_and_tenant_settings.sql h1:x5kZTXMqDNZMNfVnv1AMGMcDGowsWiovAq+j4CWrSpg=
+20260902100427_add_walk_in_sale.sql h1:l6TQvROY29sVlsZpWlb6AVhaaYtQdhkzqjeR/+U0ZbM=

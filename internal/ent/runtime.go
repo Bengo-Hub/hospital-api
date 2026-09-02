@@ -35,6 +35,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/google/uuid"
 )
 
@@ -732,4 +733,32 @@ func init() {
 	userroleassignmentDescID := userroleassignmentFields[0].Descriptor()
 	// userroleassignment.DefaultID holds the default value on creation for the id field.
 	userroleassignment.DefaultID = userroleassignmentDescID.Default.(func() uuid.UUID)
+	walkinsaleFields := schema.WalkInSale{}.Fields()
+	_ = walkinsaleFields
+	// walkinsaleDescPrescriptionNumber is the schema descriptor for prescription_number field.
+	walkinsaleDescPrescriptionNumber := walkinsaleFields[4].Descriptor()
+	// walkinsale.PrescriptionNumberValidator is a validator for the "prescription_number" field. It is called by the builders before save.
+	walkinsale.PrescriptionNumberValidator = walkinsaleDescPrescriptionNumber.Validators[0].(func(string) error)
+	// walkinsaleDescSaleNumber is the schema descriptor for sale_number field.
+	walkinsaleDescSaleNumber := walkinsaleFields[5].Descriptor()
+	// walkinsale.SaleNumberValidator is a validator for the "sale_number" field. It is called by the builders before save.
+	walkinsale.SaleNumberValidator = walkinsaleDescSaleNumber.Validators[0].(func(string) error)
+	// walkinsaleDescAmount is the schema descriptor for amount field.
+	walkinsaleDescAmount := walkinsaleFields[8].Descriptor()
+	// walkinsale.AmountValidator is a validator for the "amount" field. It is called by the builders before save.
+	walkinsale.AmountValidator = walkinsaleDescAmount.Validators[0].(func(float64) error)
+	// walkinsaleDescCreatedAt is the schema descriptor for created_at field.
+	walkinsaleDescCreatedAt := walkinsaleFields[18].Descriptor()
+	// walkinsale.DefaultCreatedAt holds the default value on creation for the created_at field.
+	walkinsale.DefaultCreatedAt = walkinsaleDescCreatedAt.Default.(func() time.Time)
+	// walkinsaleDescUpdatedAt is the schema descriptor for updated_at field.
+	walkinsaleDescUpdatedAt := walkinsaleFields[19].Descriptor()
+	// walkinsale.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	walkinsale.DefaultUpdatedAt = walkinsaleDescUpdatedAt.Default.(func() time.Time)
+	// walkinsale.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	walkinsale.UpdateDefaultUpdatedAt = walkinsaleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// walkinsaleDescID is the schema descriptor for id field.
+	walkinsaleDescID := walkinsaleFields[0].Descriptor()
+	// walkinsale.DefaultID holds the default value on creation for the id field.
+	walkinsale.DefaultID = walkinsaleDescID.Default.(func() uuid.UUID)
 }

@@ -418,6 +418,19 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
 					Get("/pharmacy/controlled-substances", d.Pharmacy.ListControlledSubstanceLogs)
+				// Walk-in sale (Chemist-tier ledgerless checkout, 2026-09-02 fix) — the collect
+				// queue/action for a nil-patient/nil-visit dispense's WalkInSale row. Fine-grained
+				// collect_own-vs-pharmacy.dispense gating happens inside the handler itself, same
+				// pattern as SubmitInsuranceClaim just below.
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyView, rbacmodule.PermBillingView)).
+					Get("/pharmacy/walk-in-sales", d.Pharmacy.ListWalkInSales)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
+					Post("/pharmacy/walk-in-sales/{saleID}/collect", d.Pharmacy.CollectWalkInSale)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeaturePharmacyDispense),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermPharmacyManage)).
+					Post("/pharmacy/walk-in-sales/{saleID}/waive", d.Pharmacy.WaiveWalkInSale)
 				// Insurance-settlement alternative to a cash billing/charges/{id}/collect for a
 				// dispensed line — a billing action, so it carries the collect permission rather
 				// than a pharmacy one.

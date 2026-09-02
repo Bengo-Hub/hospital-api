@@ -20,6 +20,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/inventory"
@@ -301,11 +302,13 @@ func (s *Service) RecheckInteractions(ctx context.Context, tenantID, rxID uuid.U
 	return check, updated, nil
 }
 
-// GetPrescription fetches a prescription with its lines, tenant-scoped.
+// GetPrescription fetches a prescription with its lines and any walk-in sale(s) it generated,
+// tenant-scoped.
 func (s *Service) GetPrescription(ctx context.Context, tenantID, id uuid.UUID) (*ent.Prescription, error) {
 	return s.client.Prescription.Query().
 		Where(prescription.ID(id), prescription.TenantID(tenantID)).
 		WithLines().
+		WithWalkInSales(func(q *ent.WalkInSaleQuery) { q.Order(ent.Desc(walkinsale.FieldCreatedAt)) }).
 		Only(ctx)
 }
 
@@ -514,6 +517,8 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 	}()
 
 	allDispensed := true
+	var walkInLines []map[string]any
+	var walkInTotal float64
 	for i, dl := range req.Lines {
 		line, lerr := tx.PrescriptionLine.Get(ctx, dl.LineID)
 		if lerr != nil {
@@ -568,19 +573,51 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 			}
 		}
 
-		if line.UnitPrice > 0 && rx.PatientID != nil && rx.VisitID != nil {
-			if _, cerr := s.billing.PostCharge(ctx, tx, tenantID, billing.PostChargeRequest{
-				PatientID:     *rx.PatientID,
-				VisitID:       *rx.VisitID,
-				SourceModule:  "pharmacy",
-				SourceRefID:   &line.ID,
-				Description:   "Drug dispensed: " + line.DrugName,
-				Amount:        line.UnitPrice * dl.QuantityToDispense,
-				CreatedByUser: req.DispensedBy,
-			}); cerr != nil {
-				err = cerr
-				return nil, fmt.Errorf("pharmacy: post charge for %s: %w", line.DrugName, cerr)
+		if line.UnitPrice > 0 {
+			lineTotal := line.UnitPrice * dl.QuantityToDispense
+			if rx.PatientID != nil && rx.VisitID != nil {
+				if _, cerr := s.billing.PostCharge(ctx, tx, tenantID, billing.PostChargeRequest{
+					PatientID:     *rx.PatientID,
+					VisitID:       *rx.VisitID,
+					SourceModule:  "pharmacy",
+					SourceRefID:   &line.ID,
+					Description:   "Drug dispensed: " + line.DrugName,
+					Amount:        lineTotal,
+					CreatedByUser: req.DispensedBy,
+				}); cerr != nil {
+					err = cerr
+					return nil, fmt.Errorf("pharmacy: post charge for %s: %w", line.DrugName, cerr)
+				}
+			} else {
+				// No patient/visit (a Chemist walk-in, or a non-chemist tenant's own "— Walk-in
+				// (no patient record) —" prescription option) — the patient ledger doesn't apply
+				// here (see billing.CreateWalkInSale's doc comment). Accumulate into one
+				// WalkInSale for the whole dispense action rather than dropping the charge
+				// silently, which is the exact bug this fixes.
+				walkInLines = append(walkInLines, map[string]any{
+					"drug_name":  line.DrugName,
+					"sku":        line.InventoryItemSku,
+					"quantity":   dl.QuantityToDispense,
+					"unit_price": line.UnitPrice,
+					"line_total": lineTotal,
+				})
+				walkInTotal += lineTotal
 			}
+		}
+	}
+
+	if walkInTotal > 0 {
+		if _, werr := s.billing.CreateWalkInSale(ctx, tx, tenantID, billing.CreateWalkInSaleRequest{
+			OutletID:           req.OutletID,
+			PrescriptionID:     rxID,
+			PrescriptionNumber: rx.PrescriptionNumber,
+			PatientName:        rx.PatientName,
+			Amount:             walkInTotal,
+			LineItems:          walkInLines,
+			CreatedByUser:      req.DispensedBy,
+		}); werr != nil {
+			err = werr
+			return nil, fmt.Errorf("pharmacy: create walk-in sale: %w", werr)
 		}
 	}
 
@@ -667,6 +704,25 @@ func (s *Service) SubmitInsuranceClaim(ctx context.Context, tenantID, rxID uuid.
 		return rx, nil, err
 	}
 	return rx, result, nil
+}
+
+// ── WalkInSale delegates (Chemist-tier ledgerless checkout — see billing.Service's own doc ────
+// comment for the full design) — thin pass-throughs, same pattern as SubmitInsuranceClaim's
+// existing delegation to billing.Service above.
+
+// ListWalkInSales is a chemist's "Today's Sales" list, optionally filtered by status.
+func (s *Service) ListWalkInSales(ctx context.Context, tenantID uuid.UUID, status string) ([]*ent.WalkInSale, error) {
+	return s.billing.ListWalkInSales(ctx, tenantID, status)
+}
+
+// CollectWalkInSale collects payment for one pending walk-in sale.
+func (s *Service) CollectWalkInSale(ctx context.Context, tenantID, saleID uuid.UUID, req billing.CollectWalkInSaleRequest) (*ent.WalkInSale, error) {
+	return s.billing.CollectWalkInSale(ctx, tenantID, saleID, req)
+}
+
+// WaiveWalkInSale writes off a pending walk-in sale without collecting payment.
+func (s *Service) WaiveWalkInSale(ctx context.Context, tenantID, saleID uuid.UUID) (*ent.WalkInSale, error) {
+	return s.billing.WaiveWalkInSale(ctx, tenantID, saleID)
 }
 
 // ListControlledSubstanceLogs lists the dual-witness register, newest first.

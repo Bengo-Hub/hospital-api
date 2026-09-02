@@ -14,6 +14,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/google/uuid"
 )
 
@@ -359,6 +360,21 @@ func (_u *PrescriptionUpdate) AddLines(v ...*PrescriptionLine) *PrescriptionUpda
 	return _u.AddLineIDs(ids...)
 }
 
+// AddWalkInSaleIDs adds the "walk_in_sales" edge to the WalkInSale entity by IDs.
+func (_u *PrescriptionUpdate) AddWalkInSaleIDs(ids ...uuid.UUID) *PrescriptionUpdate {
+	_u.mutation.AddWalkInSaleIDs(ids...)
+	return _u
+}
+
+// AddWalkInSales adds the "walk_in_sales" edges to the WalkInSale entity.
+func (_u *PrescriptionUpdate) AddWalkInSales(v ...*WalkInSale) *PrescriptionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddWalkInSaleIDs(ids...)
+}
+
 // Mutation returns the PrescriptionMutation object of the builder.
 func (_u *PrescriptionUpdate) Mutation() *PrescriptionMutation {
 	return _u.mutation
@@ -383,6 +399,27 @@ func (_u *PrescriptionUpdate) RemoveLines(v ...*PrescriptionLine) *PrescriptionU
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveLineIDs(ids...)
+}
+
+// ClearWalkInSales clears all "walk_in_sales" edges to the WalkInSale entity.
+func (_u *PrescriptionUpdate) ClearWalkInSales() *PrescriptionUpdate {
+	_u.mutation.ClearWalkInSales()
+	return _u
+}
+
+// RemoveWalkInSaleIDs removes the "walk_in_sales" edge to WalkInSale entities by IDs.
+func (_u *PrescriptionUpdate) RemoveWalkInSaleIDs(ids ...uuid.UUID) *PrescriptionUpdate {
+	_u.mutation.RemoveWalkInSaleIDs(ids...)
+	return _u
+}
+
+// RemoveWalkInSales removes "walk_in_sales" edges to WalkInSale entities.
+func (_u *PrescriptionUpdate) RemoveWalkInSales(v ...*WalkInSale) *PrescriptionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveWalkInSaleIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -579,6 +616,51 @@ func (_u *PrescriptionUpdate) sqlSave(ctx context.Context) (_node int, err error
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(prescriptionline.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.WalkInSalesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedWalkInSalesIDs(); len(nodes) > 0 && !_u.mutation.WalkInSalesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.WalkInSalesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -935,6 +1017,21 @@ func (_u *PrescriptionUpdateOne) AddLines(v ...*PrescriptionLine) *PrescriptionU
 	return _u.AddLineIDs(ids...)
 }
 
+// AddWalkInSaleIDs adds the "walk_in_sales" edge to the WalkInSale entity by IDs.
+func (_u *PrescriptionUpdateOne) AddWalkInSaleIDs(ids ...uuid.UUID) *PrescriptionUpdateOne {
+	_u.mutation.AddWalkInSaleIDs(ids...)
+	return _u
+}
+
+// AddWalkInSales adds the "walk_in_sales" edges to the WalkInSale entity.
+func (_u *PrescriptionUpdateOne) AddWalkInSales(v ...*WalkInSale) *PrescriptionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddWalkInSaleIDs(ids...)
+}
+
 // Mutation returns the PrescriptionMutation object of the builder.
 func (_u *PrescriptionUpdateOne) Mutation() *PrescriptionMutation {
 	return _u.mutation
@@ -959,6 +1056,27 @@ func (_u *PrescriptionUpdateOne) RemoveLines(v ...*PrescriptionLine) *Prescripti
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveLineIDs(ids...)
+}
+
+// ClearWalkInSales clears all "walk_in_sales" edges to the WalkInSale entity.
+func (_u *PrescriptionUpdateOne) ClearWalkInSales() *PrescriptionUpdateOne {
+	_u.mutation.ClearWalkInSales()
+	return _u
+}
+
+// RemoveWalkInSaleIDs removes the "walk_in_sales" edge to WalkInSale entities by IDs.
+func (_u *PrescriptionUpdateOne) RemoveWalkInSaleIDs(ids ...uuid.UUID) *PrescriptionUpdateOne {
+	_u.mutation.RemoveWalkInSaleIDs(ids...)
+	return _u
+}
+
+// RemoveWalkInSales removes "walk_in_sales" edges to WalkInSale entities.
+func (_u *PrescriptionUpdateOne) RemoveWalkInSales(v ...*WalkInSale) *PrescriptionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveWalkInSaleIDs(ids...)
 }
 
 // Where appends a list predicates to the PrescriptionUpdate builder.
@@ -1185,6 +1303,51 @@ func (_u *PrescriptionUpdateOne) sqlSave(ctx context.Context) (_node *Prescripti
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(prescriptionline.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.WalkInSalesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedWalkInSalesIDs(); len(nodes) > 0 && !_u.mutation.WalkInSalesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.WalkInSalesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   prescription.WalkInSalesTable,
+			Columns: []string{prescription.WalkInSalesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(walkinsale.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

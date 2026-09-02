@@ -46,6 +46,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 )
 
 // Client is the client that holds all ent builders.
@@ -113,6 +114,8 @@ type Client struct {
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
 	UserRoleAssignment *UserRoleAssignmentClient
+	// WalkInSale is the client for interacting with the WalkInSale builders.
+	WalkInSale *WalkInSaleClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -154,6 +157,7 @@ func (c *Client) init() {
 	c.Tenant = NewTenantClient(c.config)
 	c.TriageRecord = NewTriageRecordClient(c.config)
 	c.UserRoleAssignment = NewUserRoleAssignmentClient(c.config)
+	c.WalkInSale = NewWalkInSaleClient(c.config)
 }
 
 type (
@@ -276,6 +280,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Tenant:                  NewTenantClient(cfg),
 		TriageRecord:            NewTriageRecordClient(cfg),
 		UserRoleAssignment:      NewUserRoleAssignmentClient(cfg),
+		WalkInSale:              NewWalkInSaleClient(cfg),
 	}, nil
 }
 
@@ -325,6 +330,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Tenant:                  NewTenantClient(cfg),
 		TriageRecord:            NewTriageRecordClient(cfg),
 		UserRoleAssignment:      NewUserRoleAssignmentClient(cfg),
+		WalkInSale:              NewWalkInSaleClient(cfg),
 	}, nil
 }
 
@@ -361,7 +367,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
 		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
 		c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
-		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
+		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment, c.WalkInSale,
 	} {
 		n.Use(hooks...)
 	}
@@ -378,7 +384,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.LabOrderLine, c.LabTestCatalogDefault, c.LabTestCatalogEntry, c.OutboxEvent,
 		c.Outlet, c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientVisit,
 		c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
-		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment,
+		c.RolePermission, c.Tenant, c.TriageRecord, c.UserRoleAssignment, c.WalkInSale,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -447,6 +453,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.TriageRecord.mutate(ctx, m)
 	case *UserRoleAssignmentMutation:
 		return c.UserRoleAssignment.mutate(ctx, m)
+	case *WalkInSaleMutation:
+		return c.WalkInSale.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -3822,6 +3830,22 @@ func (c *PrescriptionClient) QueryLines(_m *Prescription) *PrescriptionLineQuery
 	return query
 }
 
+// QueryWalkInSales queries the walk_in_sales edge of a Prescription.
+func (c *PrescriptionClient) QueryWalkInSales(_m *Prescription) *WalkInSaleQuery {
+	query := (&WalkInSaleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(prescription.Table, prescription.FieldID, id),
+			sqlgraph.To(walkinsale.Table, walkinsale.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, prescription.WalkInSalesTable, prescription.WalkInSalesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PrescriptionClient) Hooks() []Hook {
 	return c.hooks.Prescription
@@ -4922,6 +4946,155 @@ func (c *UserRoleAssignmentClient) mutate(ctx context.Context, m *UserRoleAssign
 	}
 }
 
+// WalkInSaleClient is a client for the WalkInSale schema.
+type WalkInSaleClient struct {
+	config
+}
+
+// NewWalkInSaleClient returns a client for the WalkInSale from the given config.
+func NewWalkInSaleClient(c config) *WalkInSaleClient {
+	return &WalkInSaleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `walkinsale.Hooks(f(g(h())))`.
+func (c *WalkInSaleClient) Use(hooks ...Hook) {
+	c.hooks.WalkInSale = append(c.hooks.WalkInSale, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `walkinsale.Intercept(f(g(h())))`.
+func (c *WalkInSaleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WalkInSale = append(c.inters.WalkInSale, interceptors...)
+}
+
+// Create returns a builder for creating a WalkInSale entity.
+func (c *WalkInSaleClient) Create() *WalkInSaleCreate {
+	mutation := newWalkInSaleMutation(c.config, OpCreate)
+	return &WalkInSaleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WalkInSale entities.
+func (c *WalkInSaleClient) CreateBulk(builders ...*WalkInSaleCreate) *WalkInSaleCreateBulk {
+	return &WalkInSaleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WalkInSaleClient) MapCreateBulk(slice any, setFunc func(*WalkInSaleCreate, int)) *WalkInSaleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WalkInSaleCreateBulk{err: fmt.Errorf("calling to WalkInSaleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WalkInSaleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WalkInSaleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WalkInSale.
+func (c *WalkInSaleClient) Update() *WalkInSaleUpdate {
+	mutation := newWalkInSaleMutation(c.config, OpUpdate)
+	return &WalkInSaleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WalkInSaleClient) UpdateOne(_m *WalkInSale) *WalkInSaleUpdateOne {
+	mutation := newWalkInSaleMutation(c.config, OpUpdateOne, withWalkInSale(_m))
+	return &WalkInSaleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WalkInSaleClient) UpdateOneID(id uuid.UUID) *WalkInSaleUpdateOne {
+	mutation := newWalkInSaleMutation(c.config, OpUpdateOne, withWalkInSaleID(id))
+	return &WalkInSaleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WalkInSale.
+func (c *WalkInSaleClient) Delete() *WalkInSaleDelete {
+	mutation := newWalkInSaleMutation(c.config, OpDelete)
+	return &WalkInSaleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WalkInSaleClient) DeleteOne(_m *WalkInSale) *WalkInSaleDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WalkInSaleClient) DeleteOneID(id uuid.UUID) *WalkInSaleDeleteOne {
+	builder := c.Delete().Where(walkinsale.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WalkInSaleDeleteOne{builder}
+}
+
+// Query returns a query builder for WalkInSale.
+func (c *WalkInSaleClient) Query() *WalkInSaleQuery {
+	return &WalkInSaleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWalkInSale},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WalkInSale entity by its id.
+func (c *WalkInSaleClient) Get(ctx context.Context, id uuid.UUID) (*WalkInSale, error) {
+	return c.Query().Where(walkinsale.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WalkInSaleClient) GetX(ctx context.Context, id uuid.UUID) *WalkInSale {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPrescription queries the prescription edge of a WalkInSale.
+func (c *WalkInSaleClient) QueryPrescription(_m *WalkInSale) *PrescriptionQuery {
+	query := (&PrescriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(walkinsale.Table, walkinsale.FieldID, id),
+			sqlgraph.To(prescription.Table, prescription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, walkinsale.PrescriptionTable, walkinsale.PrescriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WalkInSaleClient) Hooks() []Hook {
+	return c.hooks.WalkInSale
+}
+
+// Interceptors returns the client interceptors.
+func (c *WalkInSaleClient) Interceptors() []Interceptor {
+	return c.inters.WalkInSale
+}
+
+func (c *WalkInSaleClient) mutate(ctx context.Context, m *WalkInSaleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WalkInSaleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WalkInSaleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WalkInSaleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WalkInSaleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WalkInSale mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
@@ -4932,7 +5105,7 @@ type (
 		LabTestCatalogDefault, LabTestCatalogEntry, OutboxEvent, Outlet, Patient,
 		PatientAccount, PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine,
 		RbacAuditLog, Referral, RolePermission, Tenant, TriageRecord,
-		UserRoleAssignment []ent.Hook
+		UserRoleAssignment, WalkInSale []ent.Hook
 	}
 	inters struct {
 		BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
@@ -4942,6 +5115,6 @@ type (
 		LabTestCatalogDefault, LabTestCatalogEntry, OutboxEvent, Outlet, Patient,
 		PatientAccount, PatientNextOfKin, PatientVisit, Prescription, PrescriptionLine,
 		RbacAuditLog, Referral, RolePermission, Tenant, TriageRecord,
-		UserRoleAssignment []ent.Interceptor
+		UserRoleAssignment, WalkInSale []ent.Interceptor
 	}
 )

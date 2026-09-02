@@ -1169,6 +1169,29 @@ func HasLinesWith(preds ...predicate.PrescriptionLine) predicate.Prescription {
 	})
 }
 
+// HasWalkInSales applies the HasEdge predicate on the "walk_in_sales" edge.
+func HasWalkInSales() predicate.Prescription {
+	return predicate.Prescription(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, WalkInSalesTable, WalkInSalesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWalkInSalesWith applies the HasEdge predicate on the "walk_in_sales" edge with a given conditions (other predicates).
+func HasWalkInSalesWith(preds ...predicate.WalkInSale) predicate.Prescription {
+	return predicate.Prescription(func(s *sql.Selector) {
+		step := newWalkInSalesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Prescription) predicate.Prescription {
 	return predicate.Prescription(sql.AndPredicates(predicates...))

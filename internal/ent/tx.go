@@ -72,6 +72,8 @@ type Tx struct {
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
 	UserRoleAssignment *UserRoleAssignmentClient
+	// WalkInSale is the client for interacting with the WalkInSale builders.
+	WalkInSale *WalkInSaleClient
 
 	// lazily loaded.
 	client     *Client
@@ -233,6 +235,7 @@ func (tx *Tx) init() {
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.TriageRecord = NewTriageRecordClient(tx.config)
 	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
+	tx.WalkInSale = NewWalkInSaleClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

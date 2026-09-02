@@ -1156,6 +1156,65 @@ var (
 			},
 		},
 	}
+	// WalkInSalesColumns holds the columns for the "walk_in_sales" table.
+	WalkInSalesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "outlet_id", Type: field.TypeUUID},
+		{Name: "prescription_number", Type: field.TypeString},
+		{Name: "sale_number", Type: field.TypeString},
+		{Name: "patient_name", Type: field.TypeString, Nullable: true},
+		{Name: "line_items", Type: field.TypeJSON, Nullable: true},
+		{Name: "amount", Type: field.TypeFloat64},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "paid", "waived"}, Default: "pending"},
+		{Name: "payment_method", Type: field.TypeString, Nullable: true},
+		{Name: "treasury_invoice_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "treasury_payment_intent_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "etims_invoice_number", Type: field.TypeString, Nullable: true},
+		{Name: "etims_qr_code_url", Type: field.TypeString, Nullable: true},
+		{Name: "collected_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "created_by_user_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "prescription_id", Type: field.TypeUUID},
+	}
+	// WalkInSalesTable holds the schema information for the "walk_in_sales" table.
+	WalkInSalesTable = &schema.Table{
+		Name:       "walk_in_sales",
+		Columns:    WalkInSalesColumns,
+		PrimaryKey: []*schema.Column{WalkInSalesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "walk_in_sales_prescriptions_walk_in_sales",
+				Columns:    []*schema.Column{WalkInSalesColumns[19]},
+				RefColumns: []*schema.Column{PrescriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "walkinsale_tenant_id_sale_number",
+				Unique:  true,
+				Columns: []*schema.Column{WalkInSalesColumns[1], WalkInSalesColumns[4]},
+			},
+			{
+				Name:    "walkinsale_tenant_id_prescription_id",
+				Unique:  false,
+				Columns: []*schema.Column{WalkInSalesColumns[1], WalkInSalesColumns[19]},
+			},
+			{
+				Name:    "walkinsale_tenant_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{WalkInSalesColumns[1], WalkInSalesColumns[8]},
+			},
+			{
+				Name:    "walkinsale_tenant_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{WalkInSalesColumns[1], WalkInSalesColumns[17]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BillableChargesTable,
@@ -1188,6 +1247,7 @@ var (
 		TenantsTable,
 		TriageRecordsTable,
 		UserRoleAssignmentsTable,
+		WalkInSalesTable,
 	}
 )
 
@@ -1206,4 +1266,5 @@ func init() {
 	TriageRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	UserRoleAssignmentsTable.ForeignKeys[0].RefTable = HospitalUsersTable
 	UserRoleAssignmentsTable.ForeignKeys[1].RefTable = HospitalRolesTable
+	WalkInSalesTable.ForeignKeys[0].RefTable = PrescriptionsTable
 }

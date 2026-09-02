@@ -20,6 +20,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
+	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
+	"github.com/bengobox/hospital-service/internal/modules/sequence"
 	"github.com/bengobox/hospital-service/internal/modules/treasury"
 )
 
@@ -284,6 +286,154 @@ func (s *Service) WaiveCharge(ctx context.Context, tenantID, chargeID uuid.UUID)
 		return nil, fmt.Errorf("billing: commit waive: %w", err)
 	}
 	return updated, nil
+}
+
+// ── WalkInSale (Chemist-tier ledgerless checkout) ──────────────────────────────────────────
+//
+// A Chemist tenant cannot create a Patient/Visit (feature-gated off both — see
+// subscriptions-api's hospChemistCore()), so a walk-in prescription dispense has neither and
+// PostCharge's PatientAccount ledger doesn't apply. These four methods are the ledgerless
+// counterpart: CreateWalkInSale/CollectWalkInSale/WaiveWalkInSale/ListWalkInSales mirror
+// PostCharge/CollectCharge/WaiveCharge/ListPendingCharges exactly, minus every PatientAccount
+// touch. See docs/architecture.md "Distributed Billing & Patient Accounts" — "Chemist -> Billing
+// module is just Walk-in Sale, no PatientAccount complexity at all."
+
+// CreateWalkInSaleRequest is the input to CreateWalkInSale.
+type CreateWalkInSaleRequest struct {
+	OutletID           uuid.UUID
+	PrescriptionID     uuid.UUID
+	PrescriptionNumber string
+	PatientName        string
+	Amount             float64
+	LineItems          []map[string]any
+	CreatedByUser      uuid.UUID
+}
+
+// CreateWalkInSale records one till transaction for a nil-patient/nil-visit prescription dispense
+// — called from pharmacy.Service.Dispense within its own transaction so the sale and the stock/
+// line writes it accompanies commit atomically.
+func (s *Service) CreateWalkInSale(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID, req CreateWalkInSaleRequest) (*ent.WalkInSale, error) {
+	if req.Amount <= 0 {
+		return nil, fmt.Errorf("billing: walk-in sale amount must be positive")
+	}
+	saleNo, err := sequence.Next(ctx, tx, tenantID, "walk_in_sale_number", "WS", 6)
+	if err != nil {
+		return nil, fmt.Errorf("billing: allocate walk_in_sale_number: %w", err)
+	}
+	create := tx.WalkInSale.Create().
+		SetTenantID(tenantID).
+		SetOutletID(req.OutletID).
+		SetPrescriptionID(req.PrescriptionID).
+		SetPrescriptionNumber(req.PrescriptionNumber).
+		SetSaleNumber(saleNo).
+		SetPatientName(req.PatientName).
+		SetLineItems(req.LineItems).
+		SetAmount(req.Amount)
+	if req.CreatedByUser != uuid.Nil {
+		create = create.SetCreatedByUserID(req.CreatedByUser)
+	}
+	sale, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: create walk-in sale: %w", err)
+	}
+	return sale, nil
+}
+
+// ListWalkInSales is a chemist's "Today's Sales" / collect-queue source, optionally filtered by
+// status (pending|paid|waived).
+func (s *Service) ListWalkInSales(ctx context.Context, tenantID uuid.UUID, status string) ([]*ent.WalkInSale, error) {
+	q := s.client.WalkInSale.Query().Where(walkinsale.TenantID(tenantID))
+	if status != "" {
+		q = q.Where(walkinsale.StatusEQ(walkinsale.Status(status)))
+	}
+	return q.Order(ent.Desc(walkinsale.FieldCreatedAt)).Limit(200).All(ctx)
+}
+
+// CollectWalkInSaleRequest is the input to CollectWalkInSale.
+type CollectWalkInSaleRequest struct {
+	PaymentMethod string
+	PhoneNumber   string
+	CollectedBy   uuid.UUID
+	OutletID      *uuid.UUID
+}
+
+// CollectWalkInSale is CollectCharge's ledgerless counterpart: creates a treasury invoice +
+// payment intent for one pending walk-in sale and marks it paid. No PatientAccount is touched —
+// there isn't one for a walk-in sale, so (unlike CollectCharge) a single update needs no
+// transaction wrapper. eTIMS signing (SignSaleNow) is wired in separately — see
+// docs/sprints/sprint-5-billing-insurance.md's eTIMS DoD item — not in this initial cut.
+func (s *Service) CollectWalkInSale(ctx context.Context, tenantID, saleID uuid.UUID, req CollectWalkInSaleRequest) (*ent.WalkInSale, error) {
+	sale, err := s.client.WalkInSale.Query().
+		Where(walkinsale.ID(saleID), walkinsale.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: walk-in sale not found: %w", err)
+	}
+	if sale.Status != walkinsale.StatusPending {
+		return nil, fmt.Errorf("billing: walk-in sale is not pending (status=%s)", sale.Status)
+	}
+	if !s.treasury.Enabled() {
+		return nil, fmt.Errorf("billing: treasury client not configured")
+	}
+
+	inv, err := s.treasury.CreateInvoice(ctx, tenantID, treasury.CreateInvoiceRequest{
+		CustomerName:  sale.PatientName,
+		ReferenceID:   &sale.ID,
+		ReferenceType: "hospital_walk_in_sale",
+		OutletID:      req.OutletID,
+		Lines: []treasury.InvoiceLine{{
+			Description: "Walk-in sale " + sale.SaleNumber,
+			Quantity:    1,
+			UnitPrice:   sale.Amount,
+		}},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("billing: create invoice: %w", err)
+	}
+
+	intent, err := s.treasury.CreateIntent(ctx, tenantID, treasury.CreatePaymentIntentRequest{
+		ReferenceID:   sale.ID,
+		ReferenceType: "hospital_walk_in_sale",
+		PaymentMethod: req.PaymentMethod,
+		Amount:        sale.Amount,
+		Currency:      "KES",
+		PhoneNumber:   req.PhoneNumber,
+		OutletID:      req.OutletID,
+		SourceService: "hospital-api",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("billing: create payment intent: %w", err)
+	}
+
+	upd := s.client.WalkInSale.UpdateOneID(saleID).
+		SetStatus(walkinsale.StatusPaid).
+		SetPaymentMethod(req.PaymentMethod).
+		SetTreasuryInvoiceID(inv.ID).
+		SetTreasuryPaymentIntentID(intent.ID).
+		SetPaidAt(time.Now())
+	if req.CollectedBy != uuid.Nil {
+		upd = upd.SetCollectedBy(req.CollectedBy)
+	}
+	updated, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: mark walk-in sale paid: %w", err)
+	}
+	return updated, nil
+}
+
+// WaiveWalkInSale writes off a pending walk-in sale without collecting payment for it — a
+// customer who walks away, mirrors WaiveCharge.
+func (s *Service) WaiveWalkInSale(ctx context.Context, tenantID, saleID uuid.UUID) (*ent.WalkInSale, error) {
+	sale, err := s.client.WalkInSale.Query().
+		Where(walkinsale.ID(saleID), walkinsale.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: walk-in sale not found: %w", err)
+	}
+	if sale.Status != walkinsale.StatusPending {
+		return nil, fmt.Errorf("billing: only a pending walk-in sale can be waived (status=%s)", sale.Status)
+	}
+	return s.client.WalkInSale.UpdateOneID(saleID).SetStatus(walkinsale.StatusWaived).Save(ctx)
 }
 
 // SettleAccount pays off every remaining pending charge on an account in one call (the

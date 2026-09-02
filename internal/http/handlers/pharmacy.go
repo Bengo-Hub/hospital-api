@@ -12,6 +12,7 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/ent"
 	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
+	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
 	"github.com/bengobox/hospital-service/internal/modules/printing"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
@@ -527,6 +528,88 @@ func (h *PharmacyHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Re
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"prescription": rx, "claim": claim})
+}
+
+// ListWalkInSales handles GET /{tenant}/hospital/pharmacy/walk-in-sales?status=
+func (h *PharmacyHandler) ListWalkInSales(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	list, err := h.svc.ListWalkInSales(r.Context(), tenantID, r.URL.Query().Get("status"))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list walk-in sales")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+type collectWalkInSaleRequest struct {
+	PaymentMethod string `json:"payment_method"`
+	PhoneNumber   string `json:"phone_number,omitempty"`
+	OutletID      string `json:"outlet_id,omitempty"`
+}
+
+// CollectWalkInSale handles POST /{tenant}/hospital/pharmacy/walk-in-sales/{saleID}/collect
+//
+// Same fine-grained gate CollectCharge/SubmitInsuranceClaim already enforce for a pharmacy
+// charge: collect_any (Billing desk) may collect anything, collect_own additionally requires
+// pharmacy.dispense since a walk-in sale is always pharmacy-sourced by construction.
+func (h *PharmacyHandler) CollectWalkInSale(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	saleID, err := uuid.Parse(chi.URLParam(r, "saleID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid sale ID")
+		return
+	}
+	if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectAny) {
+		if !outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermBillingCollectOwn) ||
+			!outletmw.HasServicePermission(r, h.rbacSvc, rbac.PermPharmacyDispense) {
+			respondError(w, http.StatusForbidden, "you do not have permission to collect this walk-in sale")
+			return
+		}
+	}
+	var in collectWalkInSaleRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	outletID := currentOutletID(r)
+	req := billing.CollectWalkInSaleRequest{
+		PaymentMethod: in.PaymentMethod, PhoneNumber: in.PhoneNumber,
+		CollectedBy: currentUserID(r), OutletID: &outletID,
+	}
+	sale, err := h.svc.CollectWalkInSale(r.Context(), tenantID, saleID, req)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, sale)
+}
+
+// WaiveWalkInSale handles POST /{tenant}/hospital/pharmacy/walk-in-sales/{saleID}/waive
+func (h *PharmacyHandler) WaiveWalkInSale(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	saleID, err := uuid.Parse(chi.URLParam(r, "saleID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid sale ID")
+		return
+	}
+	sale, err := h.svc.WaiveWalkInSale(r.Context(), tenantID, saleID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, sale)
 }
 
 // ListControlledSubstanceLogs handles GET /{tenant}/hospital/pharmacy/controlled-substances

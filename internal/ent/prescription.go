@@ -67,9 +67,11 @@ type Prescription struct {
 type PrescriptionEdges struct {
 	// Lines holds the value of the lines edge.
 	Lines []*PrescriptionLine `json:"lines,omitempty"`
+	// WalkInSales holds the value of the walk_in_sales edge.
+	WalkInSales []*WalkInSale `json:"walk_in_sales,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // LinesOrErr returns the Lines value or an error if the edge
@@ -79,6 +81,15 @@ func (e PrescriptionEdges) LinesOrErr() ([]*PrescriptionLine, error) {
 		return e.Lines, nil
 	}
 	return nil, &NotLoadedError{edge: "lines"}
+}
+
+// WalkInSalesOrErr returns the WalkInSales value or an error if the edge
+// was not loaded in eager-loading.
+func (e PrescriptionEdges) WalkInSalesOrErr() ([]*WalkInSale, error) {
+	if e.loadedTypes[1] {
+		return e.WalkInSales, nil
+	}
+	return nil, &NotLoadedError{edge: "walk_in_sales"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -255,6 +266,11 @@ func (_m *Prescription) Value(name string) (ent.Value, error) {
 // QueryLines queries the "lines" edge of the Prescription entity.
 func (_m *Prescription) QueryLines() *PrescriptionLineQuery {
 	return NewPrescriptionClient(_m.config).QueryLines(_m)
+}
+
+// QueryWalkInSales queries the "walk_in_sales" edge of the Prescription entity.
+func (_m *Prescription) QueryWalkInSales() *WalkInSaleQuery {
+	return NewPrescriptionClient(_m.config).QueryWalkInSales(_m)
 }
 
 // Update returns a builder for updating this Prescription.
