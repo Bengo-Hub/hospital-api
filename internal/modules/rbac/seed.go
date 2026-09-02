@@ -117,6 +117,15 @@ var defaultRoles = []roleDefinition{
 			"hospital.pharmacy.*",
 			PermBillingView,
 			PermBillingCollectOwn,
+			// Read-only patient lookup — a clinical/hospital-tier pharmacist dispensing against a
+			// real prescription needs to be able to check the patient's chart (allergies, other
+			// current medications) before handing drugs over, standard real-world pharmacy
+			// practice. Deliberately view-only: add/change/manage stay reserved for records staff.
+			// At Chemist tier this permission is inert — 'patients' isn't in CHEMIST_MODULES
+			// (facility-nomenclature.ts), so the Patients nav item stays hidden there regardless;
+			// this only actually surfaces for a Clinic/Facility/Hospital-tier pharmacist. Found
+			// live 2026-09-02: a hospital pharmacist's sidebar was identical to a chemist's.
+			PermRecordsView,
 		},
 	},
 	{
