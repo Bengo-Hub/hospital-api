@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bengobox/hospital-service/internal/ent"
+	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
@@ -209,6 +210,44 @@ func (s *Service) GetVisit(ctx context.Context, tenantID, visitID uuid.UUID) (*e
 	return s.client.PatientVisit.Query().
 		Where(patientvisit.ID(visitID), patientvisit.TenantID(tenantID)).
 		Only(ctx)
+}
+
+// CancelVisit cancels a mis-registered/duplicate visit at any pre-terminal stage, waiving any
+// pending charges on its account (mirrors lab.Service.CancelOrder/pharmacy.Service.
+// CancelPrescription's own waive-pending-charges pattern). Closes PatientVisit.cancelled, the
+// one dead visit-status value with an unambiguous, low-risk fix — dispensed/admitted are
+// deliberately left untouched (admitted is reserved for Sprint 6 Inpatient; dispensed has no
+// unambiguous terminal-state meaning without a larger visit-lifecycle redesign).
+func (s *Service) CancelVisit(ctx context.Context, tenantID, visitID uuid.UUID, reason string) (*ent.PatientVisit, error) {
+	visit, err := s.GetVisit(ctx, tenantID, visitID)
+	if err != nil {
+		return nil, fmt.Errorf("patients: visit not found: %w", err)
+	}
+	if visit.Status == patientvisit.StatusCompleted || visit.Status == patientvisit.StatusCancelled {
+		return nil, fmt.Errorf("patients: a %s visit cannot be cancelled", visit.Status)
+	}
+	if s.billing != nil {
+		if _, charges, aerr := s.billing.GetAccountByVisit(ctx, tenantID, visitID); aerr == nil {
+			for _, c := range charges {
+				if c.Status == billablecharge.StatusPending || c.Status == billablecharge.StatusInvoiced {
+					if _, werr := s.billing.WaiveCharge(ctx, tenantID, c.ID); werr != nil {
+						return nil, fmt.Errorf("patients: waive charge for cancelled visit: %w", werr)
+					}
+				}
+			}
+		}
+		// aerr != nil (no account for this visit yet, e.g. billing disabled or the registration
+		// fee failed to post) simply means nothing to waive — not a reason to block cancellation.
+	}
+	upd := s.client.PatientVisit.UpdateOneID(visitID).SetStatus(patientvisit.StatusCancelled)
+	if reason != "" {
+		complaint := visit.ChiefComplaint
+		if complaint != "" {
+			complaint += " | "
+		}
+		upd = upd.SetChiefComplaint(complaint + "Cancelled: " + reason)
+	}
+	return upd.Save(ctx)
 }
 
 // ListVisitsRequest filters the OPD queue.

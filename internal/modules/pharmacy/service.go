@@ -20,6 +20,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
+	"github.com/bengobox/hospital-service/internal/ent/referral"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/bengobox/hospital-service/internal/modules/authapi"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
@@ -150,6 +151,19 @@ func (s *Service) CreatePrescription(ctx context.Context, tenantID uuid.UUID, re
 		}
 		if l.InventoryItemSKU != "" {
 			skus = append(skus, l.InventoryItemSKU)
+		}
+	}
+
+	// Closes the loop on whichever referral (if any) sent this visit here — Referral.status
+	// otherwise never left "pending". Only meaningful when a real visit is attached (a chemist
+	// walk-in has none, so this is a no-op there).
+	if req.VisitID != nil {
+		if _, rerr := tx.Referral.Update().
+			Where(referral.TenantID(tenantID), referral.VisitID(*req.VisitID), referral.ReferredTo("pharmacy"), referral.Status("pending")).
+			SetStatus("acted_on").
+			Save(ctx); rerr != nil {
+			err = rerr
+			return nil, fmt.Errorf("pharmacy: mark referral acted_on: %w", rerr)
 		}
 	}
 

@@ -254,6 +254,28 @@ func (h *PatientsHandler) GetVisit(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, v)
 }
 
+// CancelVisit handles POST /{tenant}/hospital/visits/{visitID}/cancel
+func (h *PatientsHandler) CancelVisit(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	visitID, err := uuid.Parse(chi.URLParam(r, "visitID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid visit ID")
+		return
+	}
+	var in reasonRequest
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	v, err := h.svc.CancelVisit(r.Context(), tenantID, visitID, in.Reason)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, v)
+}
+
 // ── Triage ───────────────────────────────────────────────────────────────────────────────
 
 type recordTriageRequest struct {

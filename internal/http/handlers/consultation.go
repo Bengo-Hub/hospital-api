@@ -154,3 +154,23 @@ func (h *ConsultationHandler) ListReferrals(w http.ResponseWriter, r *http.Reque
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"data": list})
 }
+
+// CancelReferral handles POST /{tenant}/hospital/visits/{visitID}/refer/{referralID}/cancel
+func (h *ConsultationHandler) CancelReferral(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	referralID, err := uuid.Parse(chi.URLParam(r, "referralID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid referral ID")
+		return
+	}
+	ref, err := h.svc.CancelReferral(r.Context(), tenantID, referralID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, ref)
+}

@@ -22,6 +22,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/referral"
 	events "github.com/bengobox/hospital-service/internal/events"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 )
@@ -168,6 +169,17 @@ func (s *Service) CreateOrder(ctx context.Context, tenantID uuid.UUID, req Creat
 				return nil, fmt.Errorf("lab: post charge for %s: %w", t.Code, cerr)
 			}
 		}
+	}
+
+	// Closes the loop on whichever referral (if any) sent this visit here — Referral.status
+	// otherwise never left "pending" (see docs comment on the schema). A no-op update (0 rows) is
+	// expected and fine when this order wasn't created via a referral at all.
+	if _, rerr := tx.Referral.Update().
+		Where(referral.TenantID(tenantID), referral.VisitID(req.VisitID), referral.ReferredTo("lab"), referral.Status("pending")).
+		SetStatus("acted_on").
+		Save(ctx); rerr != nil {
+		err = rerr
+		return nil, fmt.Errorf("lab: mark referral acted_on: %w", rerr)
 	}
 
 	if err = tx.Commit(); err != nil {

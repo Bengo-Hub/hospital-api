@@ -211,6 +211,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureReceptionQueuing),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionView)).
 					Get("/visits/{visitID}", d.Patients.GetVisit)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureReceptionQueuing),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermReceptionManage)).
+					Post("/visits/{visitID}/cancel", d.Patients.CancelVisit)
 
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTriage),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTriageAdd)).
@@ -228,6 +231,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
 					Get("/visits/{visitID}/referrals", d.Consultation.ListReferrals)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
+					Post("/visits/{visitID}/refer/{referralID}/cancel", d.Consultation.CancelReferral)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationView)).
 					Get("/diagnosis-catalog", d.Consultation.ListDiagnosisCatalog)

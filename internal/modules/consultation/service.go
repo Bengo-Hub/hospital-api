@@ -307,3 +307,21 @@ func (s *Service) ListReferrals(ctx context.Context, tenantID, visitID uuid.UUID
 		Order(ent.Desc(referral.FieldCreatedAt)).
 		All(ctx)
 }
+
+// CancelReferral cancels a referral made in error, before it's been acted on (a LabOrder/
+// Prescription created against it — see lab.Service.CreateOrder/pharmacy.Service.
+// CreatePrescription's own referral-closing logic). Mirrors CancelOrder/CancelPrescription's
+// pattern in their own packages: a pre-terminal-only cancel, never touching an already-actioned
+// referral.
+func (s *Service) CancelReferral(ctx context.Context, tenantID, referralID uuid.UUID) (*ent.Referral, error) {
+	ref, err := s.client.Referral.Query().
+		Where(referral.ID(referralID), referral.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("consultation: referral not found: %w", err)
+	}
+	if ref.Status != "pending" {
+		return nil, fmt.Errorf("consultation: only a pending referral can be cancelled (status=%s)", ref.Status)
+	}
+	return s.client.Referral.UpdateOneID(referralID).SetStatus("cancelled").Save(ctx)
+}
