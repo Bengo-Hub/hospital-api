@@ -31,6 +31,12 @@ type LabOrderLine struct {
 	Price float64 `json:"price,omitempty"`
 	// SpecimenType holds the value of the "specimen_type" field.
 	SpecimenType string `json:"specimen_type,omitempty"`
+	// SpecimenCollectedAt holds the value of the "specimen_collected_at" field.
+	SpecimenCollectedAt *time.Time `json:"specimen_collected_at,omitempty"`
+	// SpecimenCollectedBy holds the value of the "specimen_collected_by" field.
+	SpecimenCollectedBy *uuid.UUID `json:"specimen_collected_by,omitempty"`
+	// Barcode/label string identifying the physical specimen — reintroduces the concept the removed 'collected' LabOrder.status value gestured at, this time backed by real fields and a real Collect call site
+	SpecimenID string `json:"specimen_id,omitempty"`
 	// ResultValue holds the value of the "result_value" field.
 	ResultValue string `json:"result_value,omitempty"`
 	// Unit holds the value of the "unit" field.
@@ -78,13 +84,13 @@ func (*LabOrderLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case laborderline.FieldResultedBy:
+		case laborderline.FieldSpecimenCollectedBy, laborderline.FieldResultedBy:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case laborderline.FieldPrice:
 			values[i] = new(sql.NullFloat64)
-		case laborderline.FieldTestCode, laborderline.FieldTestName, laborderline.FieldSpecimenType, laborderline.FieldResultValue, laborderline.FieldUnit, laborderline.FieldReferenceRange, laborderline.FieldFlag, laborderline.FieldNotes:
+		case laborderline.FieldTestCode, laborderline.FieldTestName, laborderline.FieldSpecimenType, laborderline.FieldSpecimenID, laborderline.FieldResultValue, laborderline.FieldUnit, laborderline.FieldReferenceRange, laborderline.FieldFlag, laborderline.FieldNotes:
 			values[i] = new(sql.NullString)
-		case laborderline.FieldResultedAt, laborderline.FieldCreatedAt:
+		case laborderline.FieldSpecimenCollectedAt, laborderline.FieldResultedAt, laborderline.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		case laborderline.FieldID, laborderline.FieldTenantID, laborderline.FieldLabOrderID:
 			values[i] = new(uuid.UUID)
@@ -144,6 +150,26 @@ func (_m *LabOrderLine) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field specimen_type", values[i])
 			} else if value.Valid {
 				_m.SpecimenType = value.String
+			}
+		case laborderline.FieldSpecimenCollectedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field specimen_collected_at", values[i])
+			} else if value.Valid {
+				_m.SpecimenCollectedAt = new(time.Time)
+				*_m.SpecimenCollectedAt = value.Time
+			}
+		case laborderline.FieldSpecimenCollectedBy:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field specimen_collected_by", values[i])
+			} else if value.Valid {
+				_m.SpecimenCollectedBy = new(uuid.UUID)
+				*_m.SpecimenCollectedBy = *value.S.(*uuid.UUID)
+			}
+		case laborderline.FieldSpecimenID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field specimen_id", values[i])
+			} else if value.Valid {
+				_m.SpecimenID = value.String
 			}
 		case laborderline.FieldResultValue:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -253,6 +279,19 @@ func (_m *LabOrderLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("specimen_type=")
 	builder.WriteString(_m.SpecimenType)
+	builder.WriteString(", ")
+	if v := _m.SpecimenCollectedAt; v != nil {
+		builder.WriteString("specimen_collected_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.SpecimenCollectedBy; v != nil {
+		builder.WriteString("specimen_collected_by=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("specimen_id=")
+	builder.WriteString(_m.SpecimenID)
 	builder.WriteString(", ")
 	builder.WriteString("result_value=")
 	builder.WriteString(_m.ResultValue)

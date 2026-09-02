@@ -211,6 +211,34 @@ func (h *LabHandler) SubmitInsuranceClaim(w http.ResponseWriter, r *http.Request
 	respondJSON(w, http.StatusOK, map[string]any{"order": order, "claim": claim})
 }
 
+type collectSpecimenRequest struct {
+	SpecimenID string `json:"specimen_id,omitempty"`
+}
+
+// CollectSpecimen handles POST /{tenant}/hospital/lab-orders/lines/{lineID}/collect
+func (h *LabHandler) CollectSpecimen(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	lineID, err := uuid.Parse(chi.URLParam(r, "lineID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid line ID")
+		return
+	}
+	var in collectSpecimenRequest
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	line, err := h.svc.Collect(r.Context(), tenantID, lineID, lab.CollectRequest{
+		CollectedBy: currentUserID(r), SpecimenID: in.SpecimenID,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, line)
+}
+
 type enterResultRequest struct {
 	ResultValue    string `json:"result_value"`
 	Unit           string `json:"unit,omitempty"`

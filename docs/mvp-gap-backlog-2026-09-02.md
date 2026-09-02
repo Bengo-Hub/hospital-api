@@ -63,8 +63,8 @@ Full detail: `docs/sprints/sprint-3-laboratory.md` section "Gap audit and MVP ba
 
 | Gap | Effort | Notes |
 |---|---|---|
-| No specimen collection tracking (collector, timestamp, specimen ID). The one enum value that gestured at this (`collected`) was removed as confirmed dead code | Moderate, additive fields plus new worklist step | Specimen collection has never really existed as a tracked event in this codebase, even nominally. |
-| No critical-value alerting distinct from routine "results ready". `LabOrderLine.flag=critical` has no downstream effect today | Small to moderate, new event plus notifications-api consumer | A recognised patient-safety requirement in real lab systems (a Joint Commission National Patient Safety Goal). No schema change needed; the flag field already exists. |
+| No specimen collection tracking (collector, timestamp, specimen ID). The one enum value that gestured at this (`collected`) was removed as confirmed dead code | Moderate, additive fields plus new worklist step | **Shipped 2026-09-03.** New fields + `POST .../lines/{lineID}/collect`; `EnterResult` now hard-gates on collection. |
+| No critical-value alerting distinct from routine "results ready". `LabOrderLine.flag=critical` has no downstream effect today | Small to moderate, new event plus notifications-api consumer | **Shipped 2026-09-03.** New `hospital.lab_order.critical_result` event (per-line, immediate) + a notifications-api consumer sending an urgent SMS/push to the ordering clinician. |
 | Referred-out/external lab tracking | N/A | Explicitly out of scope for this audit, covered elsewhere per this sprint doc's own section 2E note. |
 
 ## Sprint 4: Pharmacy & Dispensing

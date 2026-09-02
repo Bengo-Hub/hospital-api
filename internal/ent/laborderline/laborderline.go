@@ -28,6 +28,12 @@ const (
 	FieldPrice = "price"
 	// FieldSpecimenType holds the string denoting the specimen_type field in the database.
 	FieldSpecimenType = "specimen_type"
+	// FieldSpecimenCollectedAt holds the string denoting the specimen_collected_at field in the database.
+	FieldSpecimenCollectedAt = "specimen_collected_at"
+	// FieldSpecimenCollectedBy holds the string denoting the specimen_collected_by field in the database.
+	FieldSpecimenCollectedBy = "specimen_collected_by"
+	// FieldSpecimenID holds the string denoting the specimen_id field in the database.
+	FieldSpecimenID = "specimen_id"
 	// FieldResultValue holds the string denoting the result_value field in the database.
 	FieldResultValue = "result_value"
 	// FieldUnit holds the string denoting the unit field in the database.
@@ -66,6 +72,9 @@ var Columns = []string{
 	FieldTestName,
 	FieldPrice,
 	FieldSpecimenType,
+	FieldSpecimenCollectedAt,
+	FieldSpecimenCollectedBy,
+	FieldSpecimenID,
 	FieldResultValue,
 	FieldUnit,
 	FieldReferenceRange,
@@ -163,6 +172,21 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 // BySpecimenType orders the results by the specimen_type field.
 func BySpecimenType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSpecimenType, opts...).ToFunc()
+}
+
+// BySpecimenCollectedAt orders the results by the specimen_collected_at field.
+func BySpecimenCollectedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpecimenCollectedAt, opts...).ToFunc()
+}
+
+// BySpecimenCollectedBy orders the results by the specimen_collected_by field.
+func BySpecimenCollectedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpecimenCollectedBy, opts...).ToFunc()
+}
+
+// BySpecimenID orders the results by the specimen_id field.
+func BySpecimenID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpecimenID, opts...).ToFunc()
 }
 
 // ByResultValue orders the results by the result_value field.

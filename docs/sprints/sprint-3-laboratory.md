@@ -66,6 +66,15 @@ Sprint 4 — Pharmacy & Dispensing (the first sprint that touches the pos-api mi
 
 ## Gap audit and MVP backlog candidates (2026-09-02)
 
+**Shipped 2026-09-03**: `LabOrderLine` gained `specimen_collected_at`/`specimen_collected_by`/
+`specimen_id`, a new `POST .../lines/{lineID}/collect` endpoint (`lab.Service.Collect`), and
+`EnterResult` now hard-gates on collection having happened first — a behaviour change for any
+in-flight order line ordered before this shipped (it must be collected before it can ever be
+resulted). Critical-value alerting also shipped: `EnterResult` publishes a new
+`hospital.lab_order.critical_result` event immediately per-line (not gated on the whole order
+being resulted), routed by a new notifications-api consumer as an urgent SMS/push distinct from
+the routine `hospital.lab_order.resulted` "results ready" notification.
+
 Completeness audit of the shipped Laboratory module against real specimen-tracking and
 critical-value-alerting practice in production lab information systems, done against the actual
 shipped `internal/ent/schema/lab_order.go`/`lab_order_line.go` and `internal/modules/lab/

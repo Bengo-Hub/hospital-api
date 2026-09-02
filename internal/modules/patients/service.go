@@ -373,11 +373,11 @@ type CheckDuplicatesRequest struct {
 // PatientSummary is a lightweight projection of a possibly-duplicate Patient, enough for a
 // front-desk clerk to recognise "is this the same person" without a full patient fetch.
 type PatientSummary struct {
-	ID       uuid.UUID `json:"id"`
-	Mrn      string    `json:"mrn"`
-	FullName string    `json:"full_name"`
-	Phone    string    `json:"phone,omitempty"`
-	IDNumber string    `json:"id_number,omitempty"`
+	ID       uuid.UUID  `json:"id"`
+	Mrn      string     `json:"mrn"`
+	FullName string     `json:"full_name"`
+	Phone    string     `json:"phone,omitempty"`
+	IDNumber string     `json:"id_number,omitempty"`
 	Dob      *time.Time `json:"dob,omitempty"`
 }
 

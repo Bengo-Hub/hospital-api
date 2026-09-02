@@ -15345,29 +15345,32 @@ func (m *LabOrderMutation) ResetEdge(name string) error {
 // LabOrderLineMutation represents an operation that mutates the LabOrderLine nodes in the graph.
 type LabOrderLineMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	tenant_id        *uuid.UUID
-	test_code        *string
-	test_name        *string
-	price            *float64
-	addprice         *float64
-	specimen_type    *string
-	result_value     *string
-	unit             *string
-	reference_range  *string
-	flag             *laborderline.Flag
-	notes            *string
-	resulted_by      *uuid.UUID
-	resulted_at      *time.Time
-	created_at       *time.Time
-	clearedFields    map[string]struct{}
-	lab_order        *uuid.UUID
-	clearedlab_order bool
-	done             bool
-	oldValue         func(context.Context) (*LabOrderLine, error)
-	predicates       []predicate.LabOrderLine
+	op                    Op
+	typ                   string
+	id                    *uuid.UUID
+	tenant_id             *uuid.UUID
+	test_code             *string
+	test_name             *string
+	price                 *float64
+	addprice              *float64
+	specimen_type         *string
+	specimen_collected_at *time.Time
+	specimen_collected_by *uuid.UUID
+	specimen_id           *string
+	result_value          *string
+	unit                  *string
+	reference_range       *string
+	flag                  *laborderline.Flag
+	notes                 *string
+	resulted_by           *uuid.UUID
+	resulted_at           *time.Time
+	created_at            *time.Time
+	clearedFields         map[string]struct{}
+	lab_order             *uuid.UUID
+	clearedlab_order      bool
+	done                  bool
+	oldValue              func(context.Context) (*LabOrderLine, error)
+	predicates            []predicate.LabOrderLine
 }
 
 var _ ent.Mutation = (*LabOrderLineMutation)(nil)
@@ -15721,6 +15724,153 @@ func (m *LabOrderLineMutation) SpecimenTypeCleared() bool {
 func (m *LabOrderLineMutation) ResetSpecimenType() {
 	m.specimen_type = nil
 	delete(m.clearedFields, laborderline.FieldSpecimenType)
+}
+
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (m *LabOrderLineMutation) SetSpecimenCollectedAt(t time.Time) {
+	m.specimen_collected_at = &t
+}
+
+// SpecimenCollectedAt returns the value of the "specimen_collected_at" field in the mutation.
+func (m *LabOrderLineMutation) SpecimenCollectedAt() (r time.Time, exists bool) {
+	v := m.specimen_collected_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpecimenCollectedAt returns the old "specimen_collected_at" field's value of the LabOrderLine entity.
+// If the LabOrderLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LabOrderLineMutation) OldSpecimenCollectedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpecimenCollectedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpecimenCollectedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpecimenCollectedAt: %w", err)
+	}
+	return oldValue.SpecimenCollectedAt, nil
+}
+
+// ClearSpecimenCollectedAt clears the value of the "specimen_collected_at" field.
+func (m *LabOrderLineMutation) ClearSpecimenCollectedAt() {
+	m.specimen_collected_at = nil
+	m.clearedFields[laborderline.FieldSpecimenCollectedAt] = struct{}{}
+}
+
+// SpecimenCollectedAtCleared returns if the "specimen_collected_at" field was cleared in this mutation.
+func (m *LabOrderLineMutation) SpecimenCollectedAtCleared() bool {
+	_, ok := m.clearedFields[laborderline.FieldSpecimenCollectedAt]
+	return ok
+}
+
+// ResetSpecimenCollectedAt resets all changes to the "specimen_collected_at" field.
+func (m *LabOrderLineMutation) ResetSpecimenCollectedAt() {
+	m.specimen_collected_at = nil
+	delete(m.clearedFields, laborderline.FieldSpecimenCollectedAt)
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (m *LabOrderLineMutation) SetSpecimenCollectedBy(u uuid.UUID) {
+	m.specimen_collected_by = &u
+}
+
+// SpecimenCollectedBy returns the value of the "specimen_collected_by" field in the mutation.
+func (m *LabOrderLineMutation) SpecimenCollectedBy() (r uuid.UUID, exists bool) {
+	v := m.specimen_collected_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpecimenCollectedBy returns the old "specimen_collected_by" field's value of the LabOrderLine entity.
+// If the LabOrderLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LabOrderLineMutation) OldSpecimenCollectedBy(ctx context.Context) (v *uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpecimenCollectedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpecimenCollectedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpecimenCollectedBy: %w", err)
+	}
+	return oldValue.SpecimenCollectedBy, nil
+}
+
+// ClearSpecimenCollectedBy clears the value of the "specimen_collected_by" field.
+func (m *LabOrderLineMutation) ClearSpecimenCollectedBy() {
+	m.specimen_collected_by = nil
+	m.clearedFields[laborderline.FieldSpecimenCollectedBy] = struct{}{}
+}
+
+// SpecimenCollectedByCleared returns if the "specimen_collected_by" field was cleared in this mutation.
+func (m *LabOrderLineMutation) SpecimenCollectedByCleared() bool {
+	_, ok := m.clearedFields[laborderline.FieldSpecimenCollectedBy]
+	return ok
+}
+
+// ResetSpecimenCollectedBy resets all changes to the "specimen_collected_by" field.
+func (m *LabOrderLineMutation) ResetSpecimenCollectedBy() {
+	m.specimen_collected_by = nil
+	delete(m.clearedFields, laborderline.FieldSpecimenCollectedBy)
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (m *LabOrderLineMutation) SetSpecimenID(s string) {
+	m.specimen_id = &s
+}
+
+// SpecimenID returns the value of the "specimen_id" field in the mutation.
+func (m *LabOrderLineMutation) SpecimenID() (r string, exists bool) {
+	v := m.specimen_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpecimenID returns the old "specimen_id" field's value of the LabOrderLine entity.
+// If the LabOrderLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LabOrderLineMutation) OldSpecimenID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpecimenID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpecimenID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpecimenID: %w", err)
+	}
+	return oldValue.SpecimenID, nil
+}
+
+// ClearSpecimenID clears the value of the "specimen_id" field.
+func (m *LabOrderLineMutation) ClearSpecimenID() {
+	m.specimen_id = nil
+	m.clearedFields[laborderline.FieldSpecimenID] = struct{}{}
+}
+
+// SpecimenIDCleared returns if the "specimen_id" field was cleared in this mutation.
+func (m *LabOrderLineMutation) SpecimenIDCleared() bool {
+	_, ok := m.clearedFields[laborderline.FieldSpecimenID]
+	return ok
+}
+
+// ResetSpecimenID resets all changes to the "specimen_id" field.
+func (m *LabOrderLineMutation) ResetSpecimenID() {
+	m.specimen_id = nil
+	delete(m.clearedFields, laborderline.FieldSpecimenID)
 }
 
 // SetResultValue sets the "result_value" field.
@@ -16150,7 +16300,7 @@ func (m *LabOrderLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LabOrderLineMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 17)
 	if m.tenant_id != nil {
 		fields = append(fields, laborderline.FieldTenantID)
 	}
@@ -16168,6 +16318,15 @@ func (m *LabOrderLineMutation) Fields() []string {
 	}
 	if m.specimen_type != nil {
 		fields = append(fields, laborderline.FieldSpecimenType)
+	}
+	if m.specimen_collected_at != nil {
+		fields = append(fields, laborderline.FieldSpecimenCollectedAt)
+	}
+	if m.specimen_collected_by != nil {
+		fields = append(fields, laborderline.FieldSpecimenCollectedBy)
+	}
+	if m.specimen_id != nil {
+		fields = append(fields, laborderline.FieldSpecimenID)
 	}
 	if m.result_value != nil {
 		fields = append(fields, laborderline.FieldResultValue)
@@ -16213,6 +16372,12 @@ func (m *LabOrderLineMutation) Field(name string) (ent.Value, bool) {
 		return m.Price()
 	case laborderline.FieldSpecimenType:
 		return m.SpecimenType()
+	case laborderline.FieldSpecimenCollectedAt:
+		return m.SpecimenCollectedAt()
+	case laborderline.FieldSpecimenCollectedBy:
+		return m.SpecimenCollectedBy()
+	case laborderline.FieldSpecimenID:
+		return m.SpecimenID()
 	case laborderline.FieldResultValue:
 		return m.ResultValue()
 	case laborderline.FieldUnit:
@@ -16250,6 +16415,12 @@ func (m *LabOrderLineMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPrice(ctx)
 	case laborderline.FieldSpecimenType:
 		return m.OldSpecimenType(ctx)
+	case laborderline.FieldSpecimenCollectedAt:
+		return m.OldSpecimenCollectedAt(ctx)
+	case laborderline.FieldSpecimenCollectedBy:
+		return m.OldSpecimenCollectedBy(ctx)
+	case laborderline.FieldSpecimenID:
+		return m.OldSpecimenID(ctx)
 	case laborderline.FieldResultValue:
 		return m.OldResultValue(ctx)
 	case laborderline.FieldUnit:
@@ -16316,6 +16487,27 @@ func (m *LabOrderLineMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSpecimenType(v)
+		return nil
+	case laborderline.FieldSpecimenCollectedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpecimenCollectedAt(v)
+		return nil
+	case laborderline.FieldSpecimenCollectedBy:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpecimenCollectedBy(v)
+		return nil
+	case laborderline.FieldSpecimenID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpecimenID(v)
 		return nil
 	case laborderline.FieldResultValue:
 		v, ok := value.(string)
@@ -16421,6 +16613,15 @@ func (m *LabOrderLineMutation) ClearedFields() []string {
 	if m.FieldCleared(laborderline.FieldSpecimenType) {
 		fields = append(fields, laborderline.FieldSpecimenType)
 	}
+	if m.FieldCleared(laborderline.FieldSpecimenCollectedAt) {
+		fields = append(fields, laborderline.FieldSpecimenCollectedAt)
+	}
+	if m.FieldCleared(laborderline.FieldSpecimenCollectedBy) {
+		fields = append(fields, laborderline.FieldSpecimenCollectedBy)
+	}
+	if m.FieldCleared(laborderline.FieldSpecimenID) {
+		fields = append(fields, laborderline.FieldSpecimenID)
+	}
 	if m.FieldCleared(laborderline.FieldResultValue) {
 		fields = append(fields, laborderline.FieldResultValue)
 	}
@@ -16455,6 +16656,15 @@ func (m *LabOrderLineMutation) ClearField(name string) error {
 	switch name {
 	case laborderline.FieldSpecimenType:
 		m.ClearSpecimenType()
+		return nil
+	case laborderline.FieldSpecimenCollectedAt:
+		m.ClearSpecimenCollectedAt()
+		return nil
+	case laborderline.FieldSpecimenCollectedBy:
+		m.ClearSpecimenCollectedBy()
+		return nil
+	case laborderline.FieldSpecimenID:
+		m.ClearSpecimenID()
 		return nil
 	case laborderline.FieldResultValue:
 		m.ClearResultValue()
@@ -16499,6 +16709,15 @@ func (m *LabOrderLineMutation) ResetField(name string) error {
 		return nil
 	case laborderline.FieldSpecimenType:
 		m.ResetSpecimenType()
+		return nil
+	case laborderline.FieldSpecimenCollectedAt:
+		m.ResetSpecimenCollectedAt()
+		return nil
+	case laborderline.FieldSpecimenCollectedBy:
+		m.ResetSpecimenCollectedBy()
+		return nil
+	case laborderline.FieldSpecimenID:
+		m.ResetSpecimenID()
 		return nil
 	case laborderline.FieldResultValue:
 		m.ResetResultValue()

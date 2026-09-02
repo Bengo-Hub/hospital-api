@@ -356,6 +356,48 @@ func (s *Service) SubmitInsuranceClaim(ctx context.Context, tenantID, orderID uu
 	return activated, result, nil
 }
 
+// CollectRequest is the input to Collect.
+type CollectRequest struct {
+	CollectedBy uuid.UUID
+	SpecimenID  string
+}
+
+// Collect records specimen collection for one order line — who drew it, when, and against which
+// specimen ID/barcode. Mirrors EnterResult's own shape (tenant-scoped fetch, tx update, commit).
+// A specimen-safety step that never existed before as a real tracked event (see this package's
+// own doc note on LabOrder.status's now-removed "collected" enum value): result entry is gated on
+// this having happened first (see EnterResult's own check below).
+func (s *Service) Collect(ctx context.Context, tenantID, lineID uuid.UUID, req CollectRequest) (*ent.LabOrderLine, error) {
+	if _, err := s.client.LabOrderLine.Query().
+		Where(laborderline.ID(lineID), laborderline.TenantID(tenantID)).
+		Only(ctx); err != nil {
+		return nil, fmt.Errorf("lab: order line not found: %w", err)
+	}
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lab: begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+	update := tx.LabOrderLine.UpdateOneID(lineID).
+		SetSpecimenCollectedAt(time.Now()).
+		SetSpecimenID(req.SpecimenID)
+	if req.CollectedBy != uuid.Nil {
+		update = update.SetSpecimenCollectedBy(req.CollectedBy)
+	}
+	updated, err := update.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("lab: record specimen collection: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("lab: commit specimen collection: %w", err)
+	}
+	return updated, nil
+}
+
 // EnterResultRequest is the input to EnterResult.
 type EnterResultRequest struct {
 	ResultValue    string
@@ -376,6 +418,9 @@ func (s *Service) EnterResult(ctx context.Context, tenantID, lineID uuid.UUID, r
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("lab: order line not found: %w", err)
+	}
+	if line.SpecimenCollectedAt == nil {
+		return nil, fmt.Errorf("lab: specimen must be marked collected before a result can be entered")
 	}
 
 	tx, err := s.client.Tx(ctx)
@@ -404,6 +449,27 @@ func (s *Service) EnterResult(ctx context.Context, tenantID, lineID uuid.UUID, r
 		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("lab: enter result: %w", err)
+	}
+
+	// Critical-value alerting: fires immediately per-line, independent of whether the whole order
+	// is fully resulted yet — a patient-safety alert (Joint Commission National Patient Safety
+	// Goal) must not wait for the slowest line, unlike the routine "results ready" event below.
+	if flag == laborderline.FlagCritical {
+		orderedBy := uuid.Nil
+		if ord, oerr := tx.LabOrder.Get(ctx, line.LabOrderID); oerr == nil {
+			orderedBy = ord.OrderedBy
+		}
+		if pubErr := events.Publish(ctx, tx.OutboxEvent, tenantID, lineID.String(), events.EventLabOrderCriticalResult, map[string]any{
+			"lab_order_id":      line.LabOrderID.String(),
+			"lab_order_line_id": lineID.String(),
+			"ordered_by":        orderedBy.String(),
+			"test_name":         line.TestName,
+			"result_value":      req.ResultValue,
+			"unit":              req.Unit,
+			"reference_range":   req.ReferenceRange,
+		}); pubErr != nil {
+			s.log.Warn("publish lab_order.critical_result failed", zap.Error(pubErr))
+		}
 	}
 
 	allLines, err := tx.LabOrderLine.Query().

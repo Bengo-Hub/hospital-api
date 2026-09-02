@@ -30,6 +30,11 @@ const (
 	EventVisitAdmitted    = "visit.admitted"
 	EventVisitDischarged  = "visit.discharged"
 	EventLabOrderResulted = "lab_order.resulted"
+	// EventLabOrderCriticalResult fires immediately when a single line is resulted with
+	// flag=critical — independent of whether the whole order is fully resulted yet, since a
+	// patient-safety alert must not wait for the slowest line. Distinct from EventLabOrderResulted
+	// (routine "results ready"), for notifications-api to route as an urgent SMS/push.
+	EventLabOrderCriticalResult = "lab_order.critical_result"
 	// EventAdmissionCreated (Sprint 6) — a patient was admitted to a ward/bed. Distinct from the
 	// confusingly-named EventVisitAdmitted above (which actually fires on ordinary OPD check-in,
 	// not IPD admission) — kept as-is rather than renamed, since EventVisitAdmitted is already

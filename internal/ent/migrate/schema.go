@@ -635,6 +635,9 @@ var (
 		{Name: "test_name", Type: field.TypeString},
 		{Name: "price", Type: field.TypeFloat64, Default: 0},
 		{Name: "specimen_type", Type: field.TypeString, Nullable: true},
+		{Name: "specimen_collected_at", Type: field.TypeTime, Nullable: true},
+		{Name: "specimen_collected_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "specimen_id", Type: field.TypeString, Nullable: true},
 		{Name: "result_value", Type: field.TypeString, Nullable: true},
 		{Name: "unit", Type: field.TypeString, Nullable: true},
 		{Name: "reference_range", Type: field.TypeString, Nullable: true},
@@ -653,7 +656,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "lab_order_lines_lab_orders_lines",
-				Columns:    []*schema.Column{LabOrderLinesColumns[14]},
+				Columns:    []*schema.Column{LabOrderLinesColumns[17]},
 				RefColumns: []*schema.Column{LabOrdersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -662,12 +665,12 @@ var (
 			{
 				Name:    "laborderline_tenant_id_lab_order_id",
 				Unique:  false,
-				Columns: []*schema.Column{LabOrderLinesColumns[1], LabOrderLinesColumns[14]},
+				Columns: []*schema.Column{LabOrderLinesColumns[1], LabOrderLinesColumns[17]},
 			},
 			{
 				Name:    "laborderline_tenant_id_flag",
 				Unique:  false,
-				Columns: []*schema.Column{LabOrderLinesColumns[1], LabOrderLinesColumns[9]},
+				Columns: []*schema.Column{LabOrderLinesColumns[1], LabOrderLinesColumns[12]},
 			},
 		},
 	}

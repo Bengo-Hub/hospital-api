@@ -127,6 +127,66 @@ func (_u *LabOrderLineUpdate) ClearSpecimenType() *LabOrderLineUpdate {
 	return _u
 }
 
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (_u *LabOrderLineUpdate) SetSpecimenCollectedAt(v time.Time) *LabOrderLineUpdate {
+	_u.mutation.SetSpecimenCollectedAt(v)
+	return _u
+}
+
+// SetNillableSpecimenCollectedAt sets the "specimen_collected_at" field if the given value is not nil.
+func (_u *LabOrderLineUpdate) SetNillableSpecimenCollectedAt(v *time.Time) *LabOrderLineUpdate {
+	if v != nil {
+		_u.SetSpecimenCollectedAt(*v)
+	}
+	return _u
+}
+
+// ClearSpecimenCollectedAt clears the value of the "specimen_collected_at" field.
+func (_u *LabOrderLineUpdate) ClearSpecimenCollectedAt() *LabOrderLineUpdate {
+	_u.mutation.ClearSpecimenCollectedAt()
+	return _u
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (_u *LabOrderLineUpdate) SetSpecimenCollectedBy(v uuid.UUID) *LabOrderLineUpdate {
+	_u.mutation.SetSpecimenCollectedBy(v)
+	return _u
+}
+
+// SetNillableSpecimenCollectedBy sets the "specimen_collected_by" field if the given value is not nil.
+func (_u *LabOrderLineUpdate) SetNillableSpecimenCollectedBy(v *uuid.UUID) *LabOrderLineUpdate {
+	if v != nil {
+		_u.SetSpecimenCollectedBy(*v)
+	}
+	return _u
+}
+
+// ClearSpecimenCollectedBy clears the value of the "specimen_collected_by" field.
+func (_u *LabOrderLineUpdate) ClearSpecimenCollectedBy() *LabOrderLineUpdate {
+	_u.mutation.ClearSpecimenCollectedBy()
+	return _u
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (_u *LabOrderLineUpdate) SetSpecimenID(v string) *LabOrderLineUpdate {
+	_u.mutation.SetSpecimenID(v)
+	return _u
+}
+
+// SetNillableSpecimenID sets the "specimen_id" field if the given value is not nil.
+func (_u *LabOrderLineUpdate) SetNillableSpecimenID(v *string) *LabOrderLineUpdate {
+	if v != nil {
+		_u.SetSpecimenID(*v)
+	}
+	return _u
+}
+
+// ClearSpecimenID clears the value of the "specimen_id" field.
+func (_u *LabOrderLineUpdate) ClearSpecimenID() *LabOrderLineUpdate {
+	_u.mutation.ClearSpecimenID()
+	return _u
+}
+
 // SetResultValue sets the "result_value" field.
 func (_u *LabOrderLineUpdate) SetResultValue(v string) *LabOrderLineUpdate {
 	_u.mutation.SetResultValue(v)
@@ -360,6 +420,24 @@ func (_u *LabOrderLineUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.SpecimenTypeCleared() {
 		_spec.ClearField(laborderline.FieldSpecimenType, field.TypeString)
 	}
+	if value, ok := _u.mutation.SpecimenCollectedAt(); ok {
+		_spec.SetField(laborderline.FieldSpecimenCollectedAt, field.TypeTime, value)
+	}
+	if _u.mutation.SpecimenCollectedAtCleared() {
+		_spec.ClearField(laborderline.FieldSpecimenCollectedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SpecimenCollectedBy(); ok {
+		_spec.SetField(laborderline.FieldSpecimenCollectedBy, field.TypeUUID, value)
+	}
+	if _u.mutation.SpecimenCollectedByCleared() {
+		_spec.ClearField(laborderline.FieldSpecimenCollectedBy, field.TypeUUID)
+	}
+	if value, ok := _u.mutation.SpecimenID(); ok {
+		_spec.SetField(laborderline.FieldSpecimenID, field.TypeString, value)
+	}
+	if _u.mutation.SpecimenIDCleared() {
+		_spec.ClearField(laborderline.FieldSpecimenID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ResultValue(); ok {
 		_spec.SetField(laborderline.FieldResultValue, field.TypeString, value)
 	}
@@ -542,6 +620,66 @@ func (_u *LabOrderLineUpdateOne) SetNillableSpecimenType(v *string) *LabOrderLin
 // ClearSpecimenType clears the value of the "specimen_type" field.
 func (_u *LabOrderLineUpdateOne) ClearSpecimenType() *LabOrderLineUpdateOne {
 	_u.mutation.ClearSpecimenType()
+	return _u
+}
+
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (_u *LabOrderLineUpdateOne) SetSpecimenCollectedAt(v time.Time) *LabOrderLineUpdateOne {
+	_u.mutation.SetSpecimenCollectedAt(v)
+	return _u
+}
+
+// SetNillableSpecimenCollectedAt sets the "specimen_collected_at" field if the given value is not nil.
+func (_u *LabOrderLineUpdateOne) SetNillableSpecimenCollectedAt(v *time.Time) *LabOrderLineUpdateOne {
+	if v != nil {
+		_u.SetSpecimenCollectedAt(*v)
+	}
+	return _u
+}
+
+// ClearSpecimenCollectedAt clears the value of the "specimen_collected_at" field.
+func (_u *LabOrderLineUpdateOne) ClearSpecimenCollectedAt() *LabOrderLineUpdateOne {
+	_u.mutation.ClearSpecimenCollectedAt()
+	return _u
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (_u *LabOrderLineUpdateOne) SetSpecimenCollectedBy(v uuid.UUID) *LabOrderLineUpdateOne {
+	_u.mutation.SetSpecimenCollectedBy(v)
+	return _u
+}
+
+// SetNillableSpecimenCollectedBy sets the "specimen_collected_by" field if the given value is not nil.
+func (_u *LabOrderLineUpdateOne) SetNillableSpecimenCollectedBy(v *uuid.UUID) *LabOrderLineUpdateOne {
+	if v != nil {
+		_u.SetSpecimenCollectedBy(*v)
+	}
+	return _u
+}
+
+// ClearSpecimenCollectedBy clears the value of the "specimen_collected_by" field.
+func (_u *LabOrderLineUpdateOne) ClearSpecimenCollectedBy() *LabOrderLineUpdateOne {
+	_u.mutation.ClearSpecimenCollectedBy()
+	return _u
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (_u *LabOrderLineUpdateOne) SetSpecimenID(v string) *LabOrderLineUpdateOne {
+	_u.mutation.SetSpecimenID(v)
+	return _u
+}
+
+// SetNillableSpecimenID sets the "specimen_id" field if the given value is not nil.
+func (_u *LabOrderLineUpdateOne) SetNillableSpecimenID(v *string) *LabOrderLineUpdateOne {
+	if v != nil {
+		_u.SetSpecimenID(*v)
+	}
+	return _u
+}
+
+// ClearSpecimenID clears the value of the "specimen_id" field.
+func (_u *LabOrderLineUpdateOne) ClearSpecimenID() *LabOrderLineUpdateOne {
+	_u.mutation.ClearSpecimenID()
 	return _u
 }
 
@@ -807,6 +945,24 @@ func (_u *LabOrderLineUpdateOne) sqlSave(ctx context.Context) (_node *LabOrderLi
 	}
 	if _u.mutation.SpecimenTypeCleared() {
 		_spec.ClearField(laborderline.FieldSpecimenType, field.TypeString)
+	}
+	if value, ok := _u.mutation.SpecimenCollectedAt(); ok {
+		_spec.SetField(laborderline.FieldSpecimenCollectedAt, field.TypeTime, value)
+	}
+	if _u.mutation.SpecimenCollectedAtCleared() {
+		_spec.ClearField(laborderline.FieldSpecimenCollectedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SpecimenCollectedBy(); ok {
+		_spec.SetField(laborderline.FieldSpecimenCollectedBy, field.TypeUUID, value)
+	}
+	if _u.mutation.SpecimenCollectedByCleared() {
+		_spec.ClearField(laborderline.FieldSpecimenCollectedBy, field.TypeUUID)
+	}
+	if value, ok := _u.mutation.SpecimenID(); ok {
+		_spec.SetField(laborderline.FieldSpecimenID, field.TypeString, value)
+	}
+	if _u.mutation.SpecimenIDCleared() {
+		_spec.ClearField(laborderline.FieldSpecimenID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ResultValue(); ok {
 		_spec.SetField(laborderline.FieldResultValue, field.TypeString, value)

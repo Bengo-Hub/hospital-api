@@ -25,6 +25,10 @@ func (LabOrderLine) Fields() []ent.Field {
 		field.String("test_name").NotEmpty(),
 		field.Float("price").Default(0),
 		field.String("specimen_type").Optional(),
+		field.Time("specimen_collected_at").Optional().Nillable(),
+		field.UUID("specimen_collected_by", uuid.UUID{}).Optional().Nillable(),
+		field.String("specimen_id").Optional().
+			Comment("Barcode/label string identifying the physical specimen — reintroduces the concept the removed 'collected' LabOrder.status value gestured at, this time backed by real fields and a real Collect call site"),
 		field.String("result_value").Optional(),
 		field.String("unit").Optional(),
 		field.String("reference_range").Optional(),

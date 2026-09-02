@@ -86,6 +86,21 @@ func SpecimenType(v string) predicate.LabOrderLine {
 	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenType, v))
 }
 
+// SpecimenCollectedAt applies equality check predicate on the "specimen_collected_at" field. It's identical to SpecimenCollectedAtEQ.
+func SpecimenCollectedAt(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedBy applies equality check predicate on the "specimen_collected_by" field. It's identical to SpecimenCollectedByEQ.
+func SpecimenCollectedBy(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenID applies equality check predicate on the "specimen_id" field. It's identical to SpecimenIDEQ.
+func SpecimenID(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenID, v))
+}
+
 // ResultValue applies equality check predicate on the "result_value" field. It's identical to ResultValueEQ.
 func ResultValue(v string) predicate.LabOrderLine {
 	return predicate.LabOrderLine(sql.FieldEQ(FieldResultValue, v))
@@ -424,6 +439,181 @@ func SpecimenTypeEqualFold(v string) predicate.LabOrderLine {
 // SpecimenTypeContainsFold applies the ContainsFold predicate on the "specimen_type" field.
 func SpecimenTypeContainsFold(v string) predicate.LabOrderLine {
 	return predicate.LabOrderLine(sql.FieldContainsFold(FieldSpecimenType, v))
+}
+
+// SpecimenCollectedAtEQ applies the EQ predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtEQ(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedAtNEQ applies the NEQ predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtNEQ(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNEQ(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedAtIn applies the In predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtIn(vs ...time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldIn(FieldSpecimenCollectedAt, vs...))
+}
+
+// SpecimenCollectedAtNotIn applies the NotIn predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtNotIn(vs ...time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNotIn(FieldSpecimenCollectedAt, vs...))
+}
+
+// SpecimenCollectedAtGT applies the GT predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtGT(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldGT(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedAtGTE applies the GTE predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtGTE(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldGTE(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedAtLT applies the LT predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtLT(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldLT(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedAtLTE applies the LTE predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtLTE(v time.Time) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldLTE(FieldSpecimenCollectedAt, v))
+}
+
+// SpecimenCollectedAtIsNil applies the IsNil predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtIsNil() predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldIsNull(FieldSpecimenCollectedAt))
+}
+
+// SpecimenCollectedAtNotNil applies the NotNil predicate on the "specimen_collected_at" field.
+func SpecimenCollectedAtNotNil() predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNotNull(FieldSpecimenCollectedAt))
+}
+
+// SpecimenCollectedByEQ applies the EQ predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByEQ(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenCollectedByNEQ applies the NEQ predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByNEQ(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNEQ(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenCollectedByIn applies the In predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByIn(vs ...uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldIn(FieldSpecimenCollectedBy, vs...))
+}
+
+// SpecimenCollectedByNotIn applies the NotIn predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByNotIn(vs ...uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNotIn(FieldSpecimenCollectedBy, vs...))
+}
+
+// SpecimenCollectedByGT applies the GT predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByGT(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldGT(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenCollectedByGTE applies the GTE predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByGTE(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldGTE(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenCollectedByLT applies the LT predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByLT(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldLT(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenCollectedByLTE applies the LTE predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByLTE(v uuid.UUID) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldLTE(FieldSpecimenCollectedBy, v))
+}
+
+// SpecimenCollectedByIsNil applies the IsNil predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByIsNil() predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldIsNull(FieldSpecimenCollectedBy))
+}
+
+// SpecimenCollectedByNotNil applies the NotNil predicate on the "specimen_collected_by" field.
+func SpecimenCollectedByNotNil() predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNotNull(FieldSpecimenCollectedBy))
+}
+
+// SpecimenIDEQ applies the EQ predicate on the "specimen_id" field.
+func SpecimenIDEQ(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEQ(FieldSpecimenID, v))
+}
+
+// SpecimenIDNEQ applies the NEQ predicate on the "specimen_id" field.
+func SpecimenIDNEQ(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNEQ(FieldSpecimenID, v))
+}
+
+// SpecimenIDIn applies the In predicate on the "specimen_id" field.
+func SpecimenIDIn(vs ...string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldIn(FieldSpecimenID, vs...))
+}
+
+// SpecimenIDNotIn applies the NotIn predicate on the "specimen_id" field.
+func SpecimenIDNotIn(vs ...string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNotIn(FieldSpecimenID, vs...))
+}
+
+// SpecimenIDGT applies the GT predicate on the "specimen_id" field.
+func SpecimenIDGT(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldGT(FieldSpecimenID, v))
+}
+
+// SpecimenIDGTE applies the GTE predicate on the "specimen_id" field.
+func SpecimenIDGTE(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldGTE(FieldSpecimenID, v))
+}
+
+// SpecimenIDLT applies the LT predicate on the "specimen_id" field.
+func SpecimenIDLT(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldLT(FieldSpecimenID, v))
+}
+
+// SpecimenIDLTE applies the LTE predicate on the "specimen_id" field.
+func SpecimenIDLTE(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldLTE(FieldSpecimenID, v))
+}
+
+// SpecimenIDContains applies the Contains predicate on the "specimen_id" field.
+func SpecimenIDContains(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldContains(FieldSpecimenID, v))
+}
+
+// SpecimenIDHasPrefix applies the HasPrefix predicate on the "specimen_id" field.
+func SpecimenIDHasPrefix(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldHasPrefix(FieldSpecimenID, v))
+}
+
+// SpecimenIDHasSuffix applies the HasSuffix predicate on the "specimen_id" field.
+func SpecimenIDHasSuffix(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldHasSuffix(FieldSpecimenID, v))
+}
+
+// SpecimenIDIsNil applies the IsNil predicate on the "specimen_id" field.
+func SpecimenIDIsNil() predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldIsNull(FieldSpecimenID))
+}
+
+// SpecimenIDNotNil applies the NotNil predicate on the "specimen_id" field.
+func SpecimenIDNotNil() predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldNotNull(FieldSpecimenID))
+}
+
+// SpecimenIDEqualFold applies the EqualFold predicate on the "specimen_id" field.
+func SpecimenIDEqualFold(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldEqualFold(FieldSpecimenID, v))
+}
+
+// SpecimenIDContainsFold applies the ContainsFold predicate on the "specimen_id" field.
+func SpecimenIDContainsFold(v string) predicate.LabOrderLine {
+	return predicate.LabOrderLine(sql.FieldContainsFold(FieldSpecimenID, v))
 }
 
 // ResultValueEQ applies the EQ predicate on the "result_value" field.

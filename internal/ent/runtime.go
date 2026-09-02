@@ -440,7 +440,7 @@ func init() {
 	// laborderline.DefaultPrice holds the default value on creation for the price field.
 	laborderline.DefaultPrice = laborderlineDescPrice.Default.(float64)
 	// laborderlineDescCreatedAt is the schema descriptor for created_at field.
-	laborderlineDescCreatedAt := laborderlineFields[14].Descriptor()
+	laborderlineDescCreatedAt := laborderlineFields[17].Descriptor()
 	// laborderline.DefaultCreatedAt holds the default value on creation for the created_at field.
 	laborderline.DefaultCreatedAt = laborderlineDescCreatedAt.Default.(func() time.Time)
 	// laborderlineDescID is the schema descriptor for id field.

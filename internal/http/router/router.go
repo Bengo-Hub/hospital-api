@@ -379,6 +379,9 @@ func New(d Deps) http.Handler {
 					Post("/lab-orders/{orderID}/cancel", d.Lab.CancelOrder)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabChange)).
+					Post("/lab-orders/lines/{lineID}/collect", d.Lab.CollectSpecimen)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabChange)).
 					Post("/lab-orders/lines/{lineID}/result", d.Lab.EnterResult)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureLabRequestsBasic),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermLabView)).

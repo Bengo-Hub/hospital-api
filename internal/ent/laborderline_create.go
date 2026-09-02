@@ -77,6 +77,48 @@ func (_c *LabOrderLineCreate) SetNillableSpecimenType(v *string) *LabOrderLineCr
 	return _c
 }
 
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (_c *LabOrderLineCreate) SetSpecimenCollectedAt(v time.Time) *LabOrderLineCreate {
+	_c.mutation.SetSpecimenCollectedAt(v)
+	return _c
+}
+
+// SetNillableSpecimenCollectedAt sets the "specimen_collected_at" field if the given value is not nil.
+func (_c *LabOrderLineCreate) SetNillableSpecimenCollectedAt(v *time.Time) *LabOrderLineCreate {
+	if v != nil {
+		_c.SetSpecimenCollectedAt(*v)
+	}
+	return _c
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (_c *LabOrderLineCreate) SetSpecimenCollectedBy(v uuid.UUID) *LabOrderLineCreate {
+	_c.mutation.SetSpecimenCollectedBy(v)
+	return _c
+}
+
+// SetNillableSpecimenCollectedBy sets the "specimen_collected_by" field if the given value is not nil.
+func (_c *LabOrderLineCreate) SetNillableSpecimenCollectedBy(v *uuid.UUID) *LabOrderLineCreate {
+	if v != nil {
+		_c.SetSpecimenCollectedBy(*v)
+	}
+	return _c
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (_c *LabOrderLineCreate) SetSpecimenID(v string) *LabOrderLineCreate {
+	_c.mutation.SetSpecimenID(v)
+	return _c
+}
+
+// SetNillableSpecimenID sets the "specimen_id" field if the given value is not nil.
+func (_c *LabOrderLineCreate) SetNillableSpecimenID(v *string) *LabOrderLineCreate {
+	if v != nil {
+		_c.SetSpecimenID(*v)
+	}
+	return _c
+}
+
 // SetResultValue sets the "result_value" field.
 func (_c *LabOrderLineCreate) SetResultValue(v string) *LabOrderLineCreate {
 	_c.mutation.SetResultValue(v)
@@ -358,6 +400,18 @@ func (_c *LabOrderLineCreate) createSpec() (*LabOrderLine, *sqlgraph.CreateSpec)
 		_spec.SetField(laborderline.FieldSpecimenType, field.TypeString, value)
 		_node.SpecimenType = value
 	}
+	if value, ok := _c.mutation.SpecimenCollectedAt(); ok {
+		_spec.SetField(laborderline.FieldSpecimenCollectedAt, field.TypeTime, value)
+		_node.SpecimenCollectedAt = &value
+	}
+	if value, ok := _c.mutation.SpecimenCollectedBy(); ok {
+		_spec.SetField(laborderline.FieldSpecimenCollectedBy, field.TypeUUID, value)
+		_node.SpecimenCollectedBy = &value
+	}
+	if value, ok := _c.mutation.SpecimenID(); ok {
+		_spec.SetField(laborderline.FieldSpecimenID, field.TypeString, value)
+		_node.SpecimenID = value
+	}
 	if value, ok := _c.mutation.ResultValue(); ok {
 		_spec.SetField(laborderline.FieldResultValue, field.TypeString, value)
 		_node.ResultValue = value
@@ -540,6 +594,60 @@ func (u *LabOrderLineUpsert) UpdateSpecimenType() *LabOrderLineUpsert {
 // ClearSpecimenType clears the value of the "specimen_type" field.
 func (u *LabOrderLineUpsert) ClearSpecimenType() *LabOrderLineUpsert {
 	u.SetNull(laborderline.FieldSpecimenType)
+	return u
+}
+
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (u *LabOrderLineUpsert) SetSpecimenCollectedAt(v time.Time) *LabOrderLineUpsert {
+	u.Set(laborderline.FieldSpecimenCollectedAt, v)
+	return u
+}
+
+// UpdateSpecimenCollectedAt sets the "specimen_collected_at" field to the value that was provided on create.
+func (u *LabOrderLineUpsert) UpdateSpecimenCollectedAt() *LabOrderLineUpsert {
+	u.SetExcluded(laborderline.FieldSpecimenCollectedAt)
+	return u
+}
+
+// ClearSpecimenCollectedAt clears the value of the "specimen_collected_at" field.
+func (u *LabOrderLineUpsert) ClearSpecimenCollectedAt() *LabOrderLineUpsert {
+	u.SetNull(laborderline.FieldSpecimenCollectedAt)
+	return u
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (u *LabOrderLineUpsert) SetSpecimenCollectedBy(v uuid.UUID) *LabOrderLineUpsert {
+	u.Set(laborderline.FieldSpecimenCollectedBy, v)
+	return u
+}
+
+// UpdateSpecimenCollectedBy sets the "specimen_collected_by" field to the value that was provided on create.
+func (u *LabOrderLineUpsert) UpdateSpecimenCollectedBy() *LabOrderLineUpsert {
+	u.SetExcluded(laborderline.FieldSpecimenCollectedBy)
+	return u
+}
+
+// ClearSpecimenCollectedBy clears the value of the "specimen_collected_by" field.
+func (u *LabOrderLineUpsert) ClearSpecimenCollectedBy() *LabOrderLineUpsert {
+	u.SetNull(laborderline.FieldSpecimenCollectedBy)
+	return u
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (u *LabOrderLineUpsert) SetSpecimenID(v string) *LabOrderLineUpsert {
+	u.Set(laborderline.FieldSpecimenID, v)
+	return u
+}
+
+// UpdateSpecimenID sets the "specimen_id" field to the value that was provided on create.
+func (u *LabOrderLineUpsert) UpdateSpecimenID() *LabOrderLineUpsert {
+	u.SetExcluded(laborderline.FieldSpecimenID)
+	return u
+}
+
+// ClearSpecimenID clears the value of the "specimen_id" field.
+func (u *LabOrderLineUpsert) ClearSpecimenID() *LabOrderLineUpsert {
+	u.SetNull(laborderline.FieldSpecimenID)
 	return u
 }
 
@@ -809,6 +917,69 @@ func (u *LabOrderLineUpsertOne) UpdateSpecimenType() *LabOrderLineUpsertOne {
 func (u *LabOrderLineUpsertOne) ClearSpecimenType() *LabOrderLineUpsertOne {
 	return u.Update(func(s *LabOrderLineUpsert) {
 		s.ClearSpecimenType()
+	})
+}
+
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (u *LabOrderLineUpsertOne) SetSpecimenCollectedAt(v time.Time) *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.SetSpecimenCollectedAt(v)
+	})
+}
+
+// UpdateSpecimenCollectedAt sets the "specimen_collected_at" field to the value that was provided on create.
+func (u *LabOrderLineUpsertOne) UpdateSpecimenCollectedAt() *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.UpdateSpecimenCollectedAt()
+	})
+}
+
+// ClearSpecimenCollectedAt clears the value of the "specimen_collected_at" field.
+func (u *LabOrderLineUpsertOne) ClearSpecimenCollectedAt() *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.ClearSpecimenCollectedAt()
+	})
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (u *LabOrderLineUpsertOne) SetSpecimenCollectedBy(v uuid.UUID) *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.SetSpecimenCollectedBy(v)
+	})
+}
+
+// UpdateSpecimenCollectedBy sets the "specimen_collected_by" field to the value that was provided on create.
+func (u *LabOrderLineUpsertOne) UpdateSpecimenCollectedBy() *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.UpdateSpecimenCollectedBy()
+	})
+}
+
+// ClearSpecimenCollectedBy clears the value of the "specimen_collected_by" field.
+func (u *LabOrderLineUpsertOne) ClearSpecimenCollectedBy() *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.ClearSpecimenCollectedBy()
+	})
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (u *LabOrderLineUpsertOne) SetSpecimenID(v string) *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.SetSpecimenID(v)
+	})
+}
+
+// UpdateSpecimenID sets the "specimen_id" field to the value that was provided on create.
+func (u *LabOrderLineUpsertOne) UpdateSpecimenID() *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.UpdateSpecimenID()
+	})
+}
+
+// ClearSpecimenID clears the value of the "specimen_id" field.
+func (u *LabOrderLineUpsertOne) ClearSpecimenID() *LabOrderLineUpsertOne {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.ClearSpecimenID()
 	})
 }
 
@@ -1265,6 +1436,69 @@ func (u *LabOrderLineUpsertBulk) UpdateSpecimenType() *LabOrderLineUpsertBulk {
 func (u *LabOrderLineUpsertBulk) ClearSpecimenType() *LabOrderLineUpsertBulk {
 	return u.Update(func(s *LabOrderLineUpsert) {
 		s.ClearSpecimenType()
+	})
+}
+
+// SetSpecimenCollectedAt sets the "specimen_collected_at" field.
+func (u *LabOrderLineUpsertBulk) SetSpecimenCollectedAt(v time.Time) *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.SetSpecimenCollectedAt(v)
+	})
+}
+
+// UpdateSpecimenCollectedAt sets the "specimen_collected_at" field to the value that was provided on create.
+func (u *LabOrderLineUpsertBulk) UpdateSpecimenCollectedAt() *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.UpdateSpecimenCollectedAt()
+	})
+}
+
+// ClearSpecimenCollectedAt clears the value of the "specimen_collected_at" field.
+func (u *LabOrderLineUpsertBulk) ClearSpecimenCollectedAt() *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.ClearSpecimenCollectedAt()
+	})
+}
+
+// SetSpecimenCollectedBy sets the "specimen_collected_by" field.
+func (u *LabOrderLineUpsertBulk) SetSpecimenCollectedBy(v uuid.UUID) *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.SetSpecimenCollectedBy(v)
+	})
+}
+
+// UpdateSpecimenCollectedBy sets the "specimen_collected_by" field to the value that was provided on create.
+func (u *LabOrderLineUpsertBulk) UpdateSpecimenCollectedBy() *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.UpdateSpecimenCollectedBy()
+	})
+}
+
+// ClearSpecimenCollectedBy clears the value of the "specimen_collected_by" field.
+func (u *LabOrderLineUpsertBulk) ClearSpecimenCollectedBy() *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.ClearSpecimenCollectedBy()
+	})
+}
+
+// SetSpecimenID sets the "specimen_id" field.
+func (u *LabOrderLineUpsertBulk) SetSpecimenID(v string) *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.SetSpecimenID(v)
+	})
+}
+
+// UpdateSpecimenID sets the "specimen_id" field to the value that was provided on create.
+func (u *LabOrderLineUpsertBulk) UpdateSpecimenID() *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.UpdateSpecimenID()
+	})
+}
+
+// ClearSpecimenID clears the value of the "specimen_id" field.
+func (u *LabOrderLineUpsertBulk) ClearSpecimenID() *LabOrderLineUpsertBulk {
+	return u.Update(func(s *LabOrderLineUpsert) {
+		s.ClearSpecimenID()
 	})
 }
 
