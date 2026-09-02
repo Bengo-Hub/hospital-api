@@ -107,8 +107,10 @@ func fakeInventoryServer(t *testing.T) *httptest.Server {
 
 // fakeTreasuryServer stands in for treasury-api's S2S surface (see internal/modules/treasury
 // .Client): invoice/payment-intent creation for the cash-collect path, and an immediately-
-// "approved" insurance claim for the insurance-settlement path — enough to exercise both of
-// billing.Service's two settlement routes without a live treasury-api.
+// "paid" insurance claim for the insurance-settlement path — enough to exercise both of
+// billing.Service's two settlement routes without a live treasury-api. "paid" (not "approved")
+// matches treasury-api's real InsuranceClaim.status enum — claimAccepted only treats "paid" as
+// terminal-accepted (see billing.Service's own doc comment).
 func fakeTreasuryServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -122,8 +124,10 @@ func fakeTreasuryServer(t *testing.T) *httptest.Server {
 			writeJSON(w, map[string]any{"id": uuid.New().String(), "status": "succeeded"})
 		case strings.HasSuffix(r.URL.Path, "/insurance/claims"):
 			writeJSON(w, map[string]any{
-				"id": uuid.New().String(), "status": "approved", "claim_reference": "MED-TEST-0001",
+				"id": uuid.New().String(), "status": "paid", "claim_reference": "MED-TEST-0001",
 			})
+		case strings.HasSuffix(r.URL.Path, "/etims/sign-pos-sale"):
+			writeJSON(w, map[string]any{"signed": false})
 		default:
 			http.NotFound(w, r)
 		}

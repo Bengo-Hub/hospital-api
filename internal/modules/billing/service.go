@@ -243,7 +243,44 @@ func (s *Service) CollectCharge(ctx context.Context, tenantID, chargeID uuid.UUI
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("billing: commit collection: %w", err)
 	}
+
+	// eTIMS (2026-09-02) — best-effort, opt-in per tenant. SignSaleNow returns (nil, nil) when the
+	// tenant isn't eTIMS-activated (treasury-api owns that gate, same as pos-api's own checkout
+	// call), so there is no local activation flag to check here. A failure never undoes an already-
+	// collected payment — the sale stays collected either way, treasury-api's async worker retries
+	// fiscalization independently of this call.
+	s.signSaleBestEffort(ctx, tenantID, "hospital_billable_charge", charge.ID, charge.Description, charge.Amount, req)
+
 	return updated, nil
+}
+
+// signSaleBestEffort calls treasury.SignSaleNow for a completed collection, logging any failure
+// rather than propagating it — fiscalization is opt-in/async by design (docs/integrations.md's
+// eTIMS ADR), never a reason to fail a real, already-collected payment.
+func (s *Service) signSaleBestEffort(ctx context.Context, tenantID uuid.UUID, orderNumberPrefix string, sourceID uuid.UUID, description string, amount float64, req CollectChargeRequest) {
+	if !s.treasury.Enabled() {
+		return
+	}
+	_, err := s.treasury.SignSaleNow(ctx, tenantID, treasury.SignSaleRequest{
+		OrderID:     sourceID,
+		OrderNumber: orderNumberPrefix + "-" + sourceID.String(),
+		TotalAmount: amount,
+		Currency:    "KES",
+		OutletID:    req.OutletID,
+		Items: []treasury.ETIMSSaleItem{{
+			ItemType:   "service",
+			Name:       description,
+			Quantity:   1,
+			UnitPrice:  amount,
+			TotalPrice: amount,
+		}},
+		SellingScheme: "cash",
+		Tenders:       []treasury.ETIMSSaleTender{{Type: req.PaymentMethod, Amount: amount}},
+	})
+	if err != nil {
+		s.log.Warn("etims sign sale failed (best-effort, payment already collected)",
+			zap.String("source_id", sourceID.String()), zap.Error(err))
+	}
 }
 
 // WaiveCharge writes off a pending/invoiced charge without collecting payment for it — the
@@ -414,6 +451,39 @@ func (s *Service) CollectWalkInSale(ctx context.Context, tenantID, saleID uuid.U
 	if req.CollectedBy != uuid.Nil {
 		upd = upd.SetCollectedBy(req.CollectedBy)
 	}
+
+	// eTIMS (2026-09-02) — best-effort, opt-in per tenant (treasury-api owns the activation gate,
+	// SignSaleNow no-ops for a non-activated tenant). This is the real fiscalization the
+	// hospital_sale Source value was added for — a chemist's walk-in sale is exactly the "hospital
+	// sale" case treasury-api's eTIMS attribution distinguishes from a POS sale.
+	if s.treasury.Enabled() {
+		items := make([]treasury.ETIMSSaleItem, 0, len(sale.LineItems))
+		for _, li := range sale.LineItems {
+			name, _ := li["drug_name"].(string)
+			sku, _ := li["sku"].(string)
+			qty, _ := li["quantity"].(float64)
+			unitPrice, _ := li["unit_price"].(float64)
+			lineTotal, _ := li["line_total"].(float64)
+			items = append(items, treasury.ETIMSSaleItem{
+				SKU: sku, ItemType: "drug", Name: name, Quantity: qty, UnitPrice: unitPrice, TotalPrice: lineTotal,
+			})
+		}
+		if len(items) == 0 {
+			items = append(items, treasury.ETIMSSaleItem{ItemType: "service", Name: "Walk-in sale " + sale.SaleNumber, Quantity: 1, UnitPrice: sale.Amount, TotalPrice: sale.Amount})
+		}
+		fiscal, ferr := s.treasury.SignSaleNow(ctx, tenantID, treasury.SignSaleRequest{
+			OrderID: sale.ID, OrderNumber: sale.SaleNumber, TotalAmount: sale.Amount, Currency: "KES",
+			OutletID: req.OutletID, Items: items, SellingScheme: "cash",
+			Tenders: []treasury.ETIMSSaleTender{{Type: req.PaymentMethod, Amount: sale.Amount}},
+		})
+		if ferr != nil {
+			s.log.Warn("etims sign sale failed (best-effort, walk-in sale already collected)",
+				zap.String("sale_id", saleID.String()), zap.Error(ferr))
+		} else if fiscal != nil && fiscal.Signed {
+			upd = upd.SetEtimsInvoiceNumber(fiscal.InvoiceNumber).SetEtimsQrCodeURL(fiscal.QRCodeURL)
+		}
+	}
+
 	updated, err := upd.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("billing: mark walk-in sale paid: %w", err)
@@ -664,19 +734,17 @@ func (s *Service) PollInsuranceClaim(ctx context.Context, tenantID, claimID uuid
 }
 
 // claimAccepted reports whether a treasury-api Claim.Status represents a terminal, fully-covered
-// outcome. treasury-api's InsuranceClaim status enum is defined in a different repo and wasn't
-// inspectable from here, so this is deliberately a liberal, case-insensitive match against the
-// common terms real payer connectors use (SHA/AAR/Jubilee/etc., per treasury.Claim's own doc
-// comment) rather than a single hard-coded string — tighten this once treasury-api's exact enum
-// values are confirmed. Any non-terminal outcome ("submitted"/"pending"/"processing"/unknown) is
-// treated as NOT yet accepted: the charge stays "pending" and the caller polls/resubmits later.
+// outcome. treasury-api's real InsuranceClaim.status enum (internal/ent/schema/
+// insuranceclaim.go): draft | eligibility_checked | preauthorized | submitted | adjudicated |
+// paid | rejected | reversed. Only "paid" is a safe terminal-accepted signal — "adjudicated" is
+// a mid-pipeline status (a payer's adjudication can still resolve to paid OR rejected, per the
+// schema's own "queued/approved/rejected/in-review/payment-completed/payment-declined" comment),
+// so treating it as accepted here would prematurely mark a charge exempted before the payer has
+// actually agreed to pay. Any other status ("submitted"/"preauthorized"/"rejected"/"reversed"/
+// unknown) is treated as NOT yet accepted: the charge stays pending and the caller polls/
+// resubmits later.
 func claimAccepted(status string) bool {
-	switch strings.ToLower(strings.TrimSpace(status)) {
-	case "approved", "accepted", "paid", "settled", "success", "successful", "completed", "adjudicated", "adjudicated_approved":
-		return true
-	default:
-		return false
-	}
+	return strings.EqualFold(strings.TrimSpace(status), "paid")
 }
 
 // SubmitInsuranceClaimRequest is the input to SubmitInsuranceClaim.
