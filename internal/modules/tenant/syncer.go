@@ -481,7 +481,12 @@ func (s *Syncer) SyncOutlets(ctx context.Context, tenantID uuid.UUID, tenantSlug
 			q = q.SetAddressJSON(addrJSON)
 		}
 
-		if err := q.OnConflict().DoNothing().Exec(ctx); err != nil {
+		// UpdateNewValues (not DoNothing) so a field that changes upstream after the outlet's
+		// first sync — code/name/status/use_case/facility_type/address — actually propagates on
+		// a later sync instead of freezing at whatever the row looked like on first creation.
+		// Found live: facility_type synced as NULL for demo-chemist because DoNothing() made
+		// this upsert a permanent no-op on the already-existing row from an earlier sync.
+		if err := q.OnConflict().UpdateNewValues().Exec(ctx); err != nil {
 			log.Printf("  [outlet-sync] upsert outlet %s (%s): %v", item.Code, outletID, err)
 			continue
 		}
