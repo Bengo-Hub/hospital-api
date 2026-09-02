@@ -1,6 +1,6 @@
 # Hospital API — Sprint 7: Theatre/OT Scheduling & ICU/Critical-Care Monitoring
 
-**Status:** ✅ Shipped 2026-09-02 (`hospital-api@<pending-commit>` — see `.claude/plans/hospital-sprint7-theatre-icu-2026-09-02.md` for the full execution record). `go build`/`go vet`/`go test` green, Atlas migration generated + applied to the local dev DB, real integration test (`internal/integration/theatre_icu_golden_path_test.go`).
+**Status:** ✅ Shipped 2026-09-02 (`hospital-api@845b82b` — see `.claude/plans/hospital-sprint7-theatre-icu-2026-09-02.md` for the full execution record). `go build`/`go vet`/`go test` green, Atlas migration generated + applied to the local dev DB, real integration test (`internal/integration/theatre_icu_golden_path_test.go`).
 **Depends on:** Sprint 6 (Inpatient — theatre bookings and ICU episodes both hang off an admission)
 **Goal:** Surgery scheduling with an OT checklist and staff/case-load assignment; ICU bed-level monitoring flags. Afya Hospital tier only.
 
