@@ -26,12 +26,19 @@ never store its own copy of drug classification, lot/expiry, or interaction rule
 
 ### 1.1 Drug master lookup & classification
 
-**Client:** `internal/modules/inventory/client.go` (implemented 2026-08-29, via `shared-service-client`)
-**Calls:** `GET /v1/{tenant}/inventory/items/{sku}`, `GET /v1/{tenant}/inventory/items?type=DRUG`
-**Reads:** `generic_name`, `active_ingredient`, `dosage_form`, `strength`, `drug_class`,
-`controlled_substance_schedule`, `is_controlled_substance`, `requires_age_verification`.
-**hospital-api stores:** `inventory_item_id` (UUID FK) + snapshot fields on `PrescriptionLine`
-(drug name, dose) captured at prescribing time — never the live master row.
+**Client:** `internal/modules/inventory/client.go` — `SearchItems` (added 2026-09-02, via
+`shared-service-client`)
+**Calls:** `GET /v1/{tenant}/inventory/items?type=DRUG&search=...&lean=1`, proxied to the
+frontend via `GET /{tenant}/hospital/pharmacy/drug-search` so the New Prescription form's line
+picker never needs its own inventory-api credentials.
+**Reads:** `sku`, `name`, `generic_name`, `dosage_form`, `strength`, `drug_class`,
+`is_controlled_substance`, `selling_price`, `available` (live stock preview).
+**hospital-api stores:** free-text snapshot fields on `PrescriptionLine` (drug name, SKU, dose,
+unit price) captured at prescribing time — never the live master row; a line can still be typed
+by hand for a genuinely uncataloged item.
+**Corrected 2026-09-02**: this section previously claimed a single-SKU lookup method
+(`GET /v1/{tenant}/inventory/items/{sku}`) was already implemented — it was not; only the four
+reservation/interaction-check methods existed. The search method above closes that gap for real.
 
 ### 1.2 Drug interaction / allergy check
 
@@ -176,6 +183,14 @@ treasury-api then follows its existing `pos.sale.finalized`-style flow (submit �
 → consumer populates `etims_invoice_number`/`etims_qr_code_url` on the hospital-side record) —
 hospital-api never calls the KRA API directly and never stores `ETIMS_*` credentials, mirroring the
 eTIMS-ownership ADR already established in `pos-api/docs/integrations.md`.
+
+**Wired end to end 2026-09-02**: `treasury.Client.SignSaleNow` (Source: `hospital_sale`) existed
+since Phase 0 but had zero call sites — every hospital sale silently went unfiscalized. Now
+called best-effort from `billing.Service.CollectCharge` and `CollectWalkInSale` (mirrors
+pos-api's own synchronous sign-at-checkout pattern; a signing failure never undoes an
+already-collected payment). Required a matching treasury-api fix: `s2sSignPOSSaleRequest` had
+no `source` field at all, so a caller-supplied `hospital_sale` was silently dropped and every
+sale defaulted to `pos_sale` attribution — fixed treasury-api-side the same day.
 
 ### 2.4 Taifa Care HMIS — confirmed technical contract (2026-08-29)
 

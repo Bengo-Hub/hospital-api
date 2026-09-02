@@ -95,6 +95,7 @@ reference treasury-api, which stays the sole owner of every financial document.
 | `patient_account` | `id`, `patient_id`, `admission_id` (nullable), `visit_id` (nullable), `status`, `total_charged`, `total_paid`, `balance`, `settlement_required_before`, `next_of_kin_id` (nullable) | One running ledger per patient (spans an admission; per-visit for OPD) |
 | `billable_charge` | `id`, `patient_account_id`, `billable_item_id` (nullable), `source_module`, `source_reference_id` (nullable), `amount`, `status`, `treasury_invoice_id` (nullable), `created_by_department`, `paid_at` | One row per charge event, posted by whichever department billed it |
 | `patient_next_of_kin` | `id`, `patient_id`, `name`, `phone`, `relationship`, `id_number`, `is_primary` | Who may settle a bill / authorize discharge-release on the patient's behalf; distinct from `patient.next_of_kin` (a free-text chart field, Sprint 1) |
+| `walk_in_sale` | `id`, `tenant_id`, `outlet_id`, `prescription_id`, `sale_number`, `patient_name` (nullable), `line_items` (JSON), `amount`, `status`, `payment_method`, `treasury_invoice_id` (nullable), `treasury_payment_intent_id` (nullable), `etims_invoice_number`/`etims_qr_code_url` (nullable), `collected_by` (nullable) | Chemist-tier ledgerless till transaction (added 2026-09-02) — a nil-`patient_id`/`visit_id` prescription's dispense charge, which `patient_account`/`billable_charge` structurally can't hold (both require a real patient account) |
 
 ---
 

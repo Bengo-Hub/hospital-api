@@ -132,7 +132,12 @@ itself uses. The Billing/cashier role additionally holds `hospital.billing.colle
 doesn't want to handle collection itself, and the default handler for the first-contact fees
 (registration, consultation) where a dedicated desk naturally sits. **Defaults by facility type**
 (overridable per tenant): Chemist → Billing module is just Walk-in Sale, no `PatientAccount`
-complexity at all (same as today's pos-api pharmacy "direct" checkout). Clinic/health-centre →
+complexity at all (same as today's pos-api pharmacy "direct" checkout) — **shipped 2026-09-02**
+as `WalkInSale` (`internal/ent/schema/walk_in_sale.go`), the ledgerless counterpart to
+`PatientAccount`/`BillableCharge` created by `pharmacy.Service.Dispense` whenever a prescription
+has no `patient_id`/`visit_id`, with its own collect/waive queue at `/pharmacy/walk-in-sales`.
+Before this, a chemist's dispense silently posted no charge at all — stock deducted, nothing
+billed. Clinic/health-centre →
 registration+consultation default to `billing_queue` (Billing desk), pharmacy defaults to `direct`
 (small team, one person often does both). Facility/Hospital → every department capable of
 `direct`, Billing desk is the explicit fallback and the inpatient billing owner.

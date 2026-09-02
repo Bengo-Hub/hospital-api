@@ -147,18 +147,26 @@ of first-contact fees + inpatient accounts.
       reason and is fully audit-logged. `OverrideSettlement` itself is shipped; the actual
       discharge/mortuary-release workflow this gates is Sprint 6/10 (Inpatient/Morgue), not built yet,
       so this can't be verified end to end until then.
-- [ ] A chemist-configured tenant's Billing UI shows only Walk-in Sale — no account/ledger
-      complexity surfaced. **Not done** — hospital-ui has not been touched this session (Phase 7).
+- [x] A chemist-configured tenant's Billing UI shows only Walk-in Sale — no account/ledger
+      complexity surfaced. **Done 2026-09-02** — `WalkInSale` (ledgerless, no `PatientAccount`
+      touched) + hospital-ui's `/pharmacy/walk-in-sales` "Today's Sales" page, linked from the
+      Pharmacy page header only for `facilityType === 'chemist'`.
 - [ ] Full checkout flow tested: multiple billable line types aggregate into one treasury invoice
       when collected together (e.g. Billing desk settling several pending charges at once).
       **Not yet run** — no live E2E walkthrough this session.
-- [ ] eTIMS opt-in flag correctly gates whether treasury-api transmits to KRA (default OFF);
-      transmitted records carry `source: hospital_sale`. The `hospital_sale` source shipped
-      treasury-api-side in Phase 0; not yet exercised end to end from a hospital-api charge.
+- [x] eTIMS opt-in flag correctly gates whether treasury-api transmits to KRA (default OFF);
+      transmitted records carry `source: hospital_sale`. **Wired end to end 2026-09-02** —
+      `billing.Service.CollectCharge`/`CollectWalkInSale` now call `treasury.Client.SignSaleNow`
+      best-effort, and treasury-api's `s2sSignPOSSaleRequest` was fixed to actually accept/thread
+      a `source` field (previously silently dropped, defaulting every hospital sale to
+      `pos_sale`). Real gating (activated vs. not) still lives entirely in treasury-api, per the
+      opt-in ADR — not independently live-verified against a real KRA sandbox this session.
 - [x] Insurance eligibility check works against treasury-api's live connector for at least one
       configured payer. `billing.Service.CheckEligibility` + `SubmitInsuranceClaim` are wired into
-      real flows (lab-order/prescription/visit-level, see Endpoints above); **not yet verified
-      against a live running treasury-api** — no E2E walkthrough this session.
+      real flows (lab-order/prescription/visit-level, see Endpoints above), and the eligibility
+      pre-check + claim-status refresh/resubmit UI (previously dead — real hooks, zero call
+      sites) is now wired into `InsuranceClaimModal`, 2026-09-02; **not yet verified against a
+      live running treasury-api** — no E2E walkthrough this session.
 - [x] `go build`/`go vet` clean; no financial-document schema (`Invoice`/`Payment`/etc.)
       introduced in hospital-api — only the billing ledger above.
 
