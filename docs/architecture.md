@@ -347,9 +347,9 @@ Transfer & Ambulance Billing" above also flagged "i do not even see beds and oth
 management proper inventory wiring and integration" — Sprint 6/7 shipped `Ward`/`Bed`/
 `TheatreBooking`/`ICUEpisode` with no way to say which physical equipment (a ventilator, an
 anaesthesia machine, a specific bed-as-capital-asset) is tied to a given bed or booking. **Shipped
-2026-09-02, same session** (`hospital-api@<pending>`, `hospital-ui@<pending>`) — this section
-originally documented a concurrent in-progress design; it now describes the real shipped shape,
-corrected in two places from that original description (see "What actually shipped" below).
+2026-09-02, same session** (`hospital-api@8b62371`) — this section originally documented a
+concurrent in-progress design; it now describes the real shipped shape, corrected in two places
+from that original description (see "What actually shipped" below).
 
 ### What already exists (confirmed, not new)
 
