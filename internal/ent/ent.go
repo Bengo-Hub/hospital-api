@@ -32,8 +32,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
@@ -46,6 +48,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
@@ -132,8 +135,10 @@ func checkColumn(t, c string) error {
 			labtestcatalogdefault.Table:    labtestcatalogdefault.ValidColumn,
 			labtestcatalogentry.Table:      labtestcatalogentry.ValidColumn,
 			medicationadministration.Table: medicationadministration.ValidColumn,
+			operativenote.Table:            operativenote.ValidColumn,
 			outboxevent.Table:              outboxevent.ValidColumn,
 			outlet.Table:                   outlet.ValidColumn,
+			pacustay.Table:                 pacustay.ValidColumn,
 			patient.Table:                  patient.ValidColumn,
 			patientaccount.Table:           patientaccount.ValidColumn,
 			patientnextofkin.Table:         patientnextofkin.ValidColumn,
@@ -146,6 +151,7 @@ func checkColumn(t, c string) error {
 			rolepermission.Table:           rolepermission.ValidColumn,
 			tenant.Table:                   tenant.ValidColumn,
 			theatrebooking.Table:           theatrebooking.ValidColumn,
+			theatrestaffassignment.Table:   theatrestaffassignment.ValidColumn,
 			triagerecord.Table:             triagerecord.ValidColumn,
 			userroleassignment.Table:       userroleassignment.ValidColumn,
 			vitalschartentry.Table:         vitalschartentry.ValidColumn,

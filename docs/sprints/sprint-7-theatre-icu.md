@@ -84,6 +84,22 @@ Manager gets both broadly, matching this role's existing scope.
 
 ## Gap audit and Sprint 7.1 candidates (2026-09-02, later the same day)
 
+**Shipped 2026-09-03**: every candidate below landed except the two explicitly deferred by this
+section's own recommendation (instrument-count as a dedicated field, and the inventory-api
+`AssetReservation` overlap-check gap — both stay exactly as this section already said). The real
+WHO 19-item, 3-phase checklist (`sign_in`/`time_out`/`sign_out`) replaced the 5 invented items —
+a pure hospital-ui seed-data/UI change (`checklist` was already a free-form `map[string]bool`, no
+backend field or migration needed; phase grouping is a key-naming convention, not a schema
+change). New `TheatreStaffAssignment` entity (`surgeon_id` kept as-is for backward compat) +
+`staffBookingConflict`, extending the existing room-only `hasOverlap` check to also reject a
+booking (or a new team-member assignment) whose staff member already has an overlapping booking in
+a *different* room — checked on both `CreateBooking` and `AssignStaff`. New `PacuStay` entity
+(never reuses `ICUEpisode`; a `to_icu` disposition is a UI/workflow signal to separately start a
+real `ICUEpisode`, not an auto-link) and `OperativeNote` entity (one-to-one, create-or-amend on
+each `RecordOperativeNote` call). All three surfaced through one `Team / PACU / Op Note` modal on
+the theatre schedule page rather than three separate UI entry points, since they're all
+booking-scoped clinical actions a theatre nurse/surgeon would reach for from the same place.
+
 A client-facing engineer reviewed the shipped module and flagged that "theatre is also still missing
 quite a number of sub modules." This section is a **research-grounded gap audit, proposed design
 only** — nothing below is built, and none of it changes a shipped field. Sourcing: the official WHO

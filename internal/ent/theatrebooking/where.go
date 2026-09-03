@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/google/uuid"
 )
@@ -868,6 +869,75 @@ func UpdatedAtLT(v time.Time) predicate.TheatreBooking {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.TheatreBooking {
 	return predicate.TheatreBooking(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// HasStaffAssignments applies the HasEdge predicate on the "staff_assignments" edge.
+func HasStaffAssignments() predicate.TheatreBooking {
+	return predicate.TheatreBooking(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, StaffAssignmentsTable, StaffAssignmentsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasStaffAssignmentsWith applies the HasEdge predicate on the "staff_assignments" edge with a given conditions (other predicates).
+func HasStaffAssignmentsWith(preds ...predicate.TheatreStaffAssignment) predicate.TheatreBooking {
+	return predicate.TheatreBooking(func(s *sql.Selector) {
+		step := newStaffAssignmentsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPacuStays applies the HasEdge predicate on the "pacu_stays" edge.
+func HasPacuStays() predicate.TheatreBooking {
+	return predicate.TheatreBooking(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PacuStaysTable, PacuStaysColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPacuStaysWith applies the HasEdge predicate on the "pacu_stays" edge with a given conditions (other predicates).
+func HasPacuStaysWith(preds ...predicate.PacuStay) predicate.TheatreBooking {
+	return predicate.TheatreBooking(func(s *sql.Selector) {
+		step := newPacuStaysStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOperativeNote applies the HasEdge predicate on the "operative_note" edge.
+func HasOperativeNote() predicate.TheatreBooking {
+	return predicate.TheatreBooking(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, OperativeNoteTable, OperativeNoteColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOperativeNoteWith applies the HasEdge predicate on the "operative_note" edge with a given conditions (other predicates).
+func HasOperativeNoteWith(preds ...predicate.OperativeNote) predicate.TheatreBooking {
+	return predicate.TheatreBooking(func(s *sql.Selector) {
+		step := newOperativeNoteStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

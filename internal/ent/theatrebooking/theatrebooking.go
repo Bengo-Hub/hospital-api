@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -51,8 +52,35 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeStaffAssignments holds the string denoting the staff_assignments edge name in mutations.
+	EdgeStaffAssignments = "staff_assignments"
+	// EdgePacuStays holds the string denoting the pacu_stays edge name in mutations.
+	EdgePacuStays = "pacu_stays"
+	// EdgeOperativeNote holds the string denoting the operative_note edge name in mutations.
+	EdgeOperativeNote = "operative_note"
 	// Table holds the table name of the theatrebooking in the database.
 	Table = "theatre_bookings"
+	// StaffAssignmentsTable is the table that holds the staff_assignments relation/edge.
+	StaffAssignmentsTable = "theatre_staff_assignments"
+	// StaffAssignmentsInverseTable is the table name for the TheatreStaffAssignment entity.
+	// It exists in this package in order to avoid circular dependency with the "theatrestaffassignment" package.
+	StaffAssignmentsInverseTable = "theatre_staff_assignments"
+	// StaffAssignmentsColumn is the table column denoting the staff_assignments relation/edge.
+	StaffAssignmentsColumn = "theatre_booking_id"
+	// PacuStaysTable is the table that holds the pacu_stays relation/edge.
+	PacuStaysTable = "pacu_stays"
+	// PacuStaysInverseTable is the table name for the PacuStay entity.
+	// It exists in this package in order to avoid circular dependency with the "pacustay" package.
+	PacuStaysInverseTable = "pacu_stays"
+	// PacuStaysColumn is the table column denoting the pacu_stays relation/edge.
+	PacuStaysColumn = "theatre_booking_id"
+	// OperativeNoteTable is the table that holds the operative_note relation/edge.
+	OperativeNoteTable = "operative_notes"
+	// OperativeNoteInverseTable is the table name for the OperativeNote entity.
+	// It exists in this package in order to avoid circular dependency with the "operativenote" package.
+	OperativeNoteInverseTable = "operative_notes"
+	// OperativeNoteColumn is the table column denoting the operative_note relation/edge.
+	OperativeNoteColumn = "theatre_booking_id"
 )
 
 // Columns holds all SQL columns for theatrebooking fields.
@@ -224,4 +252,60 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByStaffAssignmentsCount orders the results by staff_assignments count.
+func ByStaffAssignmentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newStaffAssignmentsStep(), opts...)
+	}
+}
+
+// ByStaffAssignments orders the results by staff_assignments terms.
+func ByStaffAssignments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newStaffAssignmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPacuStaysCount orders the results by pacu_stays count.
+func ByPacuStaysCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPacuStaysStep(), opts...)
+	}
+}
+
+// ByPacuStays orders the results by pacu_stays terms.
+func ByPacuStays(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPacuStaysStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByOperativeNoteField orders the results by operative_note field.
+func ByOperativeNoteField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOperativeNoteStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newStaffAssignmentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(StaffAssignmentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, StaffAssignmentsTable, StaffAssignmentsColumn),
+	)
+}
+func newPacuStaysStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PacuStaysInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PacuStaysTable, PacuStaysColumn),
+	)
+}
+func newOperativeNoteStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OperativeNoteInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, OperativeNoteTable, OperativeNoteColumn),
+	)
 }

@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/google/uuid"
 )
@@ -54,8 +55,53 @@ type TheatreBooking struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TheatreBookingQuery when eager-loading is set.
+	Edges        TheatreBookingEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// TheatreBookingEdges holds the relations/edges for other nodes in the graph.
+type TheatreBookingEdges struct {
+	// StaffAssignments holds the value of the staff_assignments edge.
+	StaffAssignments []*TheatreStaffAssignment `json:"staff_assignments,omitempty"`
+	// PacuStays holds the value of the pacu_stays edge.
+	PacuStays []*PacuStay `json:"pacu_stays,omitempty"`
+	// OperativeNote holds the value of the operative_note edge.
+	OperativeNote *OperativeNote `json:"operative_note,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [3]bool
+}
+
+// StaffAssignmentsOrErr returns the StaffAssignments value or an error if the edge
+// was not loaded in eager-loading.
+func (e TheatreBookingEdges) StaffAssignmentsOrErr() ([]*TheatreStaffAssignment, error) {
+	if e.loadedTypes[0] {
+		return e.StaffAssignments, nil
+	}
+	return nil, &NotLoadedError{edge: "staff_assignments"}
+}
+
+// PacuStaysOrErr returns the PacuStays value or an error if the edge
+// was not loaded in eager-loading.
+func (e TheatreBookingEdges) PacuStaysOrErr() ([]*PacuStay, error) {
+	if e.loadedTypes[1] {
+		return e.PacuStays, nil
+	}
+	return nil, &NotLoadedError{edge: "pacu_stays"}
+}
+
+// OperativeNoteOrErr returns the OperativeNote value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TheatreBookingEdges) OperativeNoteOrErr() (*OperativeNote, error) {
+	if e.OperativeNote != nil {
+		return e.OperativeNote, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: operativenote.Label}
+	}
+	return nil, &NotLoadedError{edge: "operative_note"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -226,6 +272,21 @@ func (_m *TheatreBooking) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *TheatreBooking) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryStaffAssignments queries the "staff_assignments" edge of the TheatreBooking entity.
+func (_m *TheatreBooking) QueryStaffAssignments() *TheatreStaffAssignmentQuery {
+	return NewTheatreBookingClient(_m.config).QueryStaffAssignments(_m)
+}
+
+// QueryPacuStays queries the "pacu_stays" edge of the TheatreBooking entity.
+func (_m *TheatreBooking) QueryPacuStays() *PacuStayQuery {
+	return NewTheatreBookingClient(_m.config).QueryPacuStays(_m)
+}
+
+// QueryOperativeNote queries the "operative_note" edge of the TheatreBooking entity.
+func (_m *TheatreBooking) QueryOperativeNote() *OperativeNoteQuery {
+	return NewTheatreBookingClient(_m.config).QueryOperativeNote(_m)
 }
 
 // Update returns a builder for updating this TheatreBooking.

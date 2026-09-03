@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,19 +13,25 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/google/uuid"
 )
 
 // TheatreBookingQuery is the builder for querying TheatreBooking entities.
 type TheatreBookingQuery struct {
 	config
-	ctx        *QueryContext
-	order      []theatrebooking.OrderOption
-	inters     []Interceptor
-	predicates []predicate.TheatreBooking
-	modifiers  []func(*sql.Selector)
+	ctx                  *QueryContext
+	order                []theatrebooking.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.TheatreBooking
+	withStaffAssignments *TheatreStaffAssignmentQuery
+	withPacuStays        *PacuStayQuery
+	withOperativeNote    *OperativeNoteQuery
+	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,6 +66,72 @@ func (_q *TheatreBookingQuery) Unique(unique bool) *TheatreBookingQuery {
 func (_q *TheatreBookingQuery) Order(o ...theatrebooking.OrderOption) *TheatreBookingQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryStaffAssignments chains the current query on the "staff_assignments" edge.
+func (_q *TheatreBookingQuery) QueryStaffAssignments() *TheatreStaffAssignmentQuery {
+	query := (&TheatreStaffAssignmentClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrebooking.Table, theatrebooking.FieldID, selector),
+			sqlgraph.To(theatrestaffassignment.Table, theatrestaffassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, theatrebooking.StaffAssignmentsTable, theatrebooking.StaffAssignmentsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPacuStays chains the current query on the "pacu_stays" edge.
+func (_q *TheatreBookingQuery) QueryPacuStays() *PacuStayQuery {
+	query := (&PacuStayClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrebooking.Table, theatrebooking.FieldID, selector),
+			sqlgraph.To(pacustay.Table, pacustay.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, theatrebooking.PacuStaysTable, theatrebooking.PacuStaysColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOperativeNote chains the current query on the "operative_note" edge.
+func (_q *TheatreBookingQuery) QueryOperativeNote() *OperativeNoteQuery {
+	query := (&OperativeNoteClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrebooking.Table, theatrebooking.FieldID, selector),
+			sqlgraph.To(operativenote.Table, operativenote.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, theatrebooking.OperativeNoteTable, theatrebooking.OperativeNoteColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first TheatreBooking entity from the query.
@@ -248,15 +321,51 @@ func (_q *TheatreBookingQuery) Clone() *TheatreBookingQuery {
 		return nil
 	}
 	return &TheatreBookingQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]theatrebooking.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.TheatreBooking{}, _q.predicates...),
+		config:               _q.config,
+		ctx:                  _q.ctx.Clone(),
+		order:                append([]theatrebooking.OrderOption{}, _q.order...),
+		inters:               append([]Interceptor{}, _q.inters...),
+		predicates:           append([]predicate.TheatreBooking{}, _q.predicates...),
+		withStaffAssignments: _q.withStaffAssignments.Clone(),
+		withPacuStays:        _q.withPacuStays.Clone(),
+		withOperativeNote:    _q.withOperativeNote.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithStaffAssignments tells the query-builder to eager-load the nodes that are connected to
+// the "staff_assignments" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TheatreBookingQuery) WithStaffAssignments(opts ...func(*TheatreStaffAssignmentQuery)) *TheatreBookingQuery {
+	query := (&TheatreStaffAssignmentClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withStaffAssignments = query
+	return _q
+}
+
+// WithPacuStays tells the query-builder to eager-load the nodes that are connected to
+// the "pacu_stays" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TheatreBookingQuery) WithPacuStays(opts ...func(*PacuStayQuery)) *TheatreBookingQuery {
+	query := (&PacuStayClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPacuStays = query
+	return _q
+}
+
+// WithOperativeNote tells the query-builder to eager-load the nodes that are connected to
+// the "operative_note" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TheatreBookingQuery) WithOperativeNote(opts ...func(*OperativeNoteQuery)) *TheatreBookingQuery {
+	query := (&OperativeNoteClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOperativeNote = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -335,8 +444,13 @@ func (_q *TheatreBookingQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *TheatreBookingQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TheatreBooking, error) {
 	var (
-		nodes = []*TheatreBooking{}
-		_spec = _q.querySpec()
+		nodes       = []*TheatreBooking{}
+		_spec       = _q.querySpec()
+		loadedTypes = [3]bool{
+			_q.withStaffAssignments != nil,
+			_q.withPacuStays != nil,
+			_q.withOperativeNote != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*TheatreBooking).scanValues(nil, columns)
@@ -344,6 +458,7 @@ func (_q *TheatreBookingQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &TheatreBooking{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -358,7 +473,117 @@ func (_q *TheatreBookingQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withStaffAssignments; query != nil {
+		if err := _q.loadStaffAssignments(ctx, query, nodes,
+			func(n *TheatreBooking) { n.Edges.StaffAssignments = []*TheatreStaffAssignment{} },
+			func(n *TheatreBooking, e *TheatreStaffAssignment) {
+				n.Edges.StaffAssignments = append(n.Edges.StaffAssignments, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPacuStays; query != nil {
+		if err := _q.loadPacuStays(ctx, query, nodes,
+			func(n *TheatreBooking) { n.Edges.PacuStays = []*PacuStay{} },
+			func(n *TheatreBooking, e *PacuStay) { n.Edges.PacuStays = append(n.Edges.PacuStays, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOperativeNote; query != nil {
+		if err := _q.loadOperativeNote(ctx, query, nodes, nil,
+			func(n *TheatreBooking, e *OperativeNote) { n.Edges.OperativeNote = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *TheatreBookingQuery) loadStaffAssignments(ctx context.Context, query *TheatreStaffAssignmentQuery, nodes []*TheatreBooking, init func(*TheatreBooking), assign func(*TheatreBooking, *TheatreStaffAssignment)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*TheatreBooking)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(theatrestaffassignment.FieldTheatreBookingID)
+	}
+	query.Where(predicate.TheatreStaffAssignment(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(theatrebooking.StaffAssignmentsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TheatreBookingID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "theatre_booking_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TheatreBookingQuery) loadPacuStays(ctx context.Context, query *PacuStayQuery, nodes []*TheatreBooking, init func(*TheatreBooking), assign func(*TheatreBooking, *PacuStay)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*TheatreBooking)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(pacustay.FieldTheatreBookingID)
+	}
+	query.Where(predicate.PacuStay(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(theatrebooking.PacuStaysColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TheatreBookingID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "theatre_booking_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TheatreBookingQuery) loadOperativeNote(ctx context.Context, query *OperativeNoteQuery, nodes []*TheatreBooking, init func(*TheatreBooking), assign func(*TheatreBooking, *OperativeNote)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*TheatreBooking)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(operativenote.FieldTheatreBookingID)
+	}
+	query.Where(predicate.OperativeNote(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(theatrebooking.OperativeNoteColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TheatreBookingID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "theatre_booking_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *TheatreBookingQuery) sqlCount(ctx context.Context) (int, error) {

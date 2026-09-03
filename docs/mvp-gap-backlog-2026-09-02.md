@@ -166,11 +166,11 @@ written by a parallel session running concurrently with this one.
 
 | Gap | Effort | Notes |
 |---|---|---|
-| `TheatreBooking.checklist`'s default content is 5 made-up items, not a real standard | Quick, seed-data change only | The real WHO Surgical Safety Checklist (19 items across Sign In/Time Out/Sign Out) is fully sourced verbatim in the sprint doc, ready to use as the new default — no schema change, `checklist` is already a free-form JSON map. |
-| Surgical team is a single `surgeon_id`, no assistant surgeon/anaesthetist/scrub/circulating nurse | New small entity | Recommended: `theatre_staff_assignment` (`theatre_booking_id`, `staff_user_id`, `role` enum) rather than more columns on `TheatreBooking`, so team size/role mix scales without another migration. `surgeon_id` stays for backward compatibility. |
-| Conflict detection only checks the theatre room, not staff (a surgeon or anaesthetist double-booked across two concurrent theatres) | Depends on the staff-assignment entity above | Real OR-scheduling systems check every named resource, not just the room. |
-| No post-anaesthesia care unit (PACU/recovery) tracking between "completed" and discharge/ward-return | New small entity | Recommended: a new minimal `pacu_stay` entity mirroring `icu_episode`'s shape, not a reuse of `icu_episode` itself (most PACU patients are not critically ill) or a new `TheatreBooking` status (the booking tracks the room, PACU tracks the patient, concurrently not sequentially). |
-| No structured operative/surgical report, only a status flag | New linked entity | `operative_note` (procedure performed, findings, complications, blood loss, implants, specimens, post-op diagnosis), a one-to-one linked entity authored after the procedure, JCAHO/AAAHC-standard components. |
+| `TheatreBooking.checklist`'s default content is 5 made-up items, not a real standard | Quick, seed-data change only | **Shipped 2026-09-03**, hospital-ui only (checklist keys/UI grouping, no backend field/migration). |
+| Surgical team is a single `surgeon_id`, no assistant surgeon/anaesthetist/scrub/circulating nurse | New small entity | **Shipped 2026-09-03.** |
+| Conflict detection only checks the theatre room, not staff (a surgeon or anaesthetist double-booked across two concurrent theatres) | Depends on the staff-assignment entity above | **Shipped 2026-09-03**, checked on both `CreateBooking` and `AssignStaff`. |
+| No post-anaesthesia care unit (PACU/recovery) tracking between "completed" and discharge/ward-return | New small entity | **Shipped 2026-09-03.** |
+| No structured operative/surgical report, only a status flag | New linked entity | **Shipped 2026-09-03.** |
 | **Biomedical Equipment / Asset integration** — shipped this session | Done | Same integration as Sprint 6's row above, extended to `TheatreBooking.equipment_asset_ids`/`ICUEpisode.equipment_asset_ids`. |
 
 ## Referral / Transfer / Ambulance

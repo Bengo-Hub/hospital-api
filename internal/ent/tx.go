@@ -52,10 +52,14 @@ type Tx struct {
 	LabTestCatalogEntry *LabTestCatalogEntryClient
 	// MedicationAdministration is the client for interacting with the MedicationAdministration builders.
 	MedicationAdministration *MedicationAdministrationClient
+	// OperativeNote is the client for interacting with the OperativeNote builders.
+	OperativeNote *OperativeNoteClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// Outlet is the client for interacting with the Outlet builders.
 	Outlet *OutletClient
+	// PacuStay is the client for interacting with the PacuStay builders.
+	PacuStay *PacuStayClient
 	// Patient is the client for interacting with the Patient builders.
 	Patient *PatientClient
 	// PatientAccount is the client for interacting with the PatientAccount builders.
@@ -80,6 +84,8 @@ type Tx struct {
 	Tenant *TenantClient
 	// TheatreBooking is the client for interacting with the TheatreBooking builders.
 	TheatreBooking *TheatreBookingClient
+	// TheatreStaffAssignment is the client for interacting with the TheatreStaffAssignment builders.
+	TheatreStaffAssignment *TheatreStaffAssignmentClient
 	// TriageRecord is the client for interacting with the TriageRecord builders.
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
@@ -243,8 +249,10 @@ func (tx *Tx) init() {
 	tx.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(tx.config)
 	tx.LabTestCatalogEntry = NewLabTestCatalogEntryClient(tx.config)
 	tx.MedicationAdministration = NewMedicationAdministrationClient(tx.config)
+	tx.OperativeNote = NewOperativeNoteClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.Outlet = NewOutletClient(tx.config)
+	tx.PacuStay = NewPacuStayClient(tx.config)
 	tx.Patient = NewPatientClient(tx.config)
 	tx.PatientAccount = NewPatientAccountClient(tx.config)
 	tx.PatientNextOfKin = NewPatientNextOfKinClient(tx.config)
@@ -257,6 +265,7 @@ func (tx *Tx) init() {
 	tx.RolePermission = NewRolePermissionClient(tx.config)
 	tx.Tenant = NewTenantClient(tx.config)
 	tx.TheatreBooking = NewTheatreBookingClient(tx.config)
+	tx.TheatreStaffAssignment = NewTheatreStaffAssignmentClient(tx.config)
 	tx.TriageRecord = NewTriageRecordClient(tx.config)
 	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
 	tx.VitalsChartEntry = NewVitalsChartEntryClient(tx.config)

@@ -249,6 +249,18 @@ func (f MedicationAdministrationFunc) Mutate(ctx context.Context, m ent.Mutation
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MedicationAdministrationMutation", m)
 }
 
+// The OperativeNoteFunc type is an adapter to allow the use of ordinary
+// function as OperativeNote mutator.
+type OperativeNoteFunc func(context.Context, *ent.OperativeNoteMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OperativeNoteFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OperativeNoteMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OperativeNoteMutation", m)
+}
+
 // The OutboxEventFunc type is an adapter to allow the use of ordinary
 // function as OutboxEvent mutator.
 type OutboxEventFunc func(context.Context, *ent.OutboxEventMutation) (ent.Value, error)
@@ -271,6 +283,18 @@ func (f OutletFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OutletMutation", m)
+}
+
+// The PacuStayFunc type is an adapter to allow the use of ordinary
+// function as PacuStay mutator.
+type PacuStayFunc func(context.Context, *ent.PacuStayMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PacuStayFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PacuStayMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PacuStayMutation", m)
 }
 
 // The PatientFunc type is an adapter to allow the use of ordinary
@@ -415,6 +439,18 @@ func (f TheatreBookingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TheatreBookingMutation", m)
+}
+
+// The TheatreStaffAssignmentFunc type is an adapter to allow the use of ordinary
+// function as TheatreStaffAssignment mutator.
+type TheatreStaffAssignmentFunc func(context.Context, *ent.TheatreStaffAssignmentMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TheatreStaffAssignmentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TheatreStaffAssignmentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TheatreStaffAssignmentMutation", m)
 }
 
 // The TriageRecordFunc type is an adapter to allow the use of ordinary

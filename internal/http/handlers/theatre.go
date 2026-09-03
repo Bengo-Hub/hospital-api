@@ -251,3 +251,228 @@ func (h *TheatreHandler) CancelBooking(w http.ResponseWriter, r *http.Request) {
 	}
 	respondJSON(w, http.StatusOK, booking)
 }
+
+// ── Surgical team assignment ────────────────────────────────────────────────────────────────
+
+type assignStaffRequest struct {
+	StaffUserID string `json:"staff_user_id"`
+	Role        string `json:"role"`
+}
+
+// AssignStaff handles POST /{tenant}/hospital/theatre-bookings/{bookingID}/staff
+func (h *TheatreHandler) AssignStaff(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	var in assignStaffRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	staffUserID, err := uuid.Parse(in.StaffUserID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid staff_user_id")
+		return
+	}
+	assignment, err := h.svc.AssignStaff(r.Context(), tenantID, bookingID, theatre.AssignStaffRequest{
+		StaffUserID: staffUserID, Role: in.Role,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, assignment)
+}
+
+// ListStaffAssignments handles GET /{tenant}/hospital/theatre-bookings/{bookingID}/staff
+func (h *TheatreHandler) ListStaffAssignments(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	list, err := h.svc.ListStaffAssignments(r.Context(), tenantID, bookingID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list staff assignments")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+// RemoveStaffAssignment handles DELETE /{tenant}/hospital/theatre-bookings/{bookingID}/staff/{assignmentID}
+func (h *TheatreHandler) RemoveStaffAssignment(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	assignmentID, err := uuid.Parse(chi.URLParam(r, "assignmentID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid assignment ID")
+		return
+	}
+	if err := h.svc.RemoveStaffAssignment(r.Context(), tenantID, assignmentID); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"status": "ok"})
+}
+
+// ── PACU ─────────────────────────────────────────────────────────────────────────────────────
+
+type admitToPacuRequest struct {
+	BayLabel string `json:"bay_label,omitempty"`
+}
+
+// AdmitToPacu handles POST /{tenant}/hospital/theatre-bookings/{bookingID}/pacu
+func (h *TheatreHandler) AdmitToPacu(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	var in admitToPacuRequest
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	stay, err := h.svc.AdmitToPacu(r.Context(), tenantID, bookingID, theatre.AdmitToPacuRequest{BayLabel: in.BayLabel})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, stay)
+}
+
+// ListPacuStays handles GET /{tenant}/hospital/theatre-bookings/{bookingID}/pacu
+func (h *TheatreHandler) ListPacuStays(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	list, err := h.svc.ListPacuStays(r.Context(), tenantID, bookingID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list pacu stays")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+type dischargeFromPacuRequest struct {
+	Disposition     string `json:"disposition"`
+	MonitoringNotes string `json:"monitoring_notes,omitempty"`
+}
+
+// DischargeFromPacu handles POST /{tenant}/hospital/pacu-stays/{pacuStayID}/discharge
+func (h *TheatreHandler) DischargeFromPacu(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	pacuStayID, err := uuid.Parse(chi.URLParam(r, "pacuStayID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid pacu stay ID")
+		return
+	}
+	var in dischargeFromPacuRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	stay, err := h.svc.DischargeFromPacu(r.Context(), tenantID, pacuStayID, theatre.DischargeFromPacuRequest{
+		Disposition: in.Disposition, MonitoringNotes: in.MonitoringNotes,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, stay)
+}
+
+// ── Operative note ───────────────────────────────────────────────────────────────────────────
+
+type operativeNoteRequest struct {
+	SurgeonID            string   `json:"surgeon_id,omitempty"`
+	ProcedurePerformed   string   `json:"procedure_performed"`
+	Findings             string   `json:"findings,omitempty"`
+	Complications        string   `json:"complications,omitempty"`
+	EstimatedBloodLossML *float64 `json:"estimated_blood_loss_ml,omitempty"`
+	ImplantsUsed         string   `json:"implants_used,omitempty"`
+	SpecimensSent        bool     `json:"specimens_sent,omitempty"`
+	SpecimensDescription string   `json:"specimens_description,omitempty"`
+	PostOpDiagnosis      string   `json:"post_op_diagnosis,omitempty"`
+}
+
+// RecordOperativeNote handles POST /{tenant}/hospital/theatre-bookings/{bookingID}/operative-note
+// (creates on first call, amends on subsequent calls — see theatre.Service.RecordOperativeNote).
+func (h *TheatreHandler) RecordOperativeNote(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	var in operativeNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	surgeonID := parseOptionalUUID(in.SurgeonID)
+	note, err := h.svc.RecordOperativeNote(r.Context(), tenantID, bookingID, theatre.OperativeNoteRequest{
+		SurgeonID: surgeonID, ProcedurePerformed: in.ProcedurePerformed, Findings: in.Findings,
+		Complications: in.Complications, EstimatedBloodLossML: in.EstimatedBloodLossML,
+		ImplantsUsed: in.ImplantsUsed, SpecimensSent: in.SpecimensSent,
+		SpecimensDescription: in.SpecimensDescription, PostOpDiagnosis: in.PostOpDiagnosis,
+		AuthoredBy: currentUserID(r),
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, note)
+}
+
+// GetOperativeNote handles GET /{tenant}/hospital/theatre-bookings/{bookingID}/operative-note
+func (h *TheatreHandler) GetOperativeNote(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	note, err := h.svc.GetOperativeNote(r.Context(), tenantID, bookingID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "no operative note recorded for this booking yet")
+		return
+	}
+	respondJSON(w, http.StatusOK, note)
+}

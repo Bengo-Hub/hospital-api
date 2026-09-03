@@ -783,6 +783,44 @@ var (
 			},
 		},
 	}
+	// OperativeNotesColumns holds the columns for the "operative_notes" table.
+	OperativeNotesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "surgeon_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "procedure_performed", Type: field.TypeString},
+		{Name: "findings", Type: field.TypeString, Nullable: true},
+		{Name: "complications", Type: field.TypeString, Nullable: true},
+		{Name: "estimated_blood_loss_ml", Type: field.TypeFloat64, Nullable: true},
+		{Name: "implants_used", Type: field.TypeString, Nullable: true},
+		{Name: "specimens_sent", Type: field.TypeBool, Default: false},
+		{Name: "specimens_description", Type: field.TypeString, Nullable: true},
+		{Name: "post_op_diagnosis", Type: field.TypeString, Nullable: true},
+		{Name: "authored_by", Type: field.TypeUUID, Nullable: true},
+		{Name: "authored_at", Type: field.TypeTime},
+		{Name: "theatre_booking_id", Type: field.TypeUUID, Unique: true},
+	}
+	// OperativeNotesTable holds the schema information for the "operative_notes" table.
+	OperativeNotesTable = &schema.Table{
+		Name:       "operative_notes",
+		Columns:    OperativeNotesColumns,
+		PrimaryKey: []*schema.Column{OperativeNotesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "operative_notes_theatre_bookings_operative_note",
+				Columns:    []*schema.Column{OperativeNotesColumns[13]},
+				RefColumns: []*schema.Column{TheatreBookingsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "operativenote_tenant_id_theatre_booking_id",
+				Unique:  true,
+				Columns: []*schema.Column{OperativeNotesColumns[1], OperativeNotesColumns[13]},
+			},
+		},
+	}
 	// OutboxEventsColumns holds the columns for the "outbox_events" table.
 	OutboxEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -859,6 +897,40 @@ var (
 				Name:    "outlet_tenant_slug",
 				Unique:  false,
 				Columns: []*schema.Column{OutletsColumns[1]},
+			},
+		},
+	}
+	// PacuStaysColumns holds the columns for the "pacu_stays" table.
+	PacuStaysColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "bay_label", Type: field.TypeString, Nullable: true},
+		{Name: "admitted_at", Type: field.TypeTime},
+		{Name: "discharged_at", Type: field.TypeTime, Nullable: true},
+		{Name: "discharge_disposition", Type: field.TypeEnum, Nullable: true, Enums: []string{"to_ward", "to_icu", "home", "deceased"}},
+		{Name: "monitoring_notes", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "theatre_booking_id", Type: field.TypeUUID},
+	}
+	// PacuStaysTable holds the schema information for the "pacu_stays" table.
+	PacuStaysTable = &schema.Table{
+		Name:       "pacu_stays",
+		Columns:    PacuStaysColumns,
+		PrimaryKey: []*schema.Column{PacuStaysColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "pacu_stays_theatre_bookings_pacu_stays",
+				Columns:    []*schema.Column{PacuStaysColumns[9]},
+				RefColumns: []*schema.Column{TheatreBookingsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pacustay_tenant_id_theatre_booking_id",
+				Unique:  false,
+				Columns: []*schema.Column{PacuStaysColumns[1], PacuStaysColumns[9]},
 			},
 		},
 	}
@@ -1354,6 +1426,41 @@ var (
 			},
 		},
 	}
+	// TheatreStaffAssignmentsColumns holds the columns for the "theatre_staff_assignments" table.
+	TheatreStaffAssignmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "staff_user_id", Type: field.TypeUUID},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"surgeon", "assistant_surgeon", "anaesthetist", "scrub_nurse", "circulating_nurse", "other"}},
+		{Name: "assigned_at", Type: field.TypeTime},
+		{Name: "theatre_booking_id", Type: field.TypeUUID},
+	}
+	// TheatreStaffAssignmentsTable holds the schema information for the "theatre_staff_assignments" table.
+	TheatreStaffAssignmentsTable = &schema.Table{
+		Name:       "theatre_staff_assignments",
+		Columns:    TheatreStaffAssignmentsColumns,
+		PrimaryKey: []*schema.Column{TheatreStaffAssignmentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "theatre_staff_assignments_theatre_bookings_staff_assignments",
+				Columns:    []*schema.Column{TheatreStaffAssignmentsColumns[5]},
+				RefColumns: []*schema.Column{TheatreBookingsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "theatrestaffassignment_tenant_id_theatre_booking_id",
+				Unique:  false,
+				Columns: []*schema.Column{TheatreStaffAssignmentsColumns[1], TheatreStaffAssignmentsColumns[5]},
+			},
+			{
+				Name:    "theatrestaffassignment_tenant_id_staff_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TheatreStaffAssignmentsColumns[1], TheatreStaffAssignmentsColumns[2]},
+			},
+		},
+	}
 	// TriageRecordsColumns holds the columns for the "triage_records" table.
 	TriageRecordsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1631,8 +1738,10 @@ var (
 		LabTestCatalogDefaultsTable,
 		LabTestCatalogEntriesTable,
 		MedicationAdministrationsTable,
+		OperativeNotesTable,
 		OutboxEventsTable,
 		OutletsTable,
+		PacuStaysTable,
 		PatientsTable,
 		PatientAccountsTable,
 		PatientNextOfKinsTable,
@@ -1645,6 +1754,7 @@ var (
 		RolePermissionsTable,
 		TenantsTable,
 		TheatreBookingsTable,
+		TheatreStaffAssignmentsTable,
 		TriageRecordsTable,
 		UserRoleAssignmentsTable,
 		VitalsChartEntriesTable,
@@ -1665,12 +1775,15 @@ func init() {
 	LabOrderLinesTable.ForeignKeys[0].RefTable = LabOrdersTable
 	MedicationAdministrationsTable.ForeignKeys[0].RefTable = AdmissionsTable
 	MedicationAdministrationsTable.ForeignKeys[1].RefTable = PrescriptionLinesTable
+	OperativeNotesTable.ForeignKeys[0].RefTable = TheatreBookingsTable
 	OutletsTable.ForeignKeys[0].RefTable = TenantsTable
+	PacuStaysTable.ForeignKeys[0].RefTable = TheatreBookingsTable
 	PatientVisitsTable.ForeignKeys[0].RefTable = PatientsTable
 	PrescriptionLinesTable.ForeignKeys[0].RefTable = PrescriptionsTable
 	ReferralsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	RolePermissionsTable.ForeignKeys[0].RefTable = HospitalRolesTable
 	RolePermissionsTable.ForeignKeys[1].RefTable = HospitalPermissionsTable
+	TheatreStaffAssignmentsTable.ForeignKeys[0].RefTable = TheatreBookingsTable
 	TriageRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	UserRoleAssignmentsTable.ForeignKeys[0].RefTable = HospitalUsersTable
 	UserRoleAssignmentsTable.ForeignKeys[1].RefTable = HospitalRolesTable

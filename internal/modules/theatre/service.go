@@ -16,8 +16,11 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 )
 
@@ -93,6 +96,53 @@ func (s *Service) hasOverlap(ctx context.Context, tenantID uuid.UUID, room strin
 	return false, nil
 }
 
+// staffBookingConflict reports whether staffUserID (already booked as this booking's surgeon, or
+// via a TheatreStaffAssignment row in ANY blocking role) has an overlapping booking in a
+// DIFFERENT room — the same staff member obviously can't be in two theatres at once. Same-room
+// conflicts are already caught by hasOverlap; this is a pure additive extension covering staff as
+// a secondary resource, per real OR-scheduling practice (mvp-gap-backlog-2026-09-02 Sprint 7.1).
+func (s *Service) staffBookingConflict(ctx context.Context, tenantID, staffUserID uuid.UUID, room string, from time.Time, durationMinutes int, excludeID uuid.UUID) (bool, error) {
+	if staffUserID == uuid.Nil {
+		return false, nil
+	}
+	to := from.Add(time.Duration(durationMinutes) * time.Minute)
+
+	asSurgeon, err := s.client.TheatreBooking.Query().
+		Where(theatrebooking.TenantID(tenantID), theatrebooking.SurgeonID(staffUserID), theatrebooking.StatusNEQ(theatrebooking.StatusCancelled)).
+		All(ctx)
+	if err != nil {
+		return false, fmt.Errorf("theatre: query surgeon bookings: %w", err)
+	}
+	for _, b := range asSurgeon {
+		if b.ID == excludeID || b.TheatreRoom == room {
+			continue // same room already checked by hasOverlap
+		}
+		bTo := b.ScheduledAt.Add(time.Duration(b.DurationMinutes) * time.Minute)
+		if from.Before(bTo) && b.ScheduledAt.Before(to) {
+			return true, nil
+		}
+	}
+
+	assignments, err := s.client.TheatreStaffAssignment.Query().
+		Where(theatrestaffassignment.TenantID(tenantID), theatrestaffassignment.StaffUserID(staffUserID)).
+		WithTheatreBooking().
+		All(ctx)
+	if err != nil {
+		return false, fmt.Errorf("theatre: query staff assignments: %w", err)
+	}
+	for _, a := range assignments {
+		b := a.Edges.TheatreBooking
+		if b == nil || b.ID == excludeID || b.TheatreRoom == room || b.Status == theatrebooking.StatusCancelled {
+			continue
+		}
+		bTo := b.ScheduledAt.Add(time.Duration(b.DurationMinutes) * time.Minute)
+		if from.Before(bTo) && b.ScheduledAt.Before(to) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // CreateBooking schedules a surgery, rejecting a room/time-slot conflict, and posts the procedure
 // fee as a BillableCharge if one is known — starting the booking "awaiting_payment" if the
 // tenant's theatre billing policy requires prepayment (mirrors lab.Service.CreateOrder exactly).
@@ -117,6 +167,15 @@ func (s *Service) CreateBooking(ctx context.Context, tenantID uuid.UUID, req Cre
 	}
 	if conflict {
 		return nil, fmt.Errorf("theatre: %s is already booked for an overlapping time slot", req.TheatreRoom)
+	}
+	if req.SurgeonID != nil {
+		staffConflict, serr := s.staffBookingConflict(ctx, tenantID, *req.SurgeonID, req.TheatreRoom, req.ScheduledAt, duration, uuid.Nil)
+		if serr != nil {
+			return nil, serr
+		}
+		if staffConflict {
+			return nil, fmt.Errorf("theatre: the assigned surgeon is already booked in another theatre for an overlapping time slot")
+		}
 	}
 
 	item := s.theatreCatalogItem(ctx, tenantID)
@@ -206,6 +265,198 @@ func (s *Service) ListSchedule(ctx context.Context, tenantID uuid.UUID, date *ti
 		q = q.Where(theatrebooking.ScheduledAtGTE(start), theatrebooking.ScheduledAtLT(end))
 	}
 	return q.Order(ent.Asc(theatrebooking.FieldScheduledAt)).Limit(200).All(ctx)
+}
+
+// ── Surgical team assignment ────────────────────────────────────────────────────────────────
+
+// AssignStaffRequest is the input to AssignStaff.
+type AssignStaffRequest struct {
+	StaffUserID uuid.UUID
+	Role        string // surgeon|assistant_surgeon|anaesthetist|scrub_nurse|circulating_nurse|other
+}
+
+// AssignStaff adds one staff member to a booking's surgical team, checking the same staff-conflict
+// rule CreateBooking applies to the primary surgeon — a scrub nurse or anaesthetist double-booked
+// across two concurrent theatres is exactly as real a conflict as a double-booked surgeon.
+func (s *Service) AssignStaff(ctx context.Context, tenantID, bookingID uuid.UUID, req AssignStaffRequest) (*ent.TheatreStaffAssignment, error) {
+	if req.StaffUserID == uuid.Nil || req.Role == "" {
+		return nil, fmt.Errorf("theatre: staff_user_id and role are required")
+	}
+	booking, err := s.GetBooking(ctx, tenantID, bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("theatre: booking not found: %w", err)
+	}
+	conflict, err := s.staffBookingConflict(ctx, tenantID, req.StaffUserID, booking.TheatreRoom, booking.ScheduledAt, booking.DurationMinutes, bookingID)
+	if err != nil {
+		return nil, err
+	}
+	if conflict {
+		return nil, fmt.Errorf("theatre: this staff member is already booked in another theatre for an overlapping time slot")
+	}
+	return s.client.TheatreStaffAssignment.Create().
+		SetTenantID(tenantID).
+		SetTheatreBookingID(bookingID).
+		SetStaffUserID(req.StaffUserID).
+		SetRole(theatrestaffassignment.Role(req.Role)).
+		Save(ctx)
+}
+
+// ListStaffAssignments returns a booking's surgical team.
+func (s *Service) ListStaffAssignments(ctx context.Context, tenantID, bookingID uuid.UUID) ([]*ent.TheatreStaffAssignment, error) {
+	return s.client.TheatreStaffAssignment.Query().
+		Where(theatrestaffassignment.TenantID(tenantID), theatrestaffassignment.TheatreBookingID(bookingID)).
+		Order(ent.Asc(theatrestaffassignment.FieldAssignedAt)).
+		All(ctx)
+}
+
+// RemoveStaffAssignment removes one team member from a booking.
+func (s *Service) RemoveStaffAssignment(ctx context.Context, tenantID, assignmentID uuid.UUID) error {
+	n, err := s.client.TheatreStaffAssignment.Delete().
+		Where(theatrestaffassignment.ID(assignmentID), theatrestaffassignment.TenantID(tenantID)).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("theatre: remove staff assignment: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("theatre: staff assignment not found")
+	}
+	return nil
+}
+
+// ── PACU (post-anaesthesia care unit) ───────────────────────────────────────────────────────
+
+// AdmitToPacuRequest is the input to AdmitToPacu.
+type AdmitToPacuRequest struct {
+	BayLabel string
+}
+
+// AdmitToPacu opens a PACU stay for a completed booking — a short, lower-acuity waypoint between
+// the operating room and a ward/home/ICU, deliberately not a reuse of ICUEpisode (see PacuStay's
+// own doc comment).
+func (s *Service) AdmitToPacu(ctx context.Context, tenantID, bookingID uuid.UUID, req AdmitToPacuRequest) (*ent.PacuStay, error) {
+	if _, err := s.GetBooking(ctx, tenantID, bookingID); err != nil {
+		return nil, fmt.Errorf("theatre: booking not found: %w", err)
+	}
+	return s.client.PacuStay.Create().
+		SetTenantID(tenantID).
+		SetTheatreBookingID(bookingID).
+		SetBayLabel(req.BayLabel).
+		Save(ctx)
+}
+
+// DischargeFromPacuRequest is the input to DischargeFromPacu.
+type DischargeFromPacuRequest struct {
+	Disposition     string // to_ward|to_icu|home|deceased
+	MonitoringNotes string
+}
+
+// DischargeFromPacu closes a PACU stay. A to_icu disposition is a workflow signal for the caller
+// to separately start a real ICUEpisode — PACU itself never auto-creates one, since most PACU
+// patients are not critically ill and shouldn't land on the ICU board by default.
+func (s *Service) DischargeFromPacu(ctx context.Context, tenantID, pacuStayID uuid.UUID, req DischargeFromPacuRequest) (*ent.PacuStay, error) {
+	stay, err := s.client.PacuStay.Query().Where(pacustay.ID(pacuStayID), pacustay.TenantID(tenantID)).Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("theatre: pacu stay not found: %w", err)
+	}
+	if stay.DischargedAt != nil {
+		return nil, fmt.Errorf("theatre: pacu stay already discharged")
+	}
+	update := s.client.PacuStay.UpdateOneID(pacuStayID).
+		SetDischargedAt(time.Now()).
+		SetMonitoringNotes(req.MonitoringNotes)
+	if v := pacustay.DischargeDisposition(req.Disposition); v != "" {
+		update = update.SetDischargeDisposition(v)
+	}
+	return update.Save(ctx)
+}
+
+// ListPacuStays returns every PACU stay recorded for a booking (normally at most one, but not
+// enforced — a re-admission to PACU after a complication is a real, if rare, case).
+func (s *Service) ListPacuStays(ctx context.Context, tenantID, bookingID uuid.UUID) ([]*ent.PacuStay, error) {
+	return s.client.PacuStay.Query().
+		Where(pacustay.TenantID(tenantID), pacustay.TheatreBookingID(bookingID)).
+		Order(ent.Desc(pacustay.FieldAdmittedAt)).
+		All(ctx)
+}
+
+// ── Operative note ───────────────────────────────────────────────────────────────────────────
+
+// OperativeNoteRequest is the input to RecordOperativeNote.
+type OperativeNoteRequest struct {
+	SurgeonID            *uuid.UUID
+	ProcedurePerformed   string
+	Findings             string
+	Complications        string
+	EstimatedBloodLossML *float64
+	ImplantsUsed         string
+	SpecimensSent        bool
+	SpecimensDescription string
+	PostOpDiagnosis      string
+	AuthoredBy           uuid.UUID
+}
+
+// RecordOperativeNote creates the structured post-op report for a booking — one-to-one, so a
+// second call for the same booking updates the existing note rather than erroring, letting a
+// surgeon amend it after initial authoring.
+func (s *Service) RecordOperativeNote(ctx context.Context, tenantID, bookingID uuid.UUID, req OperativeNoteRequest) (*ent.OperativeNote, error) {
+	if req.ProcedurePerformed == "" {
+		return nil, fmt.Errorf("theatre: procedure_performed is required")
+	}
+	if _, err := s.GetBooking(ctx, tenantID, bookingID); err != nil {
+		return nil, fmt.Errorf("theatre: booking not found: %w", err)
+	}
+	existing, err := s.client.OperativeNote.Query().
+		Where(operativenote.TenantID(tenantID), operativenote.TheatreBookingID(bookingID)).
+		Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("theatre: check existing operative note: %w", err)
+	}
+
+	if existing != nil {
+		update := s.client.OperativeNote.UpdateOneID(existing.ID).
+			SetProcedurePerformed(req.ProcedurePerformed).
+			SetFindings(req.Findings).
+			SetComplications(req.Complications).
+			SetImplantsUsed(req.ImplantsUsed).
+			SetSpecimensSent(req.SpecimensSent).
+			SetSpecimensDescription(req.SpecimensDescription).
+			SetPostOpDiagnosis(req.PostOpDiagnosis)
+		if req.SurgeonID != nil {
+			update = update.SetSurgeonID(*req.SurgeonID)
+		}
+		if req.EstimatedBloodLossML != nil {
+			update = update.SetEstimatedBloodLossMl(*req.EstimatedBloodLossML)
+		}
+		return update.Save(ctx)
+	}
+
+	create := s.client.OperativeNote.Create().
+		SetTenantID(tenantID).
+		SetTheatreBookingID(bookingID).
+		SetProcedurePerformed(req.ProcedurePerformed).
+		SetFindings(req.Findings).
+		SetComplications(req.Complications).
+		SetImplantsUsed(req.ImplantsUsed).
+		SetSpecimensSent(req.SpecimensSent).
+		SetSpecimensDescription(req.SpecimensDescription).
+		SetPostOpDiagnosis(req.PostOpDiagnosis)
+	if req.SurgeonID != nil {
+		create = create.SetSurgeonID(*req.SurgeonID)
+	}
+	if req.EstimatedBloodLossML != nil {
+		create = create.SetEstimatedBloodLossMl(*req.EstimatedBloodLossML)
+	}
+	if req.AuthoredBy != uuid.Nil {
+		create = create.SetAuthoredBy(req.AuthoredBy)
+	}
+	return create.Save(ctx)
+}
+
+// GetOperativeNote fetches a booking's operative note, if one has been authored yet.
+func (s *Service) GetOperativeNote(ctx context.Context, tenantID, bookingID uuid.UUID) (*ent.OperativeNote, error) {
+	return s.client.OperativeNote.Query().
+		Where(operativenote.TenantID(tenantID), operativenote.TheatreBookingID(bookingID)).
+		Only(ctx)
 }
 
 func (s *Service) chargeForBooking(ctx context.Context, tenantID, bookingID uuid.UUID) (*ent.BillableCharge, error) {

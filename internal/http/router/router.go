@@ -614,6 +614,36 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
 					Put("/theatre-bookings/{bookingID}/equipment", d.Theatre.SetEquipment)
+
+				// Surgical team assignment (Sprint 7.1).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Post("/theatre-bookings/{bookingID}/staff", d.Theatre.AssignStaff)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreView)).
+					Get("/theatre-bookings/{bookingID}/staff", d.Theatre.ListStaffAssignments)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Delete("/theatre-bookings/{bookingID}/staff/{assignmentID}", d.Theatre.RemoveStaffAssignment)
+
+				// PACU (Sprint 7.1).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Post("/theatre-bookings/{bookingID}/pacu", d.Theatre.AdmitToPacu)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreView)).
+					Get("/theatre-bookings/{bookingID}/pacu", d.Theatre.ListPacuStays)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Post("/pacu-stays/{pacuStayID}/discharge", d.Theatre.DischargeFromPacu)
+
+				// Operative note (Sprint 7.1).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Post("/theatre-bookings/{bookingID}/operative-note", d.Theatre.RecordOperativeNote)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreView)).
+					Get("/theatre-bookings/{bookingID}/operative-note", d.Theatre.GetOperativeNote)
 			}
 			if d.ICU != nil {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),

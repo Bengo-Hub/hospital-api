@@ -36,8 +36,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
@@ -50,6 +52,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/rolepermission"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
@@ -103,10 +106,14 @@ type Client struct {
 	LabTestCatalogEntry *LabTestCatalogEntryClient
 	// MedicationAdministration is the client for interacting with the MedicationAdministration builders.
 	MedicationAdministration *MedicationAdministrationClient
+	// OperativeNote is the client for interacting with the OperativeNote builders.
+	OperativeNote *OperativeNoteClient
 	// OutboxEvent is the client for interacting with the OutboxEvent builders.
 	OutboxEvent *OutboxEventClient
 	// Outlet is the client for interacting with the Outlet builders.
 	Outlet *OutletClient
+	// PacuStay is the client for interacting with the PacuStay builders.
+	PacuStay *PacuStayClient
 	// Patient is the client for interacting with the Patient builders.
 	Patient *PatientClient
 	// PatientAccount is the client for interacting with the PatientAccount builders.
@@ -131,6 +138,8 @@ type Client struct {
 	Tenant *TenantClient
 	// TheatreBooking is the client for interacting with the TheatreBooking builders.
 	TheatreBooking *TheatreBookingClient
+	// TheatreStaffAssignment is the client for interacting with the TheatreStaffAssignment builders.
+	TheatreStaffAssignment *TheatreStaffAssignmentClient
 	// TriageRecord is the client for interacting with the TriageRecord builders.
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
@@ -174,8 +183,10 @@ func (c *Client) init() {
 	c.LabTestCatalogDefault = NewLabTestCatalogDefaultClient(c.config)
 	c.LabTestCatalogEntry = NewLabTestCatalogEntryClient(c.config)
 	c.MedicationAdministration = NewMedicationAdministrationClient(c.config)
+	c.OperativeNote = NewOperativeNoteClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.Outlet = NewOutletClient(c.config)
+	c.PacuStay = NewPacuStayClient(c.config)
 	c.Patient = NewPatientClient(c.config)
 	c.PatientAccount = NewPatientAccountClient(c.config)
 	c.PatientNextOfKin = NewPatientNextOfKinClient(c.config)
@@ -188,6 +199,7 @@ func (c *Client) init() {
 	c.RolePermission = NewRolePermissionClient(c.config)
 	c.Tenant = NewTenantClient(c.config)
 	c.TheatreBooking = NewTheatreBookingClient(c.config)
+	c.TheatreStaffAssignment = NewTheatreStaffAssignmentClient(c.config)
 	c.TriageRecord = NewTriageRecordClient(c.config)
 	c.UserRoleAssignment = NewUserRoleAssignmentClient(c.config)
 	c.VitalsChartEntry = NewVitalsChartEntryClient(c.config)
@@ -306,8 +318,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LabTestCatalogDefault:    NewLabTestCatalogDefaultClient(cfg),
 		LabTestCatalogEntry:      NewLabTestCatalogEntryClient(cfg),
 		MedicationAdministration: NewMedicationAdministrationClient(cfg),
+		OperativeNote:            NewOperativeNoteClient(cfg),
 		OutboxEvent:              NewOutboxEventClient(cfg),
 		Outlet:                   NewOutletClient(cfg),
+		PacuStay:                 NewPacuStayClient(cfg),
 		Patient:                  NewPatientClient(cfg),
 		PatientAccount:           NewPatientAccountClient(cfg),
 		PatientNextOfKin:         NewPatientNextOfKinClient(cfg),
@@ -320,6 +334,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		RolePermission:           NewRolePermissionClient(cfg),
 		Tenant:                   NewTenantClient(cfg),
 		TheatreBooking:           NewTheatreBookingClient(cfg),
+		TheatreStaffAssignment:   NewTheatreStaffAssignmentClient(cfg),
 		TriageRecord:             NewTriageRecordClient(cfg),
 		UserRoleAssignment:       NewUserRoleAssignmentClient(cfg),
 		VitalsChartEntry:         NewVitalsChartEntryClient(cfg),
@@ -365,8 +380,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LabTestCatalogDefault:    NewLabTestCatalogDefaultClient(cfg),
 		LabTestCatalogEntry:      NewLabTestCatalogEntryClient(cfg),
 		MedicationAdministration: NewMedicationAdministrationClient(cfg),
+		OperativeNote:            NewOperativeNoteClient(cfg),
 		OutboxEvent:              NewOutboxEventClient(cfg),
 		Outlet:                   NewOutletClient(cfg),
+		PacuStay:                 NewPacuStayClient(cfg),
 		Patient:                  NewPatientClient(cfg),
 		PatientAccount:           NewPatientAccountClient(cfg),
 		PatientNextOfKin:         NewPatientNextOfKinClient(cfg),
@@ -379,6 +396,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		RolePermission:           NewRolePermissionClient(cfg),
 		Tenant:                   NewTenantClient(cfg),
 		TheatreBooking:           NewTheatreBookingClient(cfg),
+		TheatreStaffAssignment:   NewTheatreStaffAssignmentClient(cfg),
 		TriageRecord:             NewTriageRecordClient(cfg),
 		UserRoleAssignment:       NewUserRoleAssignmentClient(cfg),
 		VitalsChartEntry:         NewVitalsChartEntryClient(cfg),
@@ -419,10 +437,11 @@ func (c *Client) Use(hooks ...Hook) {
 		c.DocumentSequence, c.DrugInteractionCheck, c.ExaminationRecord,
 		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.HospitalUserOutlet,
 		c.ICUEpisode, c.LabOrder, c.LabOrderLine, c.LabTestCatalogDefault,
-		c.LabTestCatalogEntry, c.MedicationAdministration, c.OutboxEvent, c.Outlet,
-		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientTransfer,
-		c.PatientVisit, c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
-		c.RolePermission, c.Tenant, c.TheatreBooking, c.TriageRecord,
+		c.LabTestCatalogEntry, c.MedicationAdministration, c.OperativeNote,
+		c.OutboxEvent, c.Outlet, c.PacuStay, c.Patient, c.PatientAccount,
+		c.PatientNextOfKin, c.PatientTransfer, c.PatientVisit, c.Prescription,
+		c.PrescriptionLine, c.RbacAuditLog, c.Referral, c.RolePermission, c.Tenant,
+		c.TheatreBooking, c.TheatreStaffAssignment, c.TriageRecord,
 		c.UserRoleAssignment, c.VitalsChartEntry, c.WalkInSale, c.Ward,
 		c.WardRoundNote,
 	} {
@@ -439,10 +458,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.DocumentSequence, c.DrugInteractionCheck, c.ExaminationRecord,
 		c.HospitalPermission, c.HospitalRole, c.HospitalUser, c.HospitalUserOutlet,
 		c.ICUEpisode, c.LabOrder, c.LabOrderLine, c.LabTestCatalogDefault,
-		c.LabTestCatalogEntry, c.MedicationAdministration, c.OutboxEvent, c.Outlet,
-		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientTransfer,
-		c.PatientVisit, c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
-		c.RolePermission, c.Tenant, c.TheatreBooking, c.TriageRecord,
+		c.LabTestCatalogEntry, c.MedicationAdministration, c.OperativeNote,
+		c.OutboxEvent, c.Outlet, c.PacuStay, c.Patient, c.PatientAccount,
+		c.PatientNextOfKin, c.PatientTransfer, c.PatientVisit, c.Prescription,
+		c.PrescriptionLine, c.RbacAuditLog, c.Referral, c.RolePermission, c.Tenant,
+		c.TheatreBooking, c.TheatreStaffAssignment, c.TriageRecord,
 		c.UserRoleAssignment, c.VitalsChartEntry, c.WalkInSale, c.Ward,
 		c.WardRoundNote,
 	} {
@@ -493,10 +513,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.LabTestCatalogEntry.mutate(ctx, m)
 	case *MedicationAdministrationMutation:
 		return c.MedicationAdministration.mutate(ctx, m)
+	case *OperativeNoteMutation:
+		return c.OperativeNote.mutate(ctx, m)
 	case *OutboxEventMutation:
 		return c.OutboxEvent.mutate(ctx, m)
 	case *OutletMutation:
 		return c.Outlet.mutate(ctx, m)
+	case *PacuStayMutation:
+		return c.PacuStay.mutate(ctx, m)
 	case *PatientMutation:
 		return c.Patient.mutate(ctx, m)
 	case *PatientAccountMutation:
@@ -521,6 +545,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Tenant.mutate(ctx, m)
 	case *TheatreBookingMutation:
 		return c.TheatreBooking.mutate(ctx, m)
+	case *TheatreStaffAssignmentMutation:
+		return c.TheatreStaffAssignment.mutate(ctx, m)
 	case *TriageRecordMutation:
 		return c.TriageRecord.mutate(ctx, m)
 	case *UserRoleAssignmentMutation:
@@ -3534,6 +3560,155 @@ func (c *MedicationAdministrationClient) mutate(ctx context.Context, m *Medicati
 	}
 }
 
+// OperativeNoteClient is a client for the OperativeNote schema.
+type OperativeNoteClient struct {
+	config
+}
+
+// NewOperativeNoteClient returns a client for the OperativeNote from the given config.
+func NewOperativeNoteClient(c config) *OperativeNoteClient {
+	return &OperativeNoteClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `operativenote.Hooks(f(g(h())))`.
+func (c *OperativeNoteClient) Use(hooks ...Hook) {
+	c.hooks.OperativeNote = append(c.hooks.OperativeNote, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `operativenote.Intercept(f(g(h())))`.
+func (c *OperativeNoteClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OperativeNote = append(c.inters.OperativeNote, interceptors...)
+}
+
+// Create returns a builder for creating a OperativeNote entity.
+func (c *OperativeNoteClient) Create() *OperativeNoteCreate {
+	mutation := newOperativeNoteMutation(c.config, OpCreate)
+	return &OperativeNoteCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OperativeNote entities.
+func (c *OperativeNoteClient) CreateBulk(builders ...*OperativeNoteCreate) *OperativeNoteCreateBulk {
+	return &OperativeNoteCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OperativeNoteClient) MapCreateBulk(slice any, setFunc func(*OperativeNoteCreate, int)) *OperativeNoteCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OperativeNoteCreateBulk{err: fmt.Errorf("calling to OperativeNoteClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OperativeNoteCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OperativeNoteCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OperativeNote.
+func (c *OperativeNoteClient) Update() *OperativeNoteUpdate {
+	mutation := newOperativeNoteMutation(c.config, OpUpdate)
+	return &OperativeNoteUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OperativeNoteClient) UpdateOne(_m *OperativeNote) *OperativeNoteUpdateOne {
+	mutation := newOperativeNoteMutation(c.config, OpUpdateOne, withOperativeNote(_m))
+	return &OperativeNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OperativeNoteClient) UpdateOneID(id uuid.UUID) *OperativeNoteUpdateOne {
+	mutation := newOperativeNoteMutation(c.config, OpUpdateOne, withOperativeNoteID(id))
+	return &OperativeNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OperativeNote.
+func (c *OperativeNoteClient) Delete() *OperativeNoteDelete {
+	mutation := newOperativeNoteMutation(c.config, OpDelete)
+	return &OperativeNoteDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OperativeNoteClient) DeleteOne(_m *OperativeNote) *OperativeNoteDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OperativeNoteClient) DeleteOneID(id uuid.UUID) *OperativeNoteDeleteOne {
+	builder := c.Delete().Where(operativenote.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OperativeNoteDeleteOne{builder}
+}
+
+// Query returns a query builder for OperativeNote.
+func (c *OperativeNoteClient) Query() *OperativeNoteQuery {
+	return &OperativeNoteQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOperativeNote},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OperativeNote entity by its id.
+func (c *OperativeNoteClient) Get(ctx context.Context, id uuid.UUID) (*OperativeNote, error) {
+	return c.Query().Where(operativenote.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OperativeNoteClient) GetX(ctx context.Context, id uuid.UUID) *OperativeNote {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTheatreBooking queries the theatre_booking edge of a OperativeNote.
+func (c *OperativeNoteClient) QueryTheatreBooking(_m *OperativeNote) *TheatreBookingQuery {
+	query := (&TheatreBookingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(operativenote.Table, operativenote.FieldID, id),
+			sqlgraph.To(theatrebooking.Table, theatrebooking.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, operativenote.TheatreBookingTable, operativenote.TheatreBookingColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OperativeNoteClient) Hooks() []Hook {
+	return c.hooks.OperativeNote
+}
+
+// Interceptors returns the client interceptors.
+func (c *OperativeNoteClient) Interceptors() []Interceptor {
+	return c.inters.OperativeNote
+}
+
+func (c *OperativeNoteClient) mutate(ctx context.Context, m *OperativeNoteMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OperativeNoteCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OperativeNoteUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OperativeNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OperativeNoteDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OperativeNote mutation op: %q", m.Op())
+	}
+}
+
 // OutboxEventClient is a client for the OutboxEvent schema.
 type OutboxEventClient struct {
 	config
@@ -3813,6 +3988,155 @@ func (c *OutletClient) mutate(ctx context.Context, m *OutletMutation) (Value, er
 		return (&OutletDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Outlet mutation op: %q", m.Op())
+	}
+}
+
+// PacuStayClient is a client for the PacuStay schema.
+type PacuStayClient struct {
+	config
+}
+
+// NewPacuStayClient returns a client for the PacuStay from the given config.
+func NewPacuStayClient(c config) *PacuStayClient {
+	return &PacuStayClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pacustay.Hooks(f(g(h())))`.
+func (c *PacuStayClient) Use(hooks ...Hook) {
+	c.hooks.PacuStay = append(c.hooks.PacuStay, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `pacustay.Intercept(f(g(h())))`.
+func (c *PacuStayClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PacuStay = append(c.inters.PacuStay, interceptors...)
+}
+
+// Create returns a builder for creating a PacuStay entity.
+func (c *PacuStayClient) Create() *PacuStayCreate {
+	mutation := newPacuStayMutation(c.config, OpCreate)
+	return &PacuStayCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PacuStay entities.
+func (c *PacuStayClient) CreateBulk(builders ...*PacuStayCreate) *PacuStayCreateBulk {
+	return &PacuStayCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PacuStayClient) MapCreateBulk(slice any, setFunc func(*PacuStayCreate, int)) *PacuStayCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PacuStayCreateBulk{err: fmt.Errorf("calling to PacuStayClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PacuStayCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PacuStayCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PacuStay.
+func (c *PacuStayClient) Update() *PacuStayUpdate {
+	mutation := newPacuStayMutation(c.config, OpUpdate)
+	return &PacuStayUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PacuStayClient) UpdateOne(_m *PacuStay) *PacuStayUpdateOne {
+	mutation := newPacuStayMutation(c.config, OpUpdateOne, withPacuStay(_m))
+	return &PacuStayUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PacuStayClient) UpdateOneID(id uuid.UUID) *PacuStayUpdateOne {
+	mutation := newPacuStayMutation(c.config, OpUpdateOne, withPacuStayID(id))
+	return &PacuStayUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PacuStay.
+func (c *PacuStayClient) Delete() *PacuStayDelete {
+	mutation := newPacuStayMutation(c.config, OpDelete)
+	return &PacuStayDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PacuStayClient) DeleteOne(_m *PacuStay) *PacuStayDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PacuStayClient) DeleteOneID(id uuid.UUID) *PacuStayDeleteOne {
+	builder := c.Delete().Where(pacustay.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PacuStayDeleteOne{builder}
+}
+
+// Query returns a query builder for PacuStay.
+func (c *PacuStayClient) Query() *PacuStayQuery {
+	return &PacuStayQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePacuStay},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PacuStay entity by its id.
+func (c *PacuStayClient) Get(ctx context.Context, id uuid.UUID) (*PacuStay, error) {
+	return c.Query().Where(pacustay.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PacuStayClient) GetX(ctx context.Context, id uuid.UUID) *PacuStay {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTheatreBooking queries the theatre_booking edge of a PacuStay.
+func (c *PacuStayClient) QueryTheatreBooking(_m *PacuStay) *TheatreBookingQuery {
+	query := (&TheatreBookingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pacustay.Table, pacustay.FieldID, id),
+			sqlgraph.To(theatrebooking.Table, theatrebooking.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, pacustay.TheatreBookingTable, pacustay.TheatreBookingColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PacuStayClient) Hooks() []Hook {
+	return c.hooks.PacuStay
+}
+
+// Interceptors returns the client interceptors.
+func (c *PacuStayClient) Interceptors() []Interceptor {
+	return c.inters.PacuStay
+}
+
+func (c *PacuStayClient) mutate(ctx context.Context, m *PacuStayMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PacuStayCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PacuStayUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PacuStayUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PacuStayDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PacuStay mutation op: %q", m.Op())
 	}
 }
 
@@ -5659,6 +5983,54 @@ func (c *TheatreBookingClient) GetX(ctx context.Context, id uuid.UUID) *TheatreB
 	return obj
 }
 
+// QueryStaffAssignments queries the staff_assignments edge of a TheatreBooking.
+func (c *TheatreBookingClient) QueryStaffAssignments(_m *TheatreBooking) *TheatreStaffAssignmentQuery {
+	query := (&TheatreStaffAssignmentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrebooking.Table, theatrebooking.FieldID, id),
+			sqlgraph.To(theatrestaffassignment.Table, theatrestaffassignment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, theatrebooking.StaffAssignmentsTable, theatrebooking.StaffAssignmentsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPacuStays queries the pacu_stays edge of a TheatreBooking.
+func (c *TheatreBookingClient) QueryPacuStays(_m *TheatreBooking) *PacuStayQuery {
+	query := (&PacuStayClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrebooking.Table, theatrebooking.FieldID, id),
+			sqlgraph.To(pacustay.Table, pacustay.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, theatrebooking.PacuStaysTable, theatrebooking.PacuStaysColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOperativeNote queries the operative_note edge of a TheatreBooking.
+func (c *TheatreBookingClient) QueryOperativeNote(_m *TheatreBooking) *OperativeNoteQuery {
+	query := (&OperativeNoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrebooking.Table, theatrebooking.FieldID, id),
+			sqlgraph.To(operativenote.Table, operativenote.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, theatrebooking.OperativeNoteTable, theatrebooking.OperativeNoteColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TheatreBookingClient) Hooks() []Hook {
 	return c.hooks.TheatreBooking
@@ -5681,6 +6053,155 @@ func (c *TheatreBookingClient) mutate(ctx context.Context, m *TheatreBookingMuta
 		return (&TheatreBookingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown TheatreBooking mutation op: %q", m.Op())
+	}
+}
+
+// TheatreStaffAssignmentClient is a client for the TheatreStaffAssignment schema.
+type TheatreStaffAssignmentClient struct {
+	config
+}
+
+// NewTheatreStaffAssignmentClient returns a client for the TheatreStaffAssignment from the given config.
+func NewTheatreStaffAssignmentClient(c config) *TheatreStaffAssignmentClient {
+	return &TheatreStaffAssignmentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `theatrestaffassignment.Hooks(f(g(h())))`.
+func (c *TheatreStaffAssignmentClient) Use(hooks ...Hook) {
+	c.hooks.TheatreStaffAssignment = append(c.hooks.TheatreStaffAssignment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `theatrestaffassignment.Intercept(f(g(h())))`.
+func (c *TheatreStaffAssignmentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TheatreStaffAssignment = append(c.inters.TheatreStaffAssignment, interceptors...)
+}
+
+// Create returns a builder for creating a TheatreStaffAssignment entity.
+func (c *TheatreStaffAssignmentClient) Create() *TheatreStaffAssignmentCreate {
+	mutation := newTheatreStaffAssignmentMutation(c.config, OpCreate)
+	return &TheatreStaffAssignmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TheatreStaffAssignment entities.
+func (c *TheatreStaffAssignmentClient) CreateBulk(builders ...*TheatreStaffAssignmentCreate) *TheatreStaffAssignmentCreateBulk {
+	return &TheatreStaffAssignmentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TheatreStaffAssignmentClient) MapCreateBulk(slice any, setFunc func(*TheatreStaffAssignmentCreate, int)) *TheatreStaffAssignmentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TheatreStaffAssignmentCreateBulk{err: fmt.Errorf("calling to TheatreStaffAssignmentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TheatreStaffAssignmentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TheatreStaffAssignmentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TheatreStaffAssignment.
+func (c *TheatreStaffAssignmentClient) Update() *TheatreStaffAssignmentUpdate {
+	mutation := newTheatreStaffAssignmentMutation(c.config, OpUpdate)
+	return &TheatreStaffAssignmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TheatreStaffAssignmentClient) UpdateOne(_m *TheatreStaffAssignment) *TheatreStaffAssignmentUpdateOne {
+	mutation := newTheatreStaffAssignmentMutation(c.config, OpUpdateOne, withTheatreStaffAssignment(_m))
+	return &TheatreStaffAssignmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TheatreStaffAssignmentClient) UpdateOneID(id uuid.UUID) *TheatreStaffAssignmentUpdateOne {
+	mutation := newTheatreStaffAssignmentMutation(c.config, OpUpdateOne, withTheatreStaffAssignmentID(id))
+	return &TheatreStaffAssignmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TheatreStaffAssignment.
+func (c *TheatreStaffAssignmentClient) Delete() *TheatreStaffAssignmentDelete {
+	mutation := newTheatreStaffAssignmentMutation(c.config, OpDelete)
+	return &TheatreStaffAssignmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TheatreStaffAssignmentClient) DeleteOne(_m *TheatreStaffAssignment) *TheatreStaffAssignmentDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TheatreStaffAssignmentClient) DeleteOneID(id uuid.UUID) *TheatreStaffAssignmentDeleteOne {
+	builder := c.Delete().Where(theatrestaffassignment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TheatreStaffAssignmentDeleteOne{builder}
+}
+
+// Query returns a query builder for TheatreStaffAssignment.
+func (c *TheatreStaffAssignmentClient) Query() *TheatreStaffAssignmentQuery {
+	return &TheatreStaffAssignmentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTheatreStaffAssignment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TheatreStaffAssignment entity by its id.
+func (c *TheatreStaffAssignmentClient) Get(ctx context.Context, id uuid.UUID) (*TheatreStaffAssignment, error) {
+	return c.Query().Where(theatrestaffassignment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TheatreStaffAssignmentClient) GetX(ctx context.Context, id uuid.UUID) *TheatreStaffAssignment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTheatreBooking queries the theatre_booking edge of a TheatreStaffAssignment.
+func (c *TheatreStaffAssignmentClient) QueryTheatreBooking(_m *TheatreStaffAssignment) *TheatreBookingQuery {
+	query := (&TheatreBookingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(theatrestaffassignment.Table, theatrestaffassignment.FieldID, id),
+			sqlgraph.To(theatrebooking.Table, theatrebooking.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, theatrestaffassignment.TheatreBookingTable, theatrestaffassignment.TheatreBookingColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TheatreStaffAssignmentClient) Hooks() []Hook {
+	return c.hooks.TheatreStaffAssignment
+}
+
+// Interceptors returns the client interceptors.
+func (c *TheatreStaffAssignmentClient) Interceptors() []Interceptor {
+	return c.inters.TheatreStaffAssignment
+}
+
+func (c *TheatreStaffAssignmentClient) mutate(ctx context.Context, m *TheatreStaffAssignmentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TheatreStaffAssignmentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TheatreStaffAssignmentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TheatreStaffAssignmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TheatreStaffAssignmentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TheatreStaffAssignment mutation op: %q", m.Op())
 	}
 }
 
@@ -6602,11 +7123,11 @@ type (
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
 		HospitalUser, HospitalUserOutlet, ICUEpisode, LabOrder, LabOrderLine,
 		LabTestCatalogDefault, LabTestCatalogEntry, MedicationAdministration,
-		OutboxEvent, Outlet, Patient, PatientAccount, PatientNextOfKin,
-		PatientTransfer, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
-		Referral, RolePermission, Tenant, TheatreBooking, TriageRecord,
-		UserRoleAssignment, VitalsChartEntry, WalkInSale, Ward,
-		WardRoundNote []ent.Hook
+		OperativeNote, OutboxEvent, Outlet, PacuStay, Patient, PatientAccount,
+		PatientNextOfKin, PatientTransfer, PatientVisit, Prescription,
+		PrescriptionLine, RbacAuditLog, Referral, RolePermission, Tenant,
+		TheatreBooking, TheatreStaffAssignment, TriageRecord, UserRoleAssignment,
+		VitalsChartEntry, WalkInSale, Ward, WardRoundNote []ent.Hook
 	}
 	inters struct {
 		Admission, Bed, BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
@@ -6614,10 +7135,10 @@ type (
 		DrugInteractionCheck, ExaminationRecord, HospitalPermission, HospitalRole,
 		HospitalUser, HospitalUserOutlet, ICUEpisode, LabOrder, LabOrderLine,
 		LabTestCatalogDefault, LabTestCatalogEntry, MedicationAdministration,
-		OutboxEvent, Outlet, Patient, PatientAccount, PatientNextOfKin,
-		PatientTransfer, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
-		Referral, RolePermission, Tenant, TheatreBooking, TriageRecord,
-		UserRoleAssignment, VitalsChartEntry, WalkInSale, Ward,
-		WardRoundNote []ent.Interceptor
+		OperativeNote, OutboxEvent, Outlet, PacuStay, Patient, PatientAccount,
+		PatientNextOfKin, PatientTransfer, PatientVisit, Prescription,
+		PrescriptionLine, RbacAuditLog, Referral, RolePermission, Tenant,
+		TheatreBooking, TheatreStaffAssignment, TriageRecord, UserRoleAssignment,
+		VitalsChartEntry, WalkInSale, Ward, WardRoundNote []ent.Interceptor
 	}
 )

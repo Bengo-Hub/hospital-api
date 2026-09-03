@@ -12,8 +12,11 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/google/uuid"
 )
 
@@ -306,9 +309,106 @@ func (_u *TheatreBookingUpdate) SetUpdatedAt(v time.Time) *TheatreBookingUpdate 
 	return _u
 }
 
+// AddStaffAssignmentIDs adds the "staff_assignments" edge to the TheatreStaffAssignment entity by IDs.
+func (_u *TheatreBookingUpdate) AddStaffAssignmentIDs(ids ...uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.AddStaffAssignmentIDs(ids...)
+	return _u
+}
+
+// AddStaffAssignments adds the "staff_assignments" edges to the TheatreStaffAssignment entity.
+func (_u *TheatreBookingUpdate) AddStaffAssignments(v ...*TheatreStaffAssignment) *TheatreBookingUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddStaffAssignmentIDs(ids...)
+}
+
+// AddPacuStayIDs adds the "pacu_stays" edge to the PacuStay entity by IDs.
+func (_u *TheatreBookingUpdate) AddPacuStayIDs(ids ...uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.AddPacuStayIDs(ids...)
+	return _u
+}
+
+// AddPacuStays adds the "pacu_stays" edges to the PacuStay entity.
+func (_u *TheatreBookingUpdate) AddPacuStays(v ...*PacuStay) *TheatreBookingUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPacuStayIDs(ids...)
+}
+
+// SetOperativeNoteID sets the "operative_note" edge to the OperativeNote entity by ID.
+func (_u *TheatreBookingUpdate) SetOperativeNoteID(id uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.SetOperativeNoteID(id)
+	return _u
+}
+
+// SetNillableOperativeNoteID sets the "operative_note" edge to the OperativeNote entity by ID if the given value is not nil.
+func (_u *TheatreBookingUpdate) SetNillableOperativeNoteID(id *uuid.UUID) *TheatreBookingUpdate {
+	if id != nil {
+		_u = _u.SetOperativeNoteID(*id)
+	}
+	return _u
+}
+
+// SetOperativeNote sets the "operative_note" edge to the OperativeNote entity.
+func (_u *TheatreBookingUpdate) SetOperativeNote(v *OperativeNote) *TheatreBookingUpdate {
+	return _u.SetOperativeNoteID(v.ID)
+}
+
 // Mutation returns the TheatreBookingMutation object of the builder.
 func (_u *TheatreBookingUpdate) Mutation() *TheatreBookingMutation {
 	return _u.mutation
+}
+
+// ClearStaffAssignments clears all "staff_assignments" edges to the TheatreStaffAssignment entity.
+func (_u *TheatreBookingUpdate) ClearStaffAssignments() *TheatreBookingUpdate {
+	_u.mutation.ClearStaffAssignments()
+	return _u
+}
+
+// RemoveStaffAssignmentIDs removes the "staff_assignments" edge to TheatreStaffAssignment entities by IDs.
+func (_u *TheatreBookingUpdate) RemoveStaffAssignmentIDs(ids ...uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.RemoveStaffAssignmentIDs(ids...)
+	return _u
+}
+
+// RemoveStaffAssignments removes "staff_assignments" edges to TheatreStaffAssignment entities.
+func (_u *TheatreBookingUpdate) RemoveStaffAssignments(v ...*TheatreStaffAssignment) *TheatreBookingUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveStaffAssignmentIDs(ids...)
+}
+
+// ClearPacuStays clears all "pacu_stays" edges to the PacuStay entity.
+func (_u *TheatreBookingUpdate) ClearPacuStays() *TheatreBookingUpdate {
+	_u.mutation.ClearPacuStays()
+	return _u
+}
+
+// RemovePacuStayIDs removes the "pacu_stays" edge to PacuStay entities by IDs.
+func (_u *TheatreBookingUpdate) RemovePacuStayIDs(ids ...uuid.UUID) *TheatreBookingUpdate {
+	_u.mutation.RemovePacuStayIDs(ids...)
+	return _u
+}
+
+// RemovePacuStays removes "pacu_stays" edges to PacuStay entities.
+func (_u *TheatreBookingUpdate) RemovePacuStays(v ...*PacuStay) *TheatreBookingUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePacuStayIDs(ids...)
+}
+
+// ClearOperativeNote clears the "operative_note" edge to the OperativeNote entity.
+func (_u *TheatreBookingUpdate) ClearOperativeNote() *TheatreBookingUpdate {
+	_u.mutation.ClearOperativeNote()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -461,6 +561,125 @@ func (_u *TheatreBookingUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(theatrebooking.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.StaffAssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedStaffAssignmentsIDs(); len(nodes) > 0 && !_u.mutation.StaffAssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.StaffAssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PacuStaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPacuStaysIDs(); len(nodes) > 0 && !_u.mutation.PacuStaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PacuStaysIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OperativeNoteCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   theatrebooking.OperativeNoteTable,
+			Columns: []string{theatrebooking.OperativeNoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(operativenote.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OperativeNoteIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   theatrebooking.OperativeNoteTable,
+			Columns: []string{theatrebooking.OperativeNoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(operativenote.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -758,9 +977,106 @@ func (_u *TheatreBookingUpdateOne) SetUpdatedAt(v time.Time) *TheatreBookingUpda
 	return _u
 }
 
+// AddStaffAssignmentIDs adds the "staff_assignments" edge to the TheatreStaffAssignment entity by IDs.
+func (_u *TheatreBookingUpdateOne) AddStaffAssignmentIDs(ids ...uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.AddStaffAssignmentIDs(ids...)
+	return _u
+}
+
+// AddStaffAssignments adds the "staff_assignments" edges to the TheatreStaffAssignment entity.
+func (_u *TheatreBookingUpdateOne) AddStaffAssignments(v ...*TheatreStaffAssignment) *TheatreBookingUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddStaffAssignmentIDs(ids...)
+}
+
+// AddPacuStayIDs adds the "pacu_stays" edge to the PacuStay entity by IDs.
+func (_u *TheatreBookingUpdateOne) AddPacuStayIDs(ids ...uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.AddPacuStayIDs(ids...)
+	return _u
+}
+
+// AddPacuStays adds the "pacu_stays" edges to the PacuStay entity.
+func (_u *TheatreBookingUpdateOne) AddPacuStays(v ...*PacuStay) *TheatreBookingUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPacuStayIDs(ids...)
+}
+
+// SetOperativeNoteID sets the "operative_note" edge to the OperativeNote entity by ID.
+func (_u *TheatreBookingUpdateOne) SetOperativeNoteID(id uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.SetOperativeNoteID(id)
+	return _u
+}
+
+// SetNillableOperativeNoteID sets the "operative_note" edge to the OperativeNote entity by ID if the given value is not nil.
+func (_u *TheatreBookingUpdateOne) SetNillableOperativeNoteID(id *uuid.UUID) *TheatreBookingUpdateOne {
+	if id != nil {
+		_u = _u.SetOperativeNoteID(*id)
+	}
+	return _u
+}
+
+// SetOperativeNote sets the "operative_note" edge to the OperativeNote entity.
+func (_u *TheatreBookingUpdateOne) SetOperativeNote(v *OperativeNote) *TheatreBookingUpdateOne {
+	return _u.SetOperativeNoteID(v.ID)
+}
+
 // Mutation returns the TheatreBookingMutation object of the builder.
 func (_u *TheatreBookingUpdateOne) Mutation() *TheatreBookingMutation {
 	return _u.mutation
+}
+
+// ClearStaffAssignments clears all "staff_assignments" edges to the TheatreStaffAssignment entity.
+func (_u *TheatreBookingUpdateOne) ClearStaffAssignments() *TheatreBookingUpdateOne {
+	_u.mutation.ClearStaffAssignments()
+	return _u
+}
+
+// RemoveStaffAssignmentIDs removes the "staff_assignments" edge to TheatreStaffAssignment entities by IDs.
+func (_u *TheatreBookingUpdateOne) RemoveStaffAssignmentIDs(ids ...uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.RemoveStaffAssignmentIDs(ids...)
+	return _u
+}
+
+// RemoveStaffAssignments removes "staff_assignments" edges to TheatreStaffAssignment entities.
+func (_u *TheatreBookingUpdateOne) RemoveStaffAssignments(v ...*TheatreStaffAssignment) *TheatreBookingUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveStaffAssignmentIDs(ids...)
+}
+
+// ClearPacuStays clears all "pacu_stays" edges to the PacuStay entity.
+func (_u *TheatreBookingUpdateOne) ClearPacuStays() *TheatreBookingUpdateOne {
+	_u.mutation.ClearPacuStays()
+	return _u
+}
+
+// RemovePacuStayIDs removes the "pacu_stays" edge to PacuStay entities by IDs.
+func (_u *TheatreBookingUpdateOne) RemovePacuStayIDs(ids ...uuid.UUID) *TheatreBookingUpdateOne {
+	_u.mutation.RemovePacuStayIDs(ids...)
+	return _u
+}
+
+// RemovePacuStays removes "pacu_stays" edges to PacuStay entities.
+func (_u *TheatreBookingUpdateOne) RemovePacuStays(v ...*PacuStay) *TheatreBookingUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePacuStayIDs(ids...)
+}
+
+// ClearOperativeNote clears the "operative_note" edge to the OperativeNote entity.
+func (_u *TheatreBookingUpdateOne) ClearOperativeNote() *TheatreBookingUpdateOne {
+	_u.mutation.ClearOperativeNote()
+	return _u
 }
 
 // Where appends a list predicates to the TheatreBookingUpdate builder.
@@ -943,6 +1259,125 @@ func (_u *TheatreBookingUpdateOne) sqlSave(ctx context.Context) (_node *TheatreB
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(theatrebooking.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.StaffAssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedStaffAssignmentsIDs(); len(nodes) > 0 && !_u.mutation.StaffAssignmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.StaffAssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PacuStaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPacuStaysIDs(); len(nodes) > 0 && !_u.mutation.PacuStaysCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PacuStaysIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OperativeNoteCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   theatrebooking.OperativeNoteTable,
+			Columns: []string{theatrebooking.OperativeNoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(operativenote.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OperativeNoteIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   theatrebooking.OperativeNoteTable,
+			Columns: []string{theatrebooking.OperativeNoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(operativenote.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &TheatreBooking{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -12,7 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/google/uuid"
 )
 
@@ -216,6 +219,55 @@ func (_c *TheatreBookingCreate) SetNillableID(v *uuid.UUID) *TheatreBookingCreat
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// AddStaffAssignmentIDs adds the "staff_assignments" edge to the TheatreStaffAssignment entity by IDs.
+func (_c *TheatreBookingCreate) AddStaffAssignmentIDs(ids ...uuid.UUID) *TheatreBookingCreate {
+	_c.mutation.AddStaffAssignmentIDs(ids...)
+	return _c
+}
+
+// AddStaffAssignments adds the "staff_assignments" edges to the TheatreStaffAssignment entity.
+func (_c *TheatreBookingCreate) AddStaffAssignments(v ...*TheatreStaffAssignment) *TheatreBookingCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddStaffAssignmentIDs(ids...)
+}
+
+// AddPacuStayIDs adds the "pacu_stays" edge to the PacuStay entity by IDs.
+func (_c *TheatreBookingCreate) AddPacuStayIDs(ids ...uuid.UUID) *TheatreBookingCreate {
+	_c.mutation.AddPacuStayIDs(ids...)
+	return _c
+}
+
+// AddPacuStays adds the "pacu_stays" edges to the PacuStay entity.
+func (_c *TheatreBookingCreate) AddPacuStays(v ...*PacuStay) *TheatreBookingCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPacuStayIDs(ids...)
+}
+
+// SetOperativeNoteID sets the "operative_note" edge to the OperativeNote entity by ID.
+func (_c *TheatreBookingCreate) SetOperativeNoteID(id uuid.UUID) *TheatreBookingCreate {
+	_c.mutation.SetOperativeNoteID(id)
+	return _c
+}
+
+// SetNillableOperativeNoteID sets the "operative_note" edge to the OperativeNote entity by ID if the given value is not nil.
+func (_c *TheatreBookingCreate) SetNillableOperativeNoteID(id *uuid.UUID) *TheatreBookingCreate {
+	if id != nil {
+		_c = _c.SetOperativeNoteID(*id)
+	}
+	return _c
+}
+
+// SetOperativeNote sets the "operative_note" edge to the OperativeNote entity.
+func (_c *TheatreBookingCreate) SetOperativeNote(v *OperativeNote) *TheatreBookingCreate {
+	return _c.SetOperativeNoteID(v.ID)
 }
 
 // Mutation returns the TheatreBookingMutation object of the builder.
@@ -440,6 +492,54 @@ func (_c *TheatreBookingCreate) createSpec() (*TheatreBooking, *sqlgraph.CreateS
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(theatrebooking.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := _c.mutation.StaffAssignmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.StaffAssignmentsTable,
+			Columns: []string{theatrebooking.StaffAssignmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(theatrestaffassignment.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PacuStaysIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   theatrebooking.PacuStaysTable,
+			Columns: []string{theatrebooking.PacuStaysColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pacustay.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OperativeNoteIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   theatrebooking.OperativeNoteTable,
+			Columns: []string{theatrebooking.OperativeNoteColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(operativenote.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

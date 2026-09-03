@@ -66,11 +66,17 @@ type LabTestCatalogEntry func(*sql.Selector)
 // MedicationAdministration is the predicate function for medicationadministration builders.
 type MedicationAdministration func(*sql.Selector)
 
+// OperativeNote is the predicate function for operativenote builders.
+type OperativeNote func(*sql.Selector)
+
 // OutboxEvent is the predicate function for outboxevent builders.
 type OutboxEvent func(*sql.Selector)
 
 // Outlet is the predicate function for outlet builders.
 type Outlet func(*sql.Selector)
+
+// PacuStay is the predicate function for pacustay builders.
+type PacuStay func(*sql.Selector)
 
 // Patient is the predicate function for patient builders.
 type Patient func(*sql.Selector)
@@ -107,6 +113,9 @@ type Tenant func(*sql.Selector)
 
 // TheatreBooking is the predicate function for theatrebooking builders.
 type TheatreBooking func(*sql.Selector)
+
+// TheatreStaffAssignment is the predicate function for theatrestaffassignment builders.
+type TheatreStaffAssignment func(*sql.Selector)
 
 // TriageRecord is the predicate function for triagerecord builders.
 type TriageRecord func(*sql.Selector)

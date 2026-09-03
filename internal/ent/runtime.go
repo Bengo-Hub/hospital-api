@@ -25,8 +25,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogdefault"
 	"github.com/bengobox/hospital-service/internal/ent/labtestcatalogentry"
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
+	"github.com/bengobox/hospital-service/internal/ent/operativenote"
 	"github.com/bengobox/hospital-service/internal/ent/outboxevent"
 	"github.com/bengobox/hospital-service/internal/ent/outlet"
+	"github.com/bengobox/hospital-service/internal/ent/pacustay"
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
@@ -39,6 +41,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/schema"
 	"github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
+	"github.com/bengobox/hospital-service/internal/ent/theatrestaffassignment"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
 	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
@@ -528,6 +531,24 @@ func init() {
 	medicationadministrationDescID := medicationadministrationFields[0].Descriptor()
 	// medicationadministration.DefaultID holds the default value on creation for the id field.
 	medicationadministration.DefaultID = medicationadministrationDescID.Default.(func() uuid.UUID)
+	operativenoteFields := schema.OperativeNote{}.Fields()
+	_ = operativenoteFields
+	// operativenoteDescProcedurePerformed is the schema descriptor for procedure_performed field.
+	operativenoteDescProcedurePerformed := operativenoteFields[4].Descriptor()
+	// operativenote.ProcedurePerformedValidator is a validator for the "procedure_performed" field. It is called by the builders before save.
+	operativenote.ProcedurePerformedValidator = operativenoteDescProcedurePerformed.Validators[0].(func(string) error)
+	// operativenoteDescSpecimensSent is the schema descriptor for specimens_sent field.
+	operativenoteDescSpecimensSent := operativenoteFields[9].Descriptor()
+	// operativenote.DefaultSpecimensSent holds the default value on creation for the specimens_sent field.
+	operativenote.DefaultSpecimensSent = operativenoteDescSpecimensSent.Default.(bool)
+	// operativenoteDescAuthoredAt is the schema descriptor for authored_at field.
+	operativenoteDescAuthoredAt := operativenoteFields[13].Descriptor()
+	// operativenote.DefaultAuthoredAt holds the default value on creation for the authored_at field.
+	operativenote.DefaultAuthoredAt = operativenoteDescAuthoredAt.Default.(func() time.Time)
+	// operativenoteDescID is the schema descriptor for id field.
+	operativenoteDescID := operativenoteFields[0].Descriptor()
+	// operativenote.DefaultID holds the default value on creation for the id field.
+	operativenote.DefaultID = operativenoteDescID.Default.(func() uuid.UUID)
 	outboxeventFields := schema.OutboxEvent{}.Fields()
 	_ = outboxeventFields
 	// outboxeventDescAggregateType is the schema descriptor for aggregate_type field.
@@ -594,6 +615,26 @@ func init() {
 	outletDescID := outletFields[0].Descriptor()
 	// outlet.DefaultID holds the default value on creation for the id field.
 	outlet.DefaultID = outletDescID.Default.(func() uuid.UUID)
+	pacustayFields := schema.PacuStay{}.Fields()
+	_ = pacustayFields
+	// pacustayDescAdmittedAt is the schema descriptor for admitted_at field.
+	pacustayDescAdmittedAt := pacustayFields[4].Descriptor()
+	// pacustay.DefaultAdmittedAt holds the default value on creation for the admitted_at field.
+	pacustay.DefaultAdmittedAt = pacustayDescAdmittedAt.Default.(func() time.Time)
+	// pacustayDescCreatedAt is the schema descriptor for created_at field.
+	pacustayDescCreatedAt := pacustayFields[8].Descriptor()
+	// pacustay.DefaultCreatedAt holds the default value on creation for the created_at field.
+	pacustay.DefaultCreatedAt = pacustayDescCreatedAt.Default.(func() time.Time)
+	// pacustayDescUpdatedAt is the schema descriptor for updated_at field.
+	pacustayDescUpdatedAt := pacustayFields[9].Descriptor()
+	// pacustay.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	pacustay.DefaultUpdatedAt = pacustayDescUpdatedAt.Default.(func() time.Time)
+	// pacustay.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	pacustay.UpdateDefaultUpdatedAt = pacustayDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// pacustayDescID is the schema descriptor for id field.
+	pacustayDescID := pacustayFields[0].Descriptor()
+	// pacustay.DefaultID holds the default value on creation for the id field.
+	pacustay.DefaultID = pacustayDescID.Default.(func() uuid.UUID)
 	patientFields := schema.Patient{}.Fields()
 	_ = patientFields
 	// patientDescMrn is the schema descriptor for mrn field.
@@ -858,6 +899,16 @@ func init() {
 	theatrebookingDescID := theatrebookingFields[0].Descriptor()
 	// theatrebooking.DefaultID holds the default value on creation for the id field.
 	theatrebooking.DefaultID = theatrebookingDescID.Default.(func() uuid.UUID)
+	theatrestaffassignmentFields := schema.TheatreStaffAssignment{}.Fields()
+	_ = theatrestaffassignmentFields
+	// theatrestaffassignmentDescAssignedAt is the schema descriptor for assigned_at field.
+	theatrestaffassignmentDescAssignedAt := theatrestaffassignmentFields[5].Descriptor()
+	// theatrestaffassignment.DefaultAssignedAt holds the default value on creation for the assigned_at field.
+	theatrestaffassignment.DefaultAssignedAt = theatrestaffassignmentDescAssignedAt.Default.(func() time.Time)
+	// theatrestaffassignmentDescID is the schema descriptor for id field.
+	theatrestaffassignmentDescID := theatrestaffassignmentFields[0].Descriptor()
+	// theatrestaffassignment.DefaultID holds the default value on creation for the id field.
+	theatrestaffassignment.DefaultID = theatrestaffassignmentDescID.Default.(func() uuid.UUID)
 	triagerecordFields := schema.TriageRecord{}.Fields()
 	_ = triagerecordFields
 	// triagerecordDescTakenAt is the schema descriptor for taken_at field.
