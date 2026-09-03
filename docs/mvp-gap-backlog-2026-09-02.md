@@ -1,5 +1,16 @@
 # MVP Gap Backlog (2026-09-02)
 
+**Status (2026-09-03): fully implemented.** Every gap in this document — Sprints 1-7 plus the
+RBAC/user-management module, including the Sprint 6.1/7.1 "new module" scale items (MAR,
+VitalsChartEntry, WardRoundNote, TheatreStaffAssignment, PacuStay, OperativeNote) — is shipped,
+backend and frontend, across hospital-api/hospital-ui and (for the Sprint 3 critical-lab-result
+alert) notifications-api. Every item explicitly deferred by this document's own original reasoning
+(fingerprint biometric capture, real patient-merge, appointment scheduling, the clinical-record
+audit trail, shift/duty-roster integration, the inventory-api `AssetReservation` overlap-check gap,
+the referral/transfer/ambulance enrichment covered by a separate session) remains genuinely
+deferred, not silently dropped — see each section below for the specific reasoning. Only Sprints
+8-13 (Blood Bank onward, never built) remain as future work; see `docs/plan.md`/`docs/sprints/`.
+
 A single, scannable index of every completeness gap found across three parallel audit passes run
 this session against hospital-service's already-shipped sprints, organized sprint by sprint so a
 future session can work through it methodically once the current MVP push is done. Nothing in this
@@ -184,22 +195,23 @@ genuine gap in an admit/discharge-only sprint — see `sprint-6-inpatient.md`). 
 linkage remain proposed, not built — full detail in `docs/architecture.md`'s own section rather than
 duplicated here.
 
-## Suggested priority if picking this up
+## Implementation pass (2026-09-03) — completion summary
 
-Rough ordering by patient-safety or revenue impact weighed against effort, not a strict ranking.
+The original "suggested priority if picking this up" ordering (critical-value lab alerting, refund/
+credit-note, allergy-recheck wiring, OPD acuity ordering, admission deposit, in that order) was
+followed for the first five items landed, then the pass continued through the rest of Sprints 1-5 +
+RBAC, then Sprint 6.1, then Sprint 7.1 — see each section above for what shipped and any deviations
+from this document's original proposal (a few real ones: the transfer-history item needed a small
+new backend list endpoint, not just UI; the professional-registration fields couldn't wire into the
+invite flow since no `HospitalUser` row exists yet at invite time; MAR is on-demand dose charting,
+not a pre-populated schedule, since no dosing-frequency data model exists to generate one from).
 
-1. Critical-value lab alerting (Sprint 3). A patient-safety gap, and the underlying `flag` field
-   already exists.
-2. Refund/credit-note workflow (Sprint 5). The treasury-api primitive already exists and is unused,
-   so this is close to a pure wiring task.
-3. Allergy-recheck auto-trigger on `UpdatePatient` (Sprint 4). The recheck mechanism already exists
-   and is correct; only one call site is missing.
-4. OPD queue acuity-based reordering (Sprint 1). The acuity data already exists and is captured at
-   triage; only the read-side ordering is missing.
-5. Admission deposit collection (Sprint 5). Directly mirrors an existing, proven charge-posting
-   pattern from Sprints 1/2, and closes a real revenue-collection gap for inpatient stays.
+Two pre-existing integration tests (`TestInpatientGoldenPath`, `TestGoldenPath`) had assumptions
+this pass's own earlier phases made stale (the admission-deposit charge changes the post-Admit
+balance; the specimen-collection gate requires a `Collect` call before `EnterResult`) — both fixed
+alongside the feature that broke them, confirmed via a full `go test ./...` after every schema
+change, not just the touched package.
 
-Everything else in this document is either a larger new module (MAR, real patient-merge, specimen
-tracking) or a lower-urgency additive field (Maisha Number type, SHA beneficiary number, family
-linkage, professional license numbers). All still worth doing, just not the first things to reach
-for if time is short.
+Full technical detail, code citations, and the underlying research for every item lives in each
+sprint's own "Gap audit" section (both `hospital-api/docs/sprints/*.md` and
+`hospital-ui/docs/sprints/*.md`) — this document is deliberately just the index.
