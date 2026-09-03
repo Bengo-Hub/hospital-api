@@ -177,6 +177,18 @@ onto the same account this sprint builds).
 
 ## Gap audit and MVP backlog candidates (2026-09-02)
 
+**Shipped 2026-09-03**: all three items are live. Item 1 (deposit): a new `ADMISSION_DEPOSIT`
+catalog code seeded for the facility/hospital tiers (`requires_prepayment=true`, informational
+only — `Admit` has no payment-gate mechanism, matching the item's own "never blocks admission"
+framing) posted best-effort inside `Admit`, plus `Admission.insurance_guarantee_reference` for the
+insured path (mutually exclusive with the deposit charge). Item 2 (PDF): confirmed
+treasury-api's S2S PDF route needed zero treasury-api-side work — `treasury.Client.
+DownloadInvoicePDF` + a new `GET /billing/charges/{id}/receipt.pdf` proxy. Item 3 (refund): new
+`refunded` `BillableCharge.status` value + `billing.Service.IssueRefund` wrapping the
+previously-dead `treasury.Client.CreateCreditNote`, reducing the account's `total_paid` without
+reopening the balance (a refund closes out wrongly-collected revenue, it doesn't re-bill the
+patient) — new `POST /billing/charges/{chargeID}/refund`.
+
 Completeness audit of the shipped Billing & Insurance ledger against real hospital billing
 practice, done against the actual shipped `internal/ent/schema/billable_charge.go`/`patient_
 account.go` and `internal/modules/billing/service.go` plus `internal/modules/inpatient/service.go`'s

@@ -244,9 +244,10 @@ func (s *Service) GetWardOccupancy(ctx context.Context, tenantID, wardID uuid.UU
 
 // AdmitRequest is the input to Admit.
 type AdmitRequest struct {
-	VisitID    uuid.UUID
-	BedID      uuid.UUID
-	AdmittedBy uuid.UUID
+	VisitID                     uuid.UUID
+	BedID                       uuid.UUID
+	AdmittedBy                  uuid.UUID
+	InsuranceGuaranteeReference string
 }
 
 // Admit opens a new inpatient admission: validates the bed is available and the visit has no
@@ -304,6 +305,9 @@ func (s *Service) Admit(ctx context.Context, tenantID uuid.UUID, req AdmitReques
 	if req.AdmittedBy != uuid.Nil {
 		create = create.SetAdmittedBy(req.AdmittedBy)
 	}
+	if req.InsuranceGuaranteeReference != "" {
+		create = create.SetInsuranceGuaranteeReference(req.InsuranceGuaranteeReference)
+	}
 	adm, err := create.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("inpatient: create admission: %w", err)
@@ -321,6 +325,13 @@ func (s *Service) Admit(ctx context.Context, tenantID uuid.UUID, req AdmitReques
 	if _, err = s.billing.EnsureAccountForAdmission(ctx, tx, tenantID, visit.PatientID, adm.ID); err != nil {
 		return nil, fmt.Errorf("inpatient: open admission account: %w", err)
 	}
+	// Best-effort, mirrors patients.Service.chargeRegistrationFee/consultation.Service.
+	// chargeConsultationFee: a tenant with no ADMISSION_DEPOSIT configured/priced, or any billing
+	// failure, must never block the admission itself. Skipped entirely on the insured path (a
+	// guarantee reference stands in for a cash deposit) — never both.
+	if req.InsuranceGuaranteeReference == "" {
+		s.chargeAdmissionDeposit(ctx, tx, tenantID, adm, req.AdmittedBy)
+	}
 
 	if pubErr := events.Publish(ctx, tx.OutboxEvent, tenantID, adm.ID.String(), events.EventAdmissionCreated, map[string]any{
 		"admission_id":     adm.ID.String(),
@@ -337,6 +348,30 @@ func (s *Service) Admit(ctx context.Context, tenantID uuid.UUID, req AdmitReques
 		return nil, fmt.Errorf("inpatient: commit admission: %w", err)
 	}
 	return adm, nil
+}
+
+// chargeAdmissionDeposit posts the tenant's configured ADMISSION_DEPOSIT charge for a fresh
+// admission — best-effort, mirrors postWardCharges' own GetCatalogItemByCode+PostCharge shape
+// (see mvp-gap-backlog-2026-09-02.md Sprint 5 item 1). Never returns an error: a tenant with no
+// ADMISSION_DEPOSIT configured/priced, or any billing failure, must never block Admit itself.
+func (s *Service) chargeAdmissionDeposit(ctx context.Context, tx *ent.Tx, tenantID uuid.UUID, adm *ent.Admission, postedBy uuid.UUID) {
+	item, err := s.billing.GetCatalogItemByCode(ctx, tenantID, "inpatient", "ADMISSION_DEPOSIT")
+	if err != nil || item.Price == nil || *item.Price <= 0 {
+		return // nothing configured/active/priced for this tenant — nothing to charge, not an error
+	}
+	itemID := item.ID
+	if _, cerr := s.billing.PostCharge(ctx, tx, tenantID, billing.PostChargeRequest{
+		PatientID:      adm.PatientID,
+		VisitID:        adm.PatientVisitID,
+		SourceModule:   "inpatient",
+		SourceRefID:    &adm.ID,
+		Description:    item.Name,
+		Amount:         *item.Price,
+		CreatedByUser:  postedBy,
+		BillableItemID: &itemID,
+	}); cerr != nil {
+		s.log.Warn("admission deposit: post charge failed", zap.Error(cerr))
+	}
 }
 
 // GetAdmission fetches an admission by ID, tenant-scoped.

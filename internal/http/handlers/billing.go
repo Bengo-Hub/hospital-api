@@ -246,6 +246,51 @@ func (h *BillingHandler) WaiveCharge(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, charge)
 }
 
+// IssueRefund handles POST /{tenant}/hospital/billing/charges/{chargeID}/refund
+func (h *BillingHandler) IssueRefund(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	chargeID, err := uuid.Parse(chi.URLParam(r, "chargeID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid charge ID")
+		return
+	}
+	var in reasonRequest
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	charge, err := h.svc.IssueRefund(r.Context(), tenantID, chargeID, in.Reason)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, charge)
+}
+
+// DownloadReceipt handles GET /{tenant}/hospital/billing/charges/{chargeID}/receipt.pdf
+func (h *BillingHandler) DownloadReceipt(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	chargeID, err := uuid.Parse(chi.URLParam(r, "chargeID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid charge ID")
+		return
+	}
+	pdfBytes, contentType, err := h.svc.DownloadReceiptPDF(r.Context(), tenantID, chargeID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", `inline; filename="receipt.pdf"`)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(pdfBytes)
+}
+
 // SettleAccount handles POST /{tenant}/hospital/billing/accounts/{accountID}/settle
 func (h *BillingHandler) SettleAccount(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

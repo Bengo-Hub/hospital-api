@@ -111,6 +111,29 @@ func (c *Client) CreateInvoice(ctx context.Context, tenantID uuid.UUID, req Crea
 	return &out, nil
 }
 
+// DownloadInvoicePDF fetches a rendered invoice/receipt PDF from treasury-api's existing S2S
+// route (GET /api/v1/s2s/{tenant}/invoices/{invoiceID}/pdf, INTERNAL_SERVICE_KEY-protected — the
+// same handler as its JWT-authenticated download route, confirmed already live, no treasury-api
+// changes needed; see mvp-gap-backlog-2026-09-02.md Sprint 5 item 2). Returns the raw PDF bytes
+// and the Content-Type header treasury-api set, for hospital-api to proxy through unchanged.
+func (c *Client) DownloadInvoicePDF(ctx context.Context, tenantID, invoiceID uuid.UUID) ([]byte, string, error) {
+	if !c.enabled {
+		return nil, "", fmt.Errorf("treasury client not configured")
+	}
+	resp, err := c.sc.Get(ctx, c.s2s(tenantID, fmt.Sprintf("/invoices/%s/pdf", invoiceID)), c.headers())
+	if err != nil {
+		return nil, "", fmt.Errorf("treasury: download invoice pdf: %w", err)
+	}
+	if !resp.IsSuccess() {
+		return nil, "", fmt.Errorf("treasury: download invoice pdf: status %d: %s", resp.StatusCode, string(resp.Body))
+	}
+	contentType := resp.Headers.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/pdf"
+	}
+	return resp.Body, contentType, nil
+}
+
 // InvoiceByReference finds an already-issued invoice for this encounter, so a checkout retry
 // never double-invoices — mirrors subscriptions-api's own renewal-dedup use of this endpoint.
 func (c *Client) InvoiceByReference(ctx context.Context, tenantID, referenceID uuid.UUID, referenceType string) (*Invoice, error) {

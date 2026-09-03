@@ -116,6 +116,11 @@ func DischargeSummary(v string) predicate.Admission {
 	return predicate.Admission(sql.FieldEQ(FieldDischargeSummary, v))
 }
 
+// InsuranceGuaranteeReference applies equality check predicate on the "insurance_guarantee_reference" field. It's identical to InsuranceGuaranteeReferenceEQ.
+func InsuranceGuaranteeReference(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldInsuranceGuaranteeReference, v))
+}
+
 // WardChargePosted applies equality check predicate on the "ward_charge_posted" field. It's identical to WardChargePostedEQ.
 func WardChargePosted(v bool) predicate.Admission {
 	return predicate.Admission(sql.FieldEQ(FieldWardChargePosted, v))
@@ -679,6 +684,81 @@ func DischargeSummaryEqualFold(v string) predicate.Admission {
 // DischargeSummaryContainsFold applies the ContainsFold predicate on the "discharge_summary" field.
 func DischargeSummaryContainsFold(v string) predicate.Admission {
 	return predicate.Admission(sql.FieldContainsFold(FieldDischargeSummary, v))
+}
+
+// InsuranceGuaranteeReferenceEQ applies the EQ predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceNEQ applies the NEQ predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceNEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldNEQ(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceIn applies the In predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldIn(FieldInsuranceGuaranteeReference, vs...))
+}
+
+// InsuranceGuaranteeReferenceNotIn applies the NotIn predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceNotIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldNotIn(FieldInsuranceGuaranteeReference, vs...))
+}
+
+// InsuranceGuaranteeReferenceGT applies the GT predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceGT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGT(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceGTE applies the GTE predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceGTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGTE(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceLT applies the LT predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceLT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLT(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceLTE applies the LTE predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceLTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLTE(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceContains applies the Contains predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceContains(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContains(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceHasPrefix applies the HasPrefix predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceHasPrefix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasPrefix(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceHasSuffix applies the HasSuffix predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceHasSuffix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasSuffix(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceIsNil applies the IsNil predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceIsNil() predicate.Admission {
+	return predicate.Admission(sql.FieldIsNull(FieldInsuranceGuaranteeReference))
+}
+
+// InsuranceGuaranteeReferenceNotNil applies the NotNil predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceNotNil() predicate.Admission {
+	return predicate.Admission(sql.FieldNotNull(FieldInsuranceGuaranteeReference))
+}
+
+// InsuranceGuaranteeReferenceEqualFold applies the EqualFold predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceEqualFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEqualFold(FieldInsuranceGuaranteeReference, v))
+}
+
+// InsuranceGuaranteeReferenceContainsFold applies the ContainsFold predicate on the "insurance_guarantee_reference" field.
+func InsuranceGuaranteeReferenceContainsFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContainsFold(FieldInsuranceGuaranteeReference, v))
 }
 
 // WardChargePostedEQ applies the EQ predicate on the "ward_charge_posted" field.

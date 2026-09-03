@@ -61,15 +61,15 @@ func init() {
 	// admission.DefaultAdmittedAt holds the default value on creation for the admitted_at field.
 	admission.DefaultAdmittedAt = admissionDescAdmittedAt.Default.(func() time.Time)
 	// admissionDescWardChargePosted is the schema descriptor for ward_charge_posted field.
-	admissionDescWardChargePosted := admissionFields[14].Descriptor()
+	admissionDescWardChargePosted := admissionFields[15].Descriptor()
 	// admission.DefaultWardChargePosted holds the default value on creation for the ward_charge_posted field.
 	admission.DefaultWardChargePosted = admissionDescWardChargePosted.Default.(bool)
 	// admissionDescCreatedAt is the schema descriptor for created_at field.
-	admissionDescCreatedAt := admissionFields[15].Descriptor()
+	admissionDescCreatedAt := admissionFields[16].Descriptor()
 	// admission.DefaultCreatedAt holds the default value on creation for the created_at field.
 	admission.DefaultCreatedAt = admissionDescCreatedAt.Default.(func() time.Time)
 	// admissionDescUpdatedAt is the schema descriptor for updated_at field.
-	admissionDescUpdatedAt := admissionFields[16].Descriptor()
+	admissionDescUpdatedAt := admissionFields[17].Descriptor()
 	// admission.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	admission.DefaultUpdatedAt = admissionDescUpdatedAt.Default.(func() time.Time)
 	// admission.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

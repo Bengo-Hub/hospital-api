@@ -121,6 +121,7 @@ type AdmissionMutation struct {
 	discharged_at                     *time.Time
 	discharged_by                     *uuid.UUID
 	discharge_summary                 *string
+	insurance_guarantee_reference     *string
 	ward_charge_posted                *bool
 	created_at                        *time.Time
 	updated_at                        *time.Time
@@ -761,6 +762,55 @@ func (m *AdmissionMutation) ResetDischargeSummary() {
 	delete(m.clearedFields, admission.FieldDischargeSummary)
 }
 
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (m *AdmissionMutation) SetInsuranceGuaranteeReference(s string) {
+	m.insurance_guarantee_reference = &s
+}
+
+// InsuranceGuaranteeReference returns the value of the "insurance_guarantee_reference" field in the mutation.
+func (m *AdmissionMutation) InsuranceGuaranteeReference() (r string, exists bool) {
+	v := m.insurance_guarantee_reference
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInsuranceGuaranteeReference returns the old "insurance_guarantee_reference" field's value of the Admission entity.
+// If the Admission object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AdmissionMutation) OldInsuranceGuaranteeReference(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInsuranceGuaranteeReference is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInsuranceGuaranteeReference requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInsuranceGuaranteeReference: %w", err)
+	}
+	return oldValue.InsuranceGuaranteeReference, nil
+}
+
+// ClearInsuranceGuaranteeReference clears the value of the "insurance_guarantee_reference" field.
+func (m *AdmissionMutation) ClearInsuranceGuaranteeReference() {
+	m.insurance_guarantee_reference = nil
+	m.clearedFields[admission.FieldInsuranceGuaranteeReference] = struct{}{}
+}
+
+// InsuranceGuaranteeReferenceCleared returns if the "insurance_guarantee_reference" field was cleared in this mutation.
+func (m *AdmissionMutation) InsuranceGuaranteeReferenceCleared() bool {
+	_, ok := m.clearedFields[admission.FieldInsuranceGuaranteeReference]
+	return ok
+}
+
+// ResetInsuranceGuaranteeReference resets all changes to the "insurance_guarantee_reference" field.
+func (m *AdmissionMutation) ResetInsuranceGuaranteeReference() {
+	m.insurance_guarantee_reference = nil
+	delete(m.clearedFields, admission.FieldInsuranceGuaranteeReference)
+}
+
 // SetWardChargePosted sets the "ward_charge_posted" field.
 func (m *AdmissionMutation) SetWardChargePosted(b bool) {
 	m.ward_charge_posted = &b
@@ -1024,7 +1074,7 @@ func (m *AdmissionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AdmissionMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.tenant_id != nil {
 		fields = append(fields, admission.FieldTenantID)
 	}
@@ -1063,6 +1113,9 @@ func (m *AdmissionMutation) Fields() []string {
 	}
 	if m.discharge_summary != nil {
 		fields = append(fields, admission.FieldDischargeSummary)
+	}
+	if m.insurance_guarantee_reference != nil {
+		fields = append(fields, admission.FieldInsuranceGuaranteeReference)
 	}
 	if m.ward_charge_posted != nil {
 		fields = append(fields, admission.FieldWardChargePosted)
@@ -1107,6 +1160,8 @@ func (m *AdmissionMutation) Field(name string) (ent.Value, bool) {
 		return m.DischargedBy()
 	case admission.FieldDischargeSummary:
 		return m.DischargeSummary()
+	case admission.FieldInsuranceGuaranteeReference:
+		return m.InsuranceGuaranteeReference()
 	case admission.FieldWardChargePosted:
 		return m.WardChargePosted()
 	case admission.FieldCreatedAt:
@@ -1148,6 +1203,8 @@ func (m *AdmissionMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDischargedBy(ctx)
 	case admission.FieldDischargeSummary:
 		return m.OldDischargeSummary(ctx)
+	case admission.FieldInsuranceGuaranteeReference:
+		return m.OldInsuranceGuaranteeReference(ctx)
 	case admission.FieldWardChargePosted:
 		return m.OldWardChargePosted(ctx)
 	case admission.FieldCreatedAt:
@@ -1254,6 +1311,13 @@ func (m *AdmissionMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDischargeSummary(v)
 		return nil
+	case admission.FieldInsuranceGuaranteeReference:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInsuranceGuaranteeReference(v)
+		return nil
 	case admission.FieldWardChargePosted:
 		v, ok := value.(bool)
 		if !ok {
@@ -1317,6 +1381,9 @@ func (m *AdmissionMutation) ClearedFields() []string {
 	if m.FieldCleared(admission.FieldDischargeSummary) {
 		fields = append(fields, admission.FieldDischargeSummary)
 	}
+	if m.FieldCleared(admission.FieldInsuranceGuaranteeReference) {
+		fields = append(fields, admission.FieldInsuranceGuaranteeReference)
+	}
 	return fields
 }
 
@@ -1342,6 +1409,9 @@ func (m *AdmissionMutation) ClearField(name string) error {
 		return nil
 	case admission.FieldDischargeSummary:
 		m.ClearDischargeSummary()
+		return nil
+	case admission.FieldInsuranceGuaranteeReference:
+		m.ClearInsuranceGuaranteeReference()
 		return nil
 	}
 	return fmt.Errorf("unknown Admission nullable field %s", name)
@@ -1389,6 +1459,9 @@ func (m *AdmissionMutation) ResetField(name string) error {
 		return nil
 	case admission.FieldDischargeSummary:
 		m.ResetDischargeSummary()
+		return nil
+	case admission.FieldInsuranceGuaranteeReference:
+		m.ResetInsuranceGuaranteeReference()
 		return nil
 	case admission.FieldWardChargePosted:
 		m.ResetWardChargePosted()

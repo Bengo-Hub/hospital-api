@@ -29,8 +29,8 @@ func (BillableCharge) Fields() []ent.Field {
 			Comment("The LabOrder/Prescription/Admission/etc. that generated this charge"),
 		field.String("description").NotEmpty(),
 		field.Float("amount").Positive(),
-		field.Enum("status").Values("pending", "invoiced", "paid", "exempted", "waived", "written_off").Default("pending").
-			Comment("exempted (added 2026-08-29) = an insurance claim covered this charge in full — distinct from waived (facility chose not to charge), see docs/architecture.md 'Distributed Billing & Patient Accounts'"),
+		field.Enum("status").Values("pending", "invoiced", "paid", "exempted", "waived", "written_off", "refunded").Default("pending").
+			Comment("exempted (added 2026-08-29) = an insurance claim covered this charge in full — distinct from waived (facility chose not to charge); refunded (added 2026-09-03) = an already-paid charge was reversed via treasury.CreateCreditNote, see billing.Service.IssueRefund. See docs/architecture.md 'Distributed Billing & Patient Accounts'"),
 		field.UUID("treasury_invoice_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("treasury_payment_intent_id", uuid.UUID{}).Optional().Nillable(),
 		field.UUID("created_by_user_id", uuid.UUID{}).Optional().Nillable(),

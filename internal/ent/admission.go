@@ -46,6 +46,8 @@ type Admission struct {
 	DischargedBy *uuid.UUID `json:"discharged_by,omitempty"`
 	// DischargeSummary holds the value of the "discharge_summary" field.
 	DischargeSummary string `json:"discharge_summary,omitempty"`
+	// Letter-of-guarantee/undertaking reference recorded in place of a cash deposit for an insured admission
+	InsuranceGuaranteeReference string `json:"insurance_guarantee_reference,omitempty"`
 	// Guards against double-posting the final ward/day-rate charge across repeated discharge attempts while balance is still outstanding
 	WardChargePosted bool `json:"ward_charge_posted,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -111,7 +113,7 @@ func (*Admission) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case admission.FieldWardChargePosted:
 			values[i] = new(sql.NullBool)
-		case admission.FieldAdmissionNumber, admission.FieldStatus, admission.FieldDischargeSummary:
+		case admission.FieldAdmissionNumber, admission.FieldStatus, admission.FieldDischargeSummary, admission.FieldInsuranceGuaranteeReference:
 			values[i] = new(sql.NullString)
 		case admission.FieldAdmittedAt, admission.FieldDischargedAt, admission.FieldCreatedAt, admission.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -218,6 +220,12 @@ func (_m *Admission) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field discharge_summary", values[i])
 			} else if value.Valid {
 				_m.DischargeSummary = value.String
+			}
+		case admission.FieldInsuranceGuaranteeReference:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field insurance_guarantee_reference", values[i])
+			} else if value.Valid {
+				_m.InsuranceGuaranteeReference = value.String
 			}
 		case admission.FieldWardChargePosted:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -332,6 +340,9 @@ func (_m *Admission) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("discharge_summary=")
 	builder.WriteString(_m.DischargeSummary)
+	builder.WriteString(", ")
+	builder.WriteString("insurance_guarantee_reference=")
+	builder.WriteString(_m.InsuranceGuaranteeReference)
 	builder.WriteString(", ")
 	builder.WriteString("ward_charge_posted=")
 	builder.WriteString(fmt.Sprintf("%v", _m.WardChargePosted))

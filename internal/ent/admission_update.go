@@ -224,6 +224,26 @@ func (_u *AdmissionUpdate) ClearDischargeSummary() *AdmissionUpdate {
 	return _u
 }
 
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (_u *AdmissionUpdate) SetInsuranceGuaranteeReference(v string) *AdmissionUpdate {
+	_u.mutation.SetInsuranceGuaranteeReference(v)
+	return _u
+}
+
+// SetNillableInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field if the given value is not nil.
+func (_u *AdmissionUpdate) SetNillableInsuranceGuaranteeReference(v *string) *AdmissionUpdate {
+	if v != nil {
+		_u.SetInsuranceGuaranteeReference(*v)
+	}
+	return _u
+}
+
+// ClearInsuranceGuaranteeReference clears the value of the "insurance_guarantee_reference" field.
+func (_u *AdmissionUpdate) ClearInsuranceGuaranteeReference() *AdmissionUpdate {
+	_u.mutation.ClearInsuranceGuaranteeReference()
+	return _u
+}
+
 // SetWardChargePosted sets the "ward_charge_posted" field.
 func (_u *AdmissionUpdate) SetWardChargePosted(v bool) *AdmissionUpdate {
 	_u.mutation.SetWardChargePosted(v)
@@ -423,6 +443,12 @@ func (_u *AdmissionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DischargeSummaryCleared() {
 		_spec.ClearField(admission.FieldDischargeSummary, field.TypeString)
+	}
+	if value, ok := _u.mutation.InsuranceGuaranteeReference(); ok {
+		_spec.SetField(admission.FieldInsuranceGuaranteeReference, field.TypeString, value)
+	}
+	if _u.mutation.InsuranceGuaranteeReferenceCleared() {
+		_spec.ClearField(admission.FieldInsuranceGuaranteeReference, field.TypeString)
 	}
 	if value, ok := _u.mutation.WardChargePosted(); ok {
 		_spec.SetField(admission.FieldWardChargePosted, field.TypeBool, value)
@@ -745,6 +771,26 @@ func (_u *AdmissionUpdateOne) ClearDischargeSummary() *AdmissionUpdateOne {
 	return _u
 }
 
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (_u *AdmissionUpdateOne) SetInsuranceGuaranteeReference(v string) *AdmissionUpdateOne {
+	_u.mutation.SetInsuranceGuaranteeReference(v)
+	return _u
+}
+
+// SetNillableInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field if the given value is not nil.
+func (_u *AdmissionUpdateOne) SetNillableInsuranceGuaranteeReference(v *string) *AdmissionUpdateOne {
+	if v != nil {
+		_u.SetInsuranceGuaranteeReference(*v)
+	}
+	return _u
+}
+
+// ClearInsuranceGuaranteeReference clears the value of the "insurance_guarantee_reference" field.
+func (_u *AdmissionUpdateOne) ClearInsuranceGuaranteeReference() *AdmissionUpdateOne {
+	_u.mutation.ClearInsuranceGuaranteeReference()
+	return _u
+}
+
 // SetWardChargePosted sets the "ward_charge_posted" field.
 func (_u *AdmissionUpdateOne) SetWardChargePosted(v bool) *AdmissionUpdateOne {
 	_u.mutation.SetWardChargePosted(v)
@@ -974,6 +1020,12 @@ func (_u *AdmissionUpdateOne) sqlSave(ctx context.Context) (_node *Admission, er
 	}
 	if _u.mutation.DischargeSummaryCleared() {
 		_spec.ClearField(admission.FieldDischargeSummary, field.TypeString)
+	}
+	if value, ok := _u.mutation.InsuranceGuaranteeReference(); ok {
+		_spec.SetField(admission.FieldInsuranceGuaranteeReference, field.TypeString, value)
+	}
+	if _u.mutation.InsuranceGuaranteeReferenceCleared() {
+		_spec.ClearField(admission.FieldInsuranceGuaranteeReference, field.TypeString)
 	}
 	if value, ok := _u.mutation.WardChargePosted(); ok {
 		_spec.SetField(admission.FieldWardChargePosted, field.TypeBool, value)

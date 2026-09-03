@@ -87,9 +87,9 @@ matching section (frontend).
 
 | Gap | Effort | Notes |
 |---|---|---|
-| No deposit collection at admission time (only a discharge-time balance gate exists) | Quick, mirrors an existing pattern | Real Kenyan hospital practice: a fixed cash deposit at admission, or a letter of guarantee for insured patients. `Admit` already has the exact best-effort charge-posting pattern to copy from Sprints 1/2. |
-| No printed/PDF itemized invoice or receipt anywhere in hospital-api/hospital-ui | Moderate, cross-service | The client method is data-only (`CreateInvoice`). A shared PDF engine already exists fleet-wide, but hospital-api was never wired to it. Verify treasury-api exposes an S2S-callable PDF render before scoping this as hospital-api-only work. |
-| No refund/credit-note workflow for an overpayment or billing error | Quick, the hard part already exists | `treasury.Client.CreateCreditNote` already exists and is unused. Only a `billing.Service` wrapper, a route, and a new `refunded` charge status are missing. |
+| No deposit collection at admission time (only a discharge-time balance gate exists) | Quick, mirrors an existing pattern | **Shipped 2026-09-03.** New `ADMISSION_DEPOSIT` catalog code + best-effort charge in `Admit`, plus `insurance_guarantee_reference` for the insured path. |
+| No printed/PDF itemized invoice or receipt anywhere in hospital-api/hospital-ui | Moderate, cross-service | **Shipped 2026-09-03.** Confirmed treasury-api's S2S PDF route already existed — zero treasury-api changes needed, only a thin hospital-api proxy + UI download link. |
+| No refund/credit-note workflow for an overpayment or billing error | Quick, the hard part already exists | **Shipped 2026-09-03.** |
 | Price-list versioning | No action needed | Confirmed already correct: `BillableCharge.amount` is snapshotted at post time, so an already-open account is unaffected by a later catalog price change. |
 
 ## User Management / RBAC module (cross-cutting, no sprint-numbered doc)

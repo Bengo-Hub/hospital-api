@@ -387,6 +387,83 @@ func (s *Service) WaiveCharge(ctx context.Context, tenantID, chargeID uuid.UUID)
 	return updated, nil
 }
 
+// IssueRefund reverses an overpayment or billing error on an already-paid charge, via
+// treasury.Client.CreateCreditNote — a real, already-shipped treasury-api primitive that had zero
+// call sites from hospital-api's side until now (see mvp-gap-backlog-2026-09-02.md Sprint 5 item
+// 3). Marks the charge `refunded` and reduces the account's total_paid by the refunded amount —
+// balance is deliberately left unchanged: a refund closes out revenue that was wrongly collected,
+// it does not reopen a debt the patient must pay again (that would need a fresh charge instead).
+func (s *Service) IssueRefund(ctx context.Context, tenantID, chargeID uuid.UUID, reason string) (*ent.BillableCharge, error) {
+	charge, err := s.client.BillableCharge.Query().
+		Where(billablecharge.ID(chargeID), billablecharge.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: charge not found: %w", err)
+	}
+	if charge.Status != billablecharge.StatusPaid {
+		return nil, fmt.Errorf("billing: only a paid charge can be refunded (status=%s)", charge.Status)
+	}
+	if charge.TreasuryInvoiceID == nil {
+		return nil, fmt.Errorf("billing: charge has no treasury invoice to credit")
+	}
+	if !s.treasury.Enabled() {
+		return nil, fmt.Errorf("billing: treasury client not configured")
+	}
+
+	description := "Refund: " + charge.Description
+	if reason != "" {
+		description += " (" + reason + ")"
+	}
+	if _, err := s.treasury.CreateCreditNote(ctx, tenantID, *charge.TreasuryInvoiceID, []treasury.InvoiceLine{{
+		Description: description,
+		Quantity:    1,
+		UnitPrice:   charge.Amount,
+	}}); err != nil {
+		return nil, fmt.Errorf("billing: create credit note: %w", err)
+	}
+
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	updated, err := tx.BillableCharge.UpdateOneID(chargeID).SetStatus(billablecharge.StatusRefunded).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("billing: mark charge refunded: %w", err)
+	}
+	if _, err = tx.PatientAccount.UpdateOneID(charge.PatientAccountID).
+		AddTotalPaid(-charge.Amount).
+		Save(ctx); err != nil {
+		return nil, fmt.Errorf("billing: update account totals: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("billing: commit refund: %w", err)
+	}
+	return updated, nil
+}
+
+// DownloadReceiptPDF proxies a charge's itemized invoice/receipt PDF from treasury-api — the
+// first place in hospital-api/hospital-ui a patient/cashier can get a printed document out of this
+// system at all (see mvp-gap-backlog-2026-09-02.md Sprint 5 item 2). A charge with no treasury
+// invoice yet (never collected) has nothing to render.
+func (s *Service) DownloadReceiptPDF(ctx context.Context, tenantID, chargeID uuid.UUID) ([]byte, string, error) {
+	charge, err := s.client.BillableCharge.Query().
+		Where(billablecharge.ID(chargeID), billablecharge.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("billing: charge not found: %w", err)
+	}
+	if charge.TreasuryInvoiceID == nil {
+		return nil, "", fmt.Errorf("billing: charge has no invoice yet — collect it first")
+	}
+	return s.treasury.DownloadInvoicePDF(ctx, tenantID, *charge.TreasuryInvoiceID)
+}
+
 // ── WalkInSale (Chemist-tier ledgerless checkout) ──────────────────────────────────────────
 //
 // A Chemist tenant cannot create a Patient/Visit (feature-gated off both — see

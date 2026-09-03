@@ -186,6 +186,8 @@ var facilityBillableItemDefaults = map[string][]billableItemSeed{
 			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeEither},
 		{billableitemcatalog.DepartmentInpatient, "WARD_DAY_RATE", "Inpatient Ward — Day Rate", moneyKES(1500),
 			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeBillingQueue},
+		{billableitemcatalog.DepartmentInpatient, "ADMISSION_DEPOSIT", "Admission Deposit", moneyKES(5000),
+			billableitemcatalog.AppliesToAll, true, billableitemcatalog.CollectionModeBillingQueue},
 	},
 	"hospital": {
 		{billableitemcatalog.DepartmentRecords, "REGISTRATION_FEE", "Registration Fee (First Visit)", moneyKES(200),
@@ -200,6 +202,8 @@ var facilityBillableItemDefaults = map[string][]billableItemSeed{
 			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeEither},
 		{billableitemcatalog.DepartmentInpatient, "WARD_DAY_RATE", "Inpatient Ward — Day Rate", moneyKES(3000),
 			billableitemcatalog.AppliesToAll, false, billableitemcatalog.CollectionModeBillingQueue},
+		{billableitemcatalog.DepartmentInpatient, "ADMISSION_DEPOSIT", "Admission Deposit", moneyKES(10000),
+			billableitemcatalog.AppliesToAll, true, billableitemcatalog.CollectionModeBillingQueue},
 		{billableitemcatalog.DepartmentTheatre, "THEATRE_FEE", "Theatre/Operating Room Fee (per procedure)", nil,
 			billableitemcatalog.AppliesToAll, true, billableitemcatalog.CollectionModeBillingQueue},
 	},

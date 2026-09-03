@@ -153,6 +153,20 @@ func (_c *AdmissionCreate) SetNillableDischargeSummary(v *string) *AdmissionCrea
 	return _c
 }
 
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (_c *AdmissionCreate) SetInsuranceGuaranteeReference(v string) *AdmissionCreate {
+	_c.mutation.SetInsuranceGuaranteeReference(v)
+	return _c
+}
+
+// SetNillableInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field if the given value is not nil.
+func (_c *AdmissionCreate) SetNillableInsuranceGuaranteeReference(v *string) *AdmissionCreate {
+	if v != nil {
+		_c.SetInsuranceGuaranteeReference(*v)
+	}
+	return _c
+}
+
 // SetWardChargePosted sets the "ward_charge_posted" field.
 func (_c *AdmissionCreate) SetWardChargePosted(v bool) *AdmissionCreate {
 	_c.mutation.SetWardChargePosted(v)
@@ -434,6 +448,10 @@ func (_c *AdmissionCreate) createSpec() (*Admission, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DischargeSummary(); ok {
 		_spec.SetField(admission.FieldDischargeSummary, field.TypeString, value)
 		_node.DischargeSummary = value
+	}
+	if value, ok := _c.mutation.InsuranceGuaranteeReference(); ok {
+		_spec.SetField(admission.FieldInsuranceGuaranteeReference, field.TypeString, value)
+		_node.InsuranceGuaranteeReference = value
 	}
 	if value, ok := _c.mutation.WardChargePosted(); ok {
 		_spec.SetField(admission.FieldWardChargePosted, field.TypeBool, value)
@@ -717,6 +735,24 @@ func (u *AdmissionUpsert) ClearDischargeSummary() *AdmissionUpsert {
 	return u
 }
 
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (u *AdmissionUpsert) SetInsuranceGuaranteeReference(v string) *AdmissionUpsert {
+	u.Set(admission.FieldInsuranceGuaranteeReference, v)
+	return u
+}
+
+// UpdateInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field to the value that was provided on create.
+func (u *AdmissionUpsert) UpdateInsuranceGuaranteeReference() *AdmissionUpsert {
+	u.SetExcluded(admission.FieldInsuranceGuaranteeReference)
+	return u
+}
+
+// ClearInsuranceGuaranteeReference clears the value of the "insurance_guarantee_reference" field.
+func (u *AdmissionUpsert) ClearInsuranceGuaranteeReference() *AdmissionUpsert {
+	u.SetNull(admission.FieldInsuranceGuaranteeReference)
+	return u
+}
+
 // SetWardChargePosted sets the "ward_charge_posted" field.
 func (u *AdmissionUpsert) SetWardChargePosted(v bool) *AdmissionUpsert {
 	u.Set(admission.FieldWardChargePosted, v)
@@ -988,6 +1024,27 @@ func (u *AdmissionUpsertOne) UpdateDischargeSummary() *AdmissionUpsertOne {
 func (u *AdmissionUpsertOne) ClearDischargeSummary() *AdmissionUpsertOne {
 	return u.Update(func(s *AdmissionUpsert) {
 		s.ClearDischargeSummary()
+	})
+}
+
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (u *AdmissionUpsertOne) SetInsuranceGuaranteeReference(v string) *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetInsuranceGuaranteeReference(v)
+	})
+}
+
+// UpdateInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field to the value that was provided on create.
+func (u *AdmissionUpsertOne) UpdateInsuranceGuaranteeReference() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateInsuranceGuaranteeReference()
+	})
+}
+
+// ClearInsuranceGuaranteeReference clears the value of the "insurance_guarantee_reference" field.
+func (u *AdmissionUpsertOne) ClearInsuranceGuaranteeReference() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearInsuranceGuaranteeReference()
 	})
 }
 
@@ -1433,6 +1490,27 @@ func (u *AdmissionUpsertBulk) UpdateDischargeSummary() *AdmissionUpsertBulk {
 func (u *AdmissionUpsertBulk) ClearDischargeSummary() *AdmissionUpsertBulk {
 	return u.Update(func(s *AdmissionUpsert) {
 		s.ClearDischargeSummary()
+	})
+}
+
+// SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
+func (u *AdmissionUpsertBulk) SetInsuranceGuaranteeReference(v string) *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetInsuranceGuaranteeReference(v)
+	})
+}
+
+// UpdateInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field to the value that was provided on create.
+func (u *AdmissionUpsertBulk) UpdateInsuranceGuaranteeReference() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateInsuranceGuaranteeReference()
+	})
+}
+
+// ClearInsuranceGuaranteeReference clears the value of the "insurance_guarantee_reference" field.
+func (u *AdmissionUpsertBulk) ClearInsuranceGuaranteeReference() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearInsuranceGuaranteeReference()
 	})
 }
 

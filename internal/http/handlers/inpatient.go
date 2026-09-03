@@ -214,8 +214,9 @@ func (h *InpatientHandler) SetBedEquipment(w http.ResponseWriter, r *http.Reques
 // ── Admissions ───────────────────────────────────────────────────────────────────────────────
 
 type admitRequest struct {
-	VisitID string `json:"visit_id"`
-	BedID   string `json:"bed_id"`
+	VisitID                     string `json:"visit_id"`
+	BedID                       string `json:"bed_id"`
+	InsuranceGuaranteeReference string `json:"insurance_guarantee_reference,omitempty"`
 }
 
 // Admit handles POST /{tenant}/hospital/admissions
@@ -242,6 +243,7 @@ func (h *InpatientHandler) Admit(w http.ResponseWriter, r *http.Request) {
 	}
 	adm, err := h.svc.Admit(r.Context(), tenantID, inpatient.AdmitRequest{
 		VisitID: visitID, BedID: bedID, AdmittedBy: currentUserID(r),
+		InsuranceGuaranteeReference: in.InsuranceGuaranteeReference,
 	})
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())

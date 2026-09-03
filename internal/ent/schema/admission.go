@@ -34,6 +34,8 @@ func (Admission) Fields() []ent.Field {
 		field.Time("discharged_at").Optional().Nillable(),
 		field.UUID("discharged_by", uuid.UUID{}).Optional().Nillable(),
 		field.String("discharge_summary").Optional(),
+		field.String("insurance_guarantee_reference").Optional().
+			Comment("Letter-of-guarantee/undertaking reference recorded in place of a cash deposit for an insured admission"),
 		field.Bool("ward_charge_posted").Default(false).
 			Comment("Guards against double-posting the final ward/day-rate charge across repeated discharge attempts while balance is still outstanding"),
 		field.Time("created_at").Default(time.Now).Immutable(),

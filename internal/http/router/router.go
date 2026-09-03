@@ -297,6 +297,12 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingManage)).
 					Post("/billing/charges/{chargeID}/waive", d.Billing.WaiveCharge)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingManage)).
+					Post("/billing/charges/{chargeID}/refund", d.Billing.IssueRefund)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermBillingView)).
+					Get("/billing/charges/{chargeID}/receipt.pdf", d.Billing.DownloadReceipt)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureBilling),
 					outletmw.RequireServicePermission(d.RBACSvc,
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).
 					Post("/billing/accounts/{accountID}/settle", d.Billing.SettleAccount)

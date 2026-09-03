@@ -42,6 +42,8 @@ const (
 	FieldDischargedBy = "discharged_by"
 	// FieldDischargeSummary holds the string denoting the discharge_summary field in the database.
 	FieldDischargeSummary = "discharge_summary"
+	// FieldInsuranceGuaranteeReference holds the string denoting the insurance_guarantee_reference field in the database.
+	FieldInsuranceGuaranteeReference = "insurance_guarantee_reference"
 	// FieldWardChargePosted holds the string denoting the ward_charge_posted field in the database.
 	FieldWardChargePosted = "ward_charge_posted"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -95,6 +97,7 @@ var Columns = []string{
 	FieldDischargedAt,
 	FieldDischargedBy,
 	FieldDischargeSummary,
+	FieldInsuranceGuaranteeReference,
 	FieldWardChargePosted,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -224,6 +227,11 @@ func ByDischargedBy(opts ...sql.OrderTermOption) OrderOption {
 // ByDischargeSummary orders the results by the discharge_summary field.
 func ByDischargeSummary(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDischargeSummary, opts...).ToFunc()
+}
+
+// ByInsuranceGuaranteeReference orders the results by the insurance_guarantee_reference field.
+func ByInsuranceGuaranteeReference(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInsuranceGuaranteeReference, opts...).ToFunc()
 }
 
 // ByWardChargePosted orders the results by the ward_charge_posted field.

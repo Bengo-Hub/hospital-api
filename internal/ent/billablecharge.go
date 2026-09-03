@@ -33,7 +33,7 @@ type BillableCharge struct {
 	Description string `json:"description,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount float64 `json:"amount,omitempty"`
-	// exempted (added 2026-08-29) = an insurance claim covered this charge in full — distinct from waived (facility chose not to charge), see docs/architecture.md 'Distributed Billing & Patient Accounts'
+	// exempted (added 2026-08-29) = an insurance claim covered this charge in full — distinct from waived (facility chose not to charge); refunded (added 2026-09-03) = an already-paid charge was reversed via treasury.CreateCreditNote, see billing.Service.IssueRefund. See docs/architecture.md 'Distributed Billing & Patient Accounts'
 	Status billablecharge.Status `json:"status,omitempty"`
 	// TreasuryInvoiceID holds the value of the "treasury_invoice_id" field.
 	TreasuryInvoiceID *uuid.UUID `json:"treasury_invoice_id,omitempty"`

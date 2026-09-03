@@ -23,6 +23,7 @@ var (
 		{Name: "discharged_at", Type: field.TypeTime, Nullable: true},
 		{Name: "discharged_by", Type: field.TypeUUID, Nullable: true},
 		{Name: "discharge_summary", Type: field.TypeString, Nullable: true},
+		{Name: "insurance_guarantee_reference", Type: field.TypeString, Nullable: true},
 		{Name: "ward_charge_posted", Type: field.TypeBool, Default: false},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -37,13 +38,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "admissions_beds_admissions",
-				Columns:    []*schema.Column{AdmissionsColumns[15]},
+				Columns:    []*schema.Column{AdmissionsColumns[16]},
 				RefColumns: []*schema.Column{BedsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "admissions_patient_visits_admissions",
-				Columns:    []*schema.Column{AdmissionsColumns[16]},
+				Columns:    []*schema.Column{AdmissionsColumns[17]},
 				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -52,7 +53,7 @@ var (
 			{
 				Name:    "admission_tenant_id_patient_visit_id",
 				Unique:  false,
-				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[16]},
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[17]},
 			},
 			{
 				Name:    "admission_tenant_id_status",
@@ -67,7 +68,7 @@ var (
 			{
 				Name:    "admission_tenant_id_bed_id",
 				Unique:  false,
-				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[15]},
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[16]},
 			},
 			{
 				Name:    "admission_tenant_id_admission_number",
@@ -127,7 +128,7 @@ var (
 		{Name: "source_reference_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "description", Type: field.TypeString},
 		{Name: "amount", Type: field.TypeFloat64},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "invoiced", "paid", "exempted", "waived", "written_off"}, Default: "pending"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "invoiced", "paid", "exempted", "waived", "written_off", "refunded"}, Default: "pending"},
 		{Name: "treasury_invoice_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "treasury_payment_intent_id", Type: field.TypeUUID, Nullable: true},
 		{Name: "created_by_user_id", Type: field.TypeUUID, Nullable: true},
