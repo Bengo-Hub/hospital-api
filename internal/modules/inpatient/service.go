@@ -97,6 +97,57 @@ func (s *Service) SetWardBillableItemCode(ctx context.Context, tenantID, wardID 
 	return updated, nil
 }
 
+// WardUpdate is a partial update to one tenant-scoped Ward — mirrors billing.CatalogItemUpdate's
+// pointer-field shape (nil = leave unchanged). A wrong name/type/capacity/billing-code could
+// previously never be fixed after CreateWard; this closes that gap without any schema change
+// (every field it touches already existed).
+type WardUpdate struct {
+	Name                  *string
+	WardType              *string
+	Capacity              *int
+	BillableItemCode      *string
+	ClearBillableItemCode bool
+	IsActive              *bool
+}
+
+// UpdateWard applies a partial update to one tenant-scoped ward.
+func (s *Service) UpdateWard(ctx context.Context, tenantID, wardID uuid.UUID, in WardUpdate) (*ent.Ward, error) {
+	existing, err := s.client.Ward.Query().Where(ward.ID(wardID), ward.TenantID(tenantID)).Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: ward not found: %w", err)
+	}
+	upd := s.client.Ward.UpdateOneID(existing.ID)
+	if in.Name != nil {
+		if *in.Name == "" {
+			return nil, fmt.Errorf("inpatient: ward name is required")
+		}
+		upd = upd.SetName(*in.Name)
+	}
+	if in.WardType != nil {
+		if *in.WardType == "" {
+			upd = upd.ClearWardType()
+		} else {
+			upd = upd.SetWardType(ward.WardType(*in.WardType))
+		}
+	}
+	if in.Capacity != nil {
+		upd = upd.SetCapacity(*in.Capacity)
+	}
+	if in.ClearBillableItemCode {
+		upd = upd.ClearBillableItemCode()
+	} else if in.BillableItemCode != nil {
+		upd = upd.SetBillableItemCode(*in.BillableItemCode)
+	}
+	if in.IsActive != nil {
+		upd = upd.SetIsActive(*in.IsActive)
+	}
+	updated, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: update ward: %w", err)
+	}
+	return updated, nil
+}
+
 // ListWards lists active wards, optionally scoped to one outlet.
 func (s *Service) ListWards(ctx context.Context, tenantID uuid.UUID, outletID *uuid.UUID) ([]*ent.Ward, error) {
 	q := s.client.Ward.Query().Where(ward.TenantID(tenantID), ward.IsActive(true))

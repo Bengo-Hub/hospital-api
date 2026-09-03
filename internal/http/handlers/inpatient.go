@@ -58,6 +58,44 @@ func (h *InpatientHandler) CreateWard(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, ward)
 }
 
+type updateWardRequest struct {
+	Name                  *string `json:"name,omitempty"`
+	WardType              *string `json:"ward_type,omitempty"`
+	Capacity              *int    `json:"capacity,omitempty"`
+	BillableItemCode      *string `json:"billable_item_code,omitempty"`
+	ClearBillableItemCode bool    `json:"clear_billable_item_code,omitempty"`
+	IsActive              *bool   `json:"is_active,omitempty"`
+}
+
+// UpdateWard handles PUT /{tenant}/hospital/wards/{wardID}
+func (h *InpatientHandler) UpdateWard(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	wardID, err := uuid.Parse(chi.URLParam(r, "wardID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid ward ID")
+		return
+	}
+	var in updateWardRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	updated, err := h.svc.UpdateWard(r.Context(), tenantID, wardID, inpatient.WardUpdate{
+		Name: in.Name, WardType: in.WardType, Capacity: in.Capacity,
+		BillableItemCode: in.BillableItemCode, ClearBillableItemCode: in.ClearBillableItemCode,
+		IsActive: in.IsActive,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, updated)
+}
+
 // ListWards handles GET /{tenant}/hospital/wards
 func (h *InpatientHandler) ListWards(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)

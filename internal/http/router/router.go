@@ -508,6 +508,9 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
 					Post("/wards", d.Inpatient.CreateWard)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
+					Put("/wards/{wardID}", d.Inpatient.UpdateWard)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
 					Get("/wards", d.Inpatient.ListWards)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),

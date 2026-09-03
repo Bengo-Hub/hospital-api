@@ -18,6 +18,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/controlledsubstancelog"
+	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	"github.com/bengobox/hospital-service/internal/ent/prescriptionline"
 	"github.com/bengobox/hospital-service/internal/ent/referral"
@@ -756,10 +757,45 @@ func (s *Service) Dispense(ctx context.Context, tenantID, rxID uuid.UUID, req Di
 		return nil, fmt.Errorf("pharmacy: update prescription status: %w", err)
 	}
 
+	// PatientVisit.status has a "dispensed" enum value that, before this fix, no service code ever
+	// set — a dispensed OPD visit stayed stuck at "prescribed" forever. Mirrors lab's/consultation's
+	// own nextVisitStatusAfterX guard pattern: only advance a visit that's still sitting in
+	// "prescribed" (the state consultation.CreateReferral put it in), and only once every line on
+	// this prescription is fully dispensed — a partial dispense leaves the visit's status alone so
+	// the pharmacy worklist still surfaces it as needing follow-up.
+	if allDispensed && rx.VisitID != nil {
+		visit, verr := tx.PatientVisit.Query().
+			Where(patientvisit.ID(*rx.VisitID), patientvisit.TenantID(tenantID)).
+			Only(ctx)
+		if verr != nil {
+			err = verr
+			return nil, fmt.Errorf("pharmacy: visit not found: %w", verr)
+		}
+		if next, ok := nextVisitStatusAfterDispense(visit.Status); ok {
+			if _, serr := tx.PatientVisit.UpdateOneID(*rx.VisitID).
+				SetStatus(next).Save(ctx); serr != nil {
+				err = serr
+				return nil, fmt.Errorf("pharmacy: advance visit to dispensed: %w", serr)
+			}
+		}
+	}
+
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("pharmacy: commit dispense: %w", err)
 	}
 	return updated, nil
+}
+
+// nextVisitStatusAfterDispense decides whether fully dispensing a prescription should advance the
+// associated visit's status to "dispensed", returning ok=false when it shouldn't move at all. Only
+// a visit sitting in "prescribed" advances; one that reached here some other way (e.g. already
+// marked "completed" by the clinician) is left untouched rather than blindly overwritten, same
+// guard style as lab.nextVisitStatusAfterLabComplete / patients.nextVisitStatusAfterTriage.
+func nextVisitStatusAfterDispense(current patientvisit.Status) (next patientvisit.Status, ok bool) {
+	if current == patientvisit.StatusPrescribed {
+		return patientvisit.StatusDispensed, true
+	}
+	return "", false
 }
 
 // SubmitInsuranceClaimRequest is the input to SubmitInsuranceClaim.
