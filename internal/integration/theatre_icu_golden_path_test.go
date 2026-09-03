@@ -60,7 +60,7 @@ func TestTheatreGoldenPath(t *testing.T) {
 
 	// Admit so the theatre fee lands on the admission account, not a fresh OPD one — proves the
 	// Sprint 6 admission-aware billing routing generalizes to a second department untouched.
-	ward, err := inpatientSvc.CreateWard(ctx, tenantID, outletID, "Surgical Ward", 5)
+	ward, err := inpatientSvc.CreateWard(ctx, tenantID, outletID, "Surgical Ward", "", 5)
 	if err != nil {
 		t.Fatalf("create ward: %v", err)
 	}

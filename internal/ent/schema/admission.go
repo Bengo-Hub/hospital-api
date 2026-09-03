@@ -33,7 +33,16 @@ func (Admission) Fields() []ent.Field {
 		field.Time("admitted_at").Default(time.Now).Immutable(),
 		field.Time("discharged_at").Optional().Nillable(),
 		field.UUID("discharged_by", uuid.UUID{}).Optional().Nillable(),
-		field.String("discharge_summary").Optional(),
+		field.String("discharge_summary").Optional().
+			Comment("Free-text narrative — kept as-is for anything that doesn't fit the structured fields below, not replaced by them"),
+		field.String("discharge_diagnosis").Optional().
+			Comment("Joint Commission-style structured discharge summary component: primary diagnosis at discharge"),
+		field.String("procedures_performed").Optional(),
+		field.String("discharge_medications").Optional(),
+		field.String("follow_up_instructions").Optional(),
+		field.Enum("condition_at_discharge").
+			Values("recovered", "improved", "unchanged", "deteriorated", "deceased").
+			Optional(),
 		field.String("insurance_guarantee_reference").Optional().
 			Comment("Letter-of-guarantee/undertaking reference recorded in place of a cash deposit for an insured admission"),
 		field.Bool("ward_charge_posted").Default(false).
@@ -56,6 +65,8 @@ func (Admission) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("medication_administrations", MedicationAdministration.Type),
+		edge.To("vitals_chart_entries", VitalsChartEntry.Type),
+		edge.To("ward_round_notes", WardRoundNote.Type),
 	}
 }
 

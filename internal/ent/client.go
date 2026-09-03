@@ -52,8 +52,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/bengobox/hospital-service/internal/ent/ward"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 )
 
 // Client is the client that holds all ent builders.
@@ -133,10 +135,14 @@ type Client struct {
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
 	UserRoleAssignment *UserRoleAssignmentClient
+	// VitalsChartEntry is the client for interacting with the VitalsChartEntry builders.
+	VitalsChartEntry *VitalsChartEntryClient
 	// WalkInSale is the client for interacting with the WalkInSale builders.
 	WalkInSale *WalkInSaleClient
 	// Ward is the client for interacting with the Ward builders.
 	Ward *WardClient
+	// WardRoundNote is the client for interacting with the WardRoundNote builders.
+	WardRoundNote *WardRoundNoteClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -184,8 +190,10 @@ func (c *Client) init() {
 	c.TheatreBooking = NewTheatreBookingClient(c.config)
 	c.TriageRecord = NewTriageRecordClient(c.config)
 	c.UserRoleAssignment = NewUserRoleAssignmentClient(c.config)
+	c.VitalsChartEntry = NewVitalsChartEntryClient(c.config)
 	c.WalkInSale = NewWalkInSaleClient(c.config)
 	c.Ward = NewWardClient(c.config)
+	c.WardRoundNote = NewWardRoundNoteClient(c.config)
 }
 
 type (
@@ -314,8 +322,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		TheatreBooking:           NewTheatreBookingClient(cfg),
 		TriageRecord:             NewTriageRecordClient(cfg),
 		UserRoleAssignment:       NewUserRoleAssignmentClient(cfg),
+		VitalsChartEntry:         NewVitalsChartEntryClient(cfg),
 		WalkInSale:               NewWalkInSaleClient(cfg),
 		Ward:                     NewWardClient(cfg),
+		WardRoundNote:            NewWardRoundNoteClient(cfg),
 	}, nil
 }
 
@@ -371,8 +381,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		TheatreBooking:           NewTheatreBookingClient(cfg),
 		TriageRecord:             NewTriageRecordClient(cfg),
 		UserRoleAssignment:       NewUserRoleAssignmentClient(cfg),
+		VitalsChartEntry:         NewVitalsChartEntryClient(cfg),
 		WalkInSale:               NewWalkInSaleClient(cfg),
 		Ward:                     NewWardClient(cfg),
+		WardRoundNote:            NewWardRoundNoteClient(cfg),
 	}, nil
 }
 
@@ -411,7 +423,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientTransfer,
 		c.PatientVisit, c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
 		c.RolePermission, c.Tenant, c.TheatreBooking, c.TriageRecord,
-		c.UserRoleAssignment, c.WalkInSale, c.Ward,
+		c.UserRoleAssignment, c.VitalsChartEntry, c.WalkInSale, c.Ward,
+		c.WardRoundNote,
 	} {
 		n.Use(hooks...)
 	}
@@ -430,7 +443,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.Patient, c.PatientAccount, c.PatientNextOfKin, c.PatientTransfer,
 		c.PatientVisit, c.Prescription, c.PrescriptionLine, c.RbacAuditLog, c.Referral,
 		c.RolePermission, c.Tenant, c.TheatreBooking, c.TriageRecord,
-		c.UserRoleAssignment, c.WalkInSale, c.Ward,
+		c.UserRoleAssignment, c.VitalsChartEntry, c.WalkInSale, c.Ward,
+		c.WardRoundNote,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -511,10 +525,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.TriageRecord.mutate(ctx, m)
 	case *UserRoleAssignmentMutation:
 		return c.UserRoleAssignment.mutate(ctx, m)
+	case *VitalsChartEntryMutation:
+		return c.VitalsChartEntry.mutate(ctx, m)
 	case *WalkInSaleMutation:
 		return c.WalkInSale.mutate(ctx, m)
 	case *WardMutation:
 		return c.Ward.mutate(ctx, m)
+	case *WardRoundNoteMutation:
+		return c.WardRoundNote.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -669,6 +687,38 @@ func (c *AdmissionClient) QueryMedicationAdministrations(_m *Admission) *Medicat
 			sqlgraph.From(admission.Table, admission.FieldID, id),
 			sqlgraph.To(medicationadministration.Table, medicationadministration.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, admission.MedicationAdministrationsTable, admission.MedicationAdministrationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryVitalsChartEntries queries the vitals_chart_entries edge of a Admission.
+func (c *AdmissionClient) QueryVitalsChartEntries(_m *Admission) *VitalsChartEntryQuery {
+	query := (&VitalsChartEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(admission.Table, admission.FieldID, id),
+			sqlgraph.To(vitalschartentry.Table, vitalschartentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, admission.VitalsChartEntriesTable, admission.VitalsChartEntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWardRoundNotes queries the ward_round_notes edge of a Admission.
+func (c *AdmissionClient) QueryWardRoundNotes(_m *Admission) *WardRoundNoteQuery {
+	query := (&WardRoundNoteClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(admission.Table, admission.FieldID, id),
+			sqlgraph.To(wardroundnote.Table, wardroundnote.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, admission.WardRoundNotesTable, admission.WardRoundNotesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5948,6 +5998,155 @@ func (c *UserRoleAssignmentClient) mutate(ctx context.Context, m *UserRoleAssign
 	}
 }
 
+// VitalsChartEntryClient is a client for the VitalsChartEntry schema.
+type VitalsChartEntryClient struct {
+	config
+}
+
+// NewVitalsChartEntryClient returns a client for the VitalsChartEntry from the given config.
+func NewVitalsChartEntryClient(c config) *VitalsChartEntryClient {
+	return &VitalsChartEntryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `vitalschartentry.Hooks(f(g(h())))`.
+func (c *VitalsChartEntryClient) Use(hooks ...Hook) {
+	c.hooks.VitalsChartEntry = append(c.hooks.VitalsChartEntry, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `vitalschartentry.Intercept(f(g(h())))`.
+func (c *VitalsChartEntryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.VitalsChartEntry = append(c.inters.VitalsChartEntry, interceptors...)
+}
+
+// Create returns a builder for creating a VitalsChartEntry entity.
+func (c *VitalsChartEntryClient) Create() *VitalsChartEntryCreate {
+	mutation := newVitalsChartEntryMutation(c.config, OpCreate)
+	return &VitalsChartEntryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of VitalsChartEntry entities.
+func (c *VitalsChartEntryClient) CreateBulk(builders ...*VitalsChartEntryCreate) *VitalsChartEntryCreateBulk {
+	return &VitalsChartEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *VitalsChartEntryClient) MapCreateBulk(slice any, setFunc func(*VitalsChartEntryCreate, int)) *VitalsChartEntryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &VitalsChartEntryCreateBulk{err: fmt.Errorf("calling to VitalsChartEntryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*VitalsChartEntryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &VitalsChartEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for VitalsChartEntry.
+func (c *VitalsChartEntryClient) Update() *VitalsChartEntryUpdate {
+	mutation := newVitalsChartEntryMutation(c.config, OpUpdate)
+	return &VitalsChartEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *VitalsChartEntryClient) UpdateOne(_m *VitalsChartEntry) *VitalsChartEntryUpdateOne {
+	mutation := newVitalsChartEntryMutation(c.config, OpUpdateOne, withVitalsChartEntry(_m))
+	return &VitalsChartEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *VitalsChartEntryClient) UpdateOneID(id uuid.UUID) *VitalsChartEntryUpdateOne {
+	mutation := newVitalsChartEntryMutation(c.config, OpUpdateOne, withVitalsChartEntryID(id))
+	return &VitalsChartEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for VitalsChartEntry.
+func (c *VitalsChartEntryClient) Delete() *VitalsChartEntryDelete {
+	mutation := newVitalsChartEntryMutation(c.config, OpDelete)
+	return &VitalsChartEntryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *VitalsChartEntryClient) DeleteOne(_m *VitalsChartEntry) *VitalsChartEntryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *VitalsChartEntryClient) DeleteOneID(id uuid.UUID) *VitalsChartEntryDeleteOne {
+	builder := c.Delete().Where(vitalschartentry.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &VitalsChartEntryDeleteOne{builder}
+}
+
+// Query returns a query builder for VitalsChartEntry.
+func (c *VitalsChartEntryClient) Query() *VitalsChartEntryQuery {
+	return &VitalsChartEntryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeVitalsChartEntry},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a VitalsChartEntry entity by its id.
+func (c *VitalsChartEntryClient) Get(ctx context.Context, id uuid.UUID) (*VitalsChartEntry, error) {
+	return c.Query().Where(vitalschartentry.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *VitalsChartEntryClient) GetX(ctx context.Context, id uuid.UUID) *VitalsChartEntry {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAdmission queries the admission edge of a VitalsChartEntry.
+func (c *VitalsChartEntryClient) QueryAdmission(_m *VitalsChartEntry) *AdmissionQuery {
+	query := (&AdmissionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(vitalschartentry.Table, vitalschartentry.FieldID, id),
+			sqlgraph.To(admission.Table, admission.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, vitalschartentry.AdmissionTable, vitalschartentry.AdmissionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *VitalsChartEntryClient) Hooks() []Hook {
+	return c.hooks.VitalsChartEntry
+}
+
+// Interceptors returns the client interceptors.
+func (c *VitalsChartEntryClient) Interceptors() []Interceptor {
+	return c.inters.VitalsChartEntry
+}
+
+func (c *VitalsChartEntryClient) mutate(ctx context.Context, m *VitalsChartEntryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&VitalsChartEntryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&VitalsChartEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&VitalsChartEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&VitalsChartEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown VitalsChartEntry mutation op: %q", m.Op())
+	}
+}
+
 // WalkInSaleClient is a client for the WalkInSale schema.
 type WalkInSaleClient struct {
 	config
@@ -6246,6 +6445,155 @@ func (c *WardClient) mutate(ctx context.Context, m *WardMutation) (Value, error)
 	}
 }
 
+// WardRoundNoteClient is a client for the WardRoundNote schema.
+type WardRoundNoteClient struct {
+	config
+}
+
+// NewWardRoundNoteClient returns a client for the WardRoundNote from the given config.
+func NewWardRoundNoteClient(c config) *WardRoundNoteClient {
+	return &WardRoundNoteClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `wardroundnote.Hooks(f(g(h())))`.
+func (c *WardRoundNoteClient) Use(hooks ...Hook) {
+	c.hooks.WardRoundNote = append(c.hooks.WardRoundNote, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `wardroundnote.Intercept(f(g(h())))`.
+func (c *WardRoundNoteClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WardRoundNote = append(c.inters.WardRoundNote, interceptors...)
+}
+
+// Create returns a builder for creating a WardRoundNote entity.
+func (c *WardRoundNoteClient) Create() *WardRoundNoteCreate {
+	mutation := newWardRoundNoteMutation(c.config, OpCreate)
+	return &WardRoundNoteCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WardRoundNote entities.
+func (c *WardRoundNoteClient) CreateBulk(builders ...*WardRoundNoteCreate) *WardRoundNoteCreateBulk {
+	return &WardRoundNoteCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WardRoundNoteClient) MapCreateBulk(slice any, setFunc func(*WardRoundNoteCreate, int)) *WardRoundNoteCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WardRoundNoteCreateBulk{err: fmt.Errorf("calling to WardRoundNoteClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WardRoundNoteCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WardRoundNoteCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WardRoundNote.
+func (c *WardRoundNoteClient) Update() *WardRoundNoteUpdate {
+	mutation := newWardRoundNoteMutation(c.config, OpUpdate)
+	return &WardRoundNoteUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WardRoundNoteClient) UpdateOne(_m *WardRoundNote) *WardRoundNoteUpdateOne {
+	mutation := newWardRoundNoteMutation(c.config, OpUpdateOne, withWardRoundNote(_m))
+	return &WardRoundNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WardRoundNoteClient) UpdateOneID(id uuid.UUID) *WardRoundNoteUpdateOne {
+	mutation := newWardRoundNoteMutation(c.config, OpUpdateOne, withWardRoundNoteID(id))
+	return &WardRoundNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WardRoundNote.
+func (c *WardRoundNoteClient) Delete() *WardRoundNoteDelete {
+	mutation := newWardRoundNoteMutation(c.config, OpDelete)
+	return &WardRoundNoteDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WardRoundNoteClient) DeleteOne(_m *WardRoundNote) *WardRoundNoteDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WardRoundNoteClient) DeleteOneID(id uuid.UUID) *WardRoundNoteDeleteOne {
+	builder := c.Delete().Where(wardroundnote.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WardRoundNoteDeleteOne{builder}
+}
+
+// Query returns a query builder for WardRoundNote.
+func (c *WardRoundNoteClient) Query() *WardRoundNoteQuery {
+	return &WardRoundNoteQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWardRoundNote},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WardRoundNote entity by its id.
+func (c *WardRoundNoteClient) Get(ctx context.Context, id uuid.UUID) (*WardRoundNote, error) {
+	return c.Query().Where(wardroundnote.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WardRoundNoteClient) GetX(ctx context.Context, id uuid.UUID) *WardRoundNote {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAdmission queries the admission edge of a WardRoundNote.
+func (c *WardRoundNoteClient) QueryAdmission(_m *WardRoundNote) *AdmissionQuery {
+	query := (&AdmissionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(wardroundnote.Table, wardroundnote.FieldID, id),
+			sqlgraph.To(admission.Table, admission.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, wardroundnote.AdmissionTable, wardroundnote.AdmissionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WardRoundNoteClient) Hooks() []Hook {
+	return c.hooks.WardRoundNote
+}
+
+// Interceptors returns the client interceptors.
+func (c *WardRoundNoteClient) Interceptors() []Interceptor {
+	return c.inters.WardRoundNote
+}
+
+func (c *WardRoundNoteClient) mutate(ctx context.Context, m *WardRoundNoteMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WardRoundNoteCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WardRoundNoteUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WardRoundNoteUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WardRoundNoteDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WardRoundNote mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
@@ -6257,7 +6605,8 @@ type (
 		OutboxEvent, Outlet, Patient, PatientAccount, PatientNextOfKin,
 		PatientTransfer, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
 		Referral, RolePermission, Tenant, TheatreBooking, TriageRecord,
-		UserRoleAssignment, WalkInSale, Ward []ent.Hook
+		UserRoleAssignment, VitalsChartEntry, WalkInSale, Ward,
+		WardRoundNote []ent.Hook
 	}
 	inters struct {
 		Admission, Bed, BillableCharge, BillableItemCatalog, ControlledSubstanceLog,
@@ -6268,6 +6617,7 @@ type (
 		OutboxEvent, Outlet, Patient, PatientAccount, PatientNextOfKin,
 		PatientTransfer, PatientVisit, Prescription, PrescriptionLine, RbacAuditLog,
 		Referral, RolePermission, Tenant, TheatreBooking, TriageRecord,
-		UserRoleAssignment, WalkInSale, Ward []ent.Interceptor
+		UserRoleAssignment, VitalsChartEntry, WalkInSale, Ward,
+		WardRoundNote []ent.Interceptor
 	}
 )

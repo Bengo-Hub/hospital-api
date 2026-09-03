@@ -152,11 +152,11 @@ written by a parallel session running concurrently with this one.
 
 | Gap | Effort | Notes |
 |---|---|---|
-| No ward/bed type (General/Private/Semi-Private/Isolation/ICU) distinct from the free-form `billable_item_code` already on `Ward` | Quick, additive `ward_type` enum | Would default a sensible `billable_item_code` per type without removing the existing override. |
-| No isolation-precaution flag on a bed/admission | Quick, additive enum | CDC transmission-based-precaution categories (contact/droplet/airborne/none), modeled per-bed since isolation is a stay state, not a fixed ward classification. |
-| `Admission.discharge_summary` is a single free-text field, no structured content | Moderate, additive fields | Joint Commission-style structured discharge summary (diagnosis, procedures, discharge medications, follow-up, condition at discharge), free text kept as an "additional notes" field. |
-| No nursing vitals/ward-round tracking during an inpatient stay, distinct from Triage (OPD-only) | New small module | A `vitals_chart_entry`/`ward_round_note` entity tied to an admission, most naturally on the admission detail page. |
-| Transfer history not visible in hospital-ui despite `PatientTransfer` rows existing and being used for billing | Quick, UI only | Already flagged in Sprint 6's own DoD as a known gap, not new to this pass. |
+| No ward/bed type (General/Private/Semi-Private/Isolation/ICU) distinct from the free-form `billable_item_code` already on `Ward` | Quick, additive `ward_type` enum | **Shipped 2026-09-03.** |
+| No isolation-precaution flag on a bed/admission | Quick, additive enum | **Shipped 2026-09-03.** |
+| `Admission.discharge_summary` is a single free-text field, no structured content | Moderate, additive fields | **Shipped 2026-09-03.** |
+| No nursing vitals/ward-round tracking during an inpatient stay, distinct from Triage (OPD-only) | New small module | **Shipped 2026-09-03.** |
+| Transfer history not visible in hospital-ui despite `PatientTransfer` rows existing and being used for billing | Quick, UI only | **Shipped 2026-09-03** — turned out to need a small backend list endpoint too (none existed at all), not UI-only as originally framed. |
 | **Biomedical Equipment / Asset integration** — shipped this session | Done | Originally this section's headline finding; implemented for real (`Bed.equipment_asset_ids`, a read-only `/assets` page). See `docs/architecture.md`'s "Biomedical Equipment / Asset Integration" section. Two real gaps in inventory-api's `AssetReservation` (no overlap check, no status-transition endpoint) were found and flagged back rather than fixed, since they block real equipment-conflict prevention later. |
 
 ## Sprint 7: Theatre/ICU

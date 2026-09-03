@@ -84,10 +84,14 @@ type Tx struct {
 	TriageRecord *TriageRecordClient
 	// UserRoleAssignment is the client for interacting with the UserRoleAssignment builders.
 	UserRoleAssignment *UserRoleAssignmentClient
+	// VitalsChartEntry is the client for interacting with the VitalsChartEntry builders.
+	VitalsChartEntry *VitalsChartEntryClient
 	// WalkInSale is the client for interacting with the WalkInSale builders.
 	WalkInSale *WalkInSaleClient
 	// Ward is the client for interacting with the Ward builders.
 	Ward *WardClient
+	// WardRoundNote is the client for interacting with the WardRoundNote builders.
+	WardRoundNote *WardRoundNoteClient
 
 	// lazily loaded.
 	client     *Client
@@ -255,8 +259,10 @@ func (tx *Tx) init() {
 	tx.TheatreBooking = NewTheatreBookingClient(tx.config)
 	tx.TriageRecord = NewTriageRecordClient(tx.config)
 	tx.UserRoleAssignment = NewUserRoleAssignmentClient(tx.config)
+	tx.VitalsChartEntry = NewVitalsChartEntryClient(tx.config)
 	tx.WalkInSale = NewWalkInSaleClient(tx.config)
 	tx.Ward = NewWardClient(tx.config)
+	tx.WardRoundNote = NewWardRoundNoteClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

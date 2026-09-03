@@ -72,6 +72,26 @@ func (_u *WardUpdate) SetNillableName(v *string) *WardUpdate {
 	return _u
 }
 
+// SetWardType sets the "ward_type" field.
+func (_u *WardUpdate) SetWardType(v ward.WardType) *WardUpdate {
+	_u.mutation.SetWardType(v)
+	return _u
+}
+
+// SetNillableWardType sets the "ward_type" field if the given value is not nil.
+func (_u *WardUpdate) SetNillableWardType(v *ward.WardType) *WardUpdate {
+	if v != nil {
+		_u.SetWardType(*v)
+	}
+	return _u
+}
+
+// ClearWardType clears the value of the "ward_type" field.
+func (_u *WardUpdate) ClearWardType() *WardUpdate {
+	_u.mutation.ClearWardType()
+	return _u
+}
+
 // SetCapacity sets the "capacity" field.
 func (_u *WardUpdate) SetCapacity(v int) *WardUpdate {
 	_u.mutation.ResetCapacity()
@@ -217,6 +237,11 @@ func (_u *WardUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Ward.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.WardType(); ok {
+		if err := ward.WardTypeValidator(v); err != nil {
+			return &ValidationError{Name: "ward_type", err: fmt.Errorf(`ent: validator failed for field "Ward.ward_type": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -240,6 +265,12 @@ func (_u *WardUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(ward.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.WardType(); ok {
+		_spec.SetField(ward.FieldWardType, field.TypeEnum, value)
+	}
+	if _u.mutation.WardTypeCleared() {
+		_spec.ClearField(ward.FieldWardType, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Capacity(); ok {
 		_spec.SetField(ward.FieldCapacity, field.TypeInt, value)
@@ -363,6 +394,26 @@ func (_u *WardUpdateOne) SetNillableName(v *string) *WardUpdateOne {
 	if v != nil {
 		_u.SetName(*v)
 	}
+	return _u
+}
+
+// SetWardType sets the "ward_type" field.
+func (_u *WardUpdateOne) SetWardType(v ward.WardType) *WardUpdateOne {
+	_u.mutation.SetWardType(v)
+	return _u
+}
+
+// SetNillableWardType sets the "ward_type" field if the given value is not nil.
+func (_u *WardUpdateOne) SetNillableWardType(v *ward.WardType) *WardUpdateOne {
+	if v != nil {
+		_u.SetWardType(*v)
+	}
+	return _u
+}
+
+// ClearWardType clears the value of the "ward_type" field.
+func (_u *WardUpdateOne) ClearWardType() *WardUpdateOne {
+	_u.mutation.ClearWardType()
 	return _u
 }
 
@@ -524,6 +575,11 @@ func (_u *WardUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Ward.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.WardType(); ok {
+		if err := ward.WardTypeValidator(v); err != nil {
+			return &ValidationError{Name: "ward_type", err: fmt.Errorf(`ent: validator failed for field "Ward.ward_type": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -564,6 +620,12 @@ func (_u *WardUpdateOne) sqlSave(ctx context.Context) (_node *Ward, err error) {
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(ward.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.WardType(); ok {
+		_spec.SetField(ward.FieldWardType, field.TypeEnum, value)
+	}
+	if _u.mutation.WardTypeCleared() {
+		_spec.ClearField(ward.FieldWardType, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Capacity(); ok {
 		_spec.SetField(ward.FieldCapacity, field.TypeInt, value)

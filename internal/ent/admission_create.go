@@ -16,6 +16,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/bed"
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 	"github.com/google/uuid"
 )
 
@@ -153,6 +155,76 @@ func (_c *AdmissionCreate) SetNillableDischargeSummary(v *string) *AdmissionCrea
 	return _c
 }
 
+// SetDischargeDiagnosis sets the "discharge_diagnosis" field.
+func (_c *AdmissionCreate) SetDischargeDiagnosis(v string) *AdmissionCreate {
+	_c.mutation.SetDischargeDiagnosis(v)
+	return _c
+}
+
+// SetNillableDischargeDiagnosis sets the "discharge_diagnosis" field if the given value is not nil.
+func (_c *AdmissionCreate) SetNillableDischargeDiagnosis(v *string) *AdmissionCreate {
+	if v != nil {
+		_c.SetDischargeDiagnosis(*v)
+	}
+	return _c
+}
+
+// SetProceduresPerformed sets the "procedures_performed" field.
+func (_c *AdmissionCreate) SetProceduresPerformed(v string) *AdmissionCreate {
+	_c.mutation.SetProceduresPerformed(v)
+	return _c
+}
+
+// SetNillableProceduresPerformed sets the "procedures_performed" field if the given value is not nil.
+func (_c *AdmissionCreate) SetNillableProceduresPerformed(v *string) *AdmissionCreate {
+	if v != nil {
+		_c.SetProceduresPerformed(*v)
+	}
+	return _c
+}
+
+// SetDischargeMedications sets the "discharge_medications" field.
+func (_c *AdmissionCreate) SetDischargeMedications(v string) *AdmissionCreate {
+	_c.mutation.SetDischargeMedications(v)
+	return _c
+}
+
+// SetNillableDischargeMedications sets the "discharge_medications" field if the given value is not nil.
+func (_c *AdmissionCreate) SetNillableDischargeMedications(v *string) *AdmissionCreate {
+	if v != nil {
+		_c.SetDischargeMedications(*v)
+	}
+	return _c
+}
+
+// SetFollowUpInstructions sets the "follow_up_instructions" field.
+func (_c *AdmissionCreate) SetFollowUpInstructions(v string) *AdmissionCreate {
+	_c.mutation.SetFollowUpInstructions(v)
+	return _c
+}
+
+// SetNillableFollowUpInstructions sets the "follow_up_instructions" field if the given value is not nil.
+func (_c *AdmissionCreate) SetNillableFollowUpInstructions(v *string) *AdmissionCreate {
+	if v != nil {
+		_c.SetFollowUpInstructions(*v)
+	}
+	return _c
+}
+
+// SetConditionAtDischarge sets the "condition_at_discharge" field.
+func (_c *AdmissionCreate) SetConditionAtDischarge(v admission.ConditionAtDischarge) *AdmissionCreate {
+	_c.mutation.SetConditionAtDischarge(v)
+	return _c
+}
+
+// SetNillableConditionAtDischarge sets the "condition_at_discharge" field if the given value is not nil.
+func (_c *AdmissionCreate) SetNillableConditionAtDischarge(v *admission.ConditionAtDischarge) *AdmissionCreate {
+	if v != nil {
+		_c.SetConditionAtDischarge(*v)
+	}
+	return _c
+}
+
 // SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
 func (_c *AdmissionCreate) SetInsuranceGuaranteeReference(v string) *AdmissionCreate {
 	_c.mutation.SetInsuranceGuaranteeReference(v)
@@ -252,6 +324,36 @@ func (_c *AdmissionCreate) AddMedicationAdministrations(v ...*MedicationAdminist
 		ids[i] = v[i].ID
 	}
 	return _c.AddMedicationAdministrationIDs(ids...)
+}
+
+// AddVitalsChartEntryIDs adds the "vitals_chart_entries" edge to the VitalsChartEntry entity by IDs.
+func (_c *AdmissionCreate) AddVitalsChartEntryIDs(ids ...uuid.UUID) *AdmissionCreate {
+	_c.mutation.AddVitalsChartEntryIDs(ids...)
+	return _c
+}
+
+// AddVitalsChartEntries adds the "vitals_chart_entries" edges to the VitalsChartEntry entity.
+func (_c *AdmissionCreate) AddVitalsChartEntries(v ...*VitalsChartEntry) *AdmissionCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddVitalsChartEntryIDs(ids...)
+}
+
+// AddWardRoundNoteIDs adds the "ward_round_notes" edge to the WardRoundNote entity by IDs.
+func (_c *AdmissionCreate) AddWardRoundNoteIDs(ids ...uuid.UUID) *AdmissionCreate {
+	_c.mutation.AddWardRoundNoteIDs(ids...)
+	return _c
+}
+
+// AddWardRoundNotes adds the "ward_round_notes" edges to the WardRoundNote entity.
+func (_c *AdmissionCreate) AddWardRoundNotes(v ...*WardRoundNote) *AdmissionCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddWardRoundNoteIDs(ids...)
 }
 
 // Mutation returns the AdmissionMutation object of the builder.
@@ -354,6 +456,11 @@ func (_c *AdmissionCreate) check() error {
 	if _, ok := _c.mutation.AdmittedAt(); !ok {
 		return &ValidationError{Name: "admitted_at", err: errors.New(`ent: missing required field "Admission.admitted_at"`)}
 	}
+	if v, ok := _c.mutation.ConditionAtDischarge(); ok {
+		if err := admission.ConditionAtDischargeValidator(v); err != nil {
+			return &ValidationError{Name: "condition_at_discharge", err: fmt.Errorf(`ent: validator failed for field "Admission.condition_at_discharge": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.WardChargePosted(); !ok {
 		return &ValidationError{Name: "ward_charge_posted", err: errors.New(`ent: missing required field "Admission.ward_charge_posted"`)}
 	}
@@ -449,6 +556,26 @@ func (_c *AdmissionCreate) createSpec() (*Admission, *sqlgraph.CreateSpec) {
 		_spec.SetField(admission.FieldDischargeSummary, field.TypeString, value)
 		_node.DischargeSummary = value
 	}
+	if value, ok := _c.mutation.DischargeDiagnosis(); ok {
+		_spec.SetField(admission.FieldDischargeDiagnosis, field.TypeString, value)
+		_node.DischargeDiagnosis = value
+	}
+	if value, ok := _c.mutation.ProceduresPerformed(); ok {
+		_spec.SetField(admission.FieldProceduresPerformed, field.TypeString, value)
+		_node.ProceduresPerformed = value
+	}
+	if value, ok := _c.mutation.DischargeMedications(); ok {
+		_spec.SetField(admission.FieldDischargeMedications, field.TypeString, value)
+		_node.DischargeMedications = value
+	}
+	if value, ok := _c.mutation.FollowUpInstructions(); ok {
+		_spec.SetField(admission.FieldFollowUpInstructions, field.TypeString, value)
+		_node.FollowUpInstructions = value
+	}
+	if value, ok := _c.mutation.ConditionAtDischarge(); ok {
+		_spec.SetField(admission.FieldConditionAtDischarge, field.TypeEnum, value)
+		_node.ConditionAtDischarge = value
+	}
 	if value, ok := _c.mutation.InsuranceGuaranteeReference(); ok {
 		_spec.SetField(admission.FieldInsuranceGuaranteeReference, field.TypeString, value)
 		_node.InsuranceGuaranteeReference = value
@@ -508,6 +635,38 @@ func (_c *AdmissionCreate) createSpec() (*Admission, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.VitalsChartEntriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.WardRoundNotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -732,6 +891,96 @@ func (u *AdmissionUpsert) UpdateDischargeSummary() *AdmissionUpsert {
 // ClearDischargeSummary clears the value of the "discharge_summary" field.
 func (u *AdmissionUpsert) ClearDischargeSummary() *AdmissionUpsert {
 	u.SetNull(admission.FieldDischargeSummary)
+	return u
+}
+
+// SetDischargeDiagnosis sets the "discharge_diagnosis" field.
+func (u *AdmissionUpsert) SetDischargeDiagnosis(v string) *AdmissionUpsert {
+	u.Set(admission.FieldDischargeDiagnosis, v)
+	return u
+}
+
+// UpdateDischargeDiagnosis sets the "discharge_diagnosis" field to the value that was provided on create.
+func (u *AdmissionUpsert) UpdateDischargeDiagnosis() *AdmissionUpsert {
+	u.SetExcluded(admission.FieldDischargeDiagnosis)
+	return u
+}
+
+// ClearDischargeDiagnosis clears the value of the "discharge_diagnosis" field.
+func (u *AdmissionUpsert) ClearDischargeDiagnosis() *AdmissionUpsert {
+	u.SetNull(admission.FieldDischargeDiagnosis)
+	return u
+}
+
+// SetProceduresPerformed sets the "procedures_performed" field.
+func (u *AdmissionUpsert) SetProceduresPerformed(v string) *AdmissionUpsert {
+	u.Set(admission.FieldProceduresPerformed, v)
+	return u
+}
+
+// UpdateProceduresPerformed sets the "procedures_performed" field to the value that was provided on create.
+func (u *AdmissionUpsert) UpdateProceduresPerformed() *AdmissionUpsert {
+	u.SetExcluded(admission.FieldProceduresPerformed)
+	return u
+}
+
+// ClearProceduresPerformed clears the value of the "procedures_performed" field.
+func (u *AdmissionUpsert) ClearProceduresPerformed() *AdmissionUpsert {
+	u.SetNull(admission.FieldProceduresPerformed)
+	return u
+}
+
+// SetDischargeMedications sets the "discharge_medications" field.
+func (u *AdmissionUpsert) SetDischargeMedications(v string) *AdmissionUpsert {
+	u.Set(admission.FieldDischargeMedications, v)
+	return u
+}
+
+// UpdateDischargeMedications sets the "discharge_medications" field to the value that was provided on create.
+func (u *AdmissionUpsert) UpdateDischargeMedications() *AdmissionUpsert {
+	u.SetExcluded(admission.FieldDischargeMedications)
+	return u
+}
+
+// ClearDischargeMedications clears the value of the "discharge_medications" field.
+func (u *AdmissionUpsert) ClearDischargeMedications() *AdmissionUpsert {
+	u.SetNull(admission.FieldDischargeMedications)
+	return u
+}
+
+// SetFollowUpInstructions sets the "follow_up_instructions" field.
+func (u *AdmissionUpsert) SetFollowUpInstructions(v string) *AdmissionUpsert {
+	u.Set(admission.FieldFollowUpInstructions, v)
+	return u
+}
+
+// UpdateFollowUpInstructions sets the "follow_up_instructions" field to the value that was provided on create.
+func (u *AdmissionUpsert) UpdateFollowUpInstructions() *AdmissionUpsert {
+	u.SetExcluded(admission.FieldFollowUpInstructions)
+	return u
+}
+
+// ClearFollowUpInstructions clears the value of the "follow_up_instructions" field.
+func (u *AdmissionUpsert) ClearFollowUpInstructions() *AdmissionUpsert {
+	u.SetNull(admission.FieldFollowUpInstructions)
+	return u
+}
+
+// SetConditionAtDischarge sets the "condition_at_discharge" field.
+func (u *AdmissionUpsert) SetConditionAtDischarge(v admission.ConditionAtDischarge) *AdmissionUpsert {
+	u.Set(admission.FieldConditionAtDischarge, v)
+	return u
+}
+
+// UpdateConditionAtDischarge sets the "condition_at_discharge" field to the value that was provided on create.
+func (u *AdmissionUpsert) UpdateConditionAtDischarge() *AdmissionUpsert {
+	u.SetExcluded(admission.FieldConditionAtDischarge)
+	return u
+}
+
+// ClearConditionAtDischarge clears the value of the "condition_at_discharge" field.
+func (u *AdmissionUpsert) ClearConditionAtDischarge() *AdmissionUpsert {
+	u.SetNull(admission.FieldConditionAtDischarge)
 	return u
 }
 
@@ -1024,6 +1273,111 @@ func (u *AdmissionUpsertOne) UpdateDischargeSummary() *AdmissionUpsertOne {
 func (u *AdmissionUpsertOne) ClearDischargeSummary() *AdmissionUpsertOne {
 	return u.Update(func(s *AdmissionUpsert) {
 		s.ClearDischargeSummary()
+	})
+}
+
+// SetDischargeDiagnosis sets the "discharge_diagnosis" field.
+func (u *AdmissionUpsertOne) SetDischargeDiagnosis(v string) *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetDischargeDiagnosis(v)
+	})
+}
+
+// UpdateDischargeDiagnosis sets the "discharge_diagnosis" field to the value that was provided on create.
+func (u *AdmissionUpsertOne) UpdateDischargeDiagnosis() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateDischargeDiagnosis()
+	})
+}
+
+// ClearDischargeDiagnosis clears the value of the "discharge_diagnosis" field.
+func (u *AdmissionUpsertOne) ClearDischargeDiagnosis() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearDischargeDiagnosis()
+	})
+}
+
+// SetProceduresPerformed sets the "procedures_performed" field.
+func (u *AdmissionUpsertOne) SetProceduresPerformed(v string) *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetProceduresPerformed(v)
+	})
+}
+
+// UpdateProceduresPerformed sets the "procedures_performed" field to the value that was provided on create.
+func (u *AdmissionUpsertOne) UpdateProceduresPerformed() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateProceduresPerformed()
+	})
+}
+
+// ClearProceduresPerformed clears the value of the "procedures_performed" field.
+func (u *AdmissionUpsertOne) ClearProceduresPerformed() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearProceduresPerformed()
+	})
+}
+
+// SetDischargeMedications sets the "discharge_medications" field.
+func (u *AdmissionUpsertOne) SetDischargeMedications(v string) *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetDischargeMedications(v)
+	})
+}
+
+// UpdateDischargeMedications sets the "discharge_medications" field to the value that was provided on create.
+func (u *AdmissionUpsertOne) UpdateDischargeMedications() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateDischargeMedications()
+	})
+}
+
+// ClearDischargeMedications clears the value of the "discharge_medications" field.
+func (u *AdmissionUpsertOne) ClearDischargeMedications() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearDischargeMedications()
+	})
+}
+
+// SetFollowUpInstructions sets the "follow_up_instructions" field.
+func (u *AdmissionUpsertOne) SetFollowUpInstructions(v string) *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetFollowUpInstructions(v)
+	})
+}
+
+// UpdateFollowUpInstructions sets the "follow_up_instructions" field to the value that was provided on create.
+func (u *AdmissionUpsertOne) UpdateFollowUpInstructions() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateFollowUpInstructions()
+	})
+}
+
+// ClearFollowUpInstructions clears the value of the "follow_up_instructions" field.
+func (u *AdmissionUpsertOne) ClearFollowUpInstructions() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearFollowUpInstructions()
+	})
+}
+
+// SetConditionAtDischarge sets the "condition_at_discharge" field.
+func (u *AdmissionUpsertOne) SetConditionAtDischarge(v admission.ConditionAtDischarge) *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetConditionAtDischarge(v)
+	})
+}
+
+// UpdateConditionAtDischarge sets the "condition_at_discharge" field to the value that was provided on create.
+func (u *AdmissionUpsertOne) UpdateConditionAtDischarge() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateConditionAtDischarge()
+	})
+}
+
+// ClearConditionAtDischarge clears the value of the "condition_at_discharge" field.
+func (u *AdmissionUpsertOne) ClearConditionAtDischarge() *AdmissionUpsertOne {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearConditionAtDischarge()
 	})
 }
 
@@ -1490,6 +1844,111 @@ func (u *AdmissionUpsertBulk) UpdateDischargeSummary() *AdmissionUpsertBulk {
 func (u *AdmissionUpsertBulk) ClearDischargeSummary() *AdmissionUpsertBulk {
 	return u.Update(func(s *AdmissionUpsert) {
 		s.ClearDischargeSummary()
+	})
+}
+
+// SetDischargeDiagnosis sets the "discharge_diagnosis" field.
+func (u *AdmissionUpsertBulk) SetDischargeDiagnosis(v string) *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetDischargeDiagnosis(v)
+	})
+}
+
+// UpdateDischargeDiagnosis sets the "discharge_diagnosis" field to the value that was provided on create.
+func (u *AdmissionUpsertBulk) UpdateDischargeDiagnosis() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateDischargeDiagnosis()
+	})
+}
+
+// ClearDischargeDiagnosis clears the value of the "discharge_diagnosis" field.
+func (u *AdmissionUpsertBulk) ClearDischargeDiagnosis() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearDischargeDiagnosis()
+	})
+}
+
+// SetProceduresPerformed sets the "procedures_performed" field.
+func (u *AdmissionUpsertBulk) SetProceduresPerformed(v string) *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetProceduresPerformed(v)
+	})
+}
+
+// UpdateProceduresPerformed sets the "procedures_performed" field to the value that was provided on create.
+func (u *AdmissionUpsertBulk) UpdateProceduresPerformed() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateProceduresPerformed()
+	})
+}
+
+// ClearProceduresPerformed clears the value of the "procedures_performed" field.
+func (u *AdmissionUpsertBulk) ClearProceduresPerformed() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearProceduresPerformed()
+	})
+}
+
+// SetDischargeMedications sets the "discharge_medications" field.
+func (u *AdmissionUpsertBulk) SetDischargeMedications(v string) *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetDischargeMedications(v)
+	})
+}
+
+// UpdateDischargeMedications sets the "discharge_medications" field to the value that was provided on create.
+func (u *AdmissionUpsertBulk) UpdateDischargeMedications() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateDischargeMedications()
+	})
+}
+
+// ClearDischargeMedications clears the value of the "discharge_medications" field.
+func (u *AdmissionUpsertBulk) ClearDischargeMedications() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearDischargeMedications()
+	})
+}
+
+// SetFollowUpInstructions sets the "follow_up_instructions" field.
+func (u *AdmissionUpsertBulk) SetFollowUpInstructions(v string) *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetFollowUpInstructions(v)
+	})
+}
+
+// UpdateFollowUpInstructions sets the "follow_up_instructions" field to the value that was provided on create.
+func (u *AdmissionUpsertBulk) UpdateFollowUpInstructions() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateFollowUpInstructions()
+	})
+}
+
+// ClearFollowUpInstructions clears the value of the "follow_up_instructions" field.
+func (u *AdmissionUpsertBulk) ClearFollowUpInstructions() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearFollowUpInstructions()
+	})
+}
+
+// SetConditionAtDischarge sets the "condition_at_discharge" field.
+func (u *AdmissionUpsertBulk) SetConditionAtDischarge(v admission.ConditionAtDischarge) *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.SetConditionAtDischarge(v)
+	})
+}
+
+// UpdateConditionAtDischarge sets the "condition_at_discharge" field to the value that was provided on create.
+func (u *AdmissionUpsertBulk) UpdateConditionAtDischarge() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.UpdateConditionAtDischarge()
+	})
+}
+
+// ClearConditionAtDischarge clears the value of the "condition_at_discharge" field.
+func (u *AdmissionUpsertBulk) ClearConditionAtDischarge() *AdmissionUpsertBulk {
+	return u.Update(func(s *AdmissionUpsert) {
+		s.ClearConditionAtDischarge()
 	})
 }
 

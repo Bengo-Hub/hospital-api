@@ -24,6 +24,10 @@ func (Bed) Fields() []ent.Field {
 		field.Enum("status").
 			Values("available", "occupied", "cleaning", "out_of_service").
 			Default("available"),
+		field.Enum("isolation_precaution").
+			Values("contact", "droplet", "airborne", "none").
+			Default("none").
+			Comment("CDC transmission-based precaution category for whoever currently occupies this bed — a per-STAY state (set at Admit, cleared at Discharge/bed-turnover), not a fixed property of the ward. Modeled per-bed since isolation needs can arise in an ordinary general ward pending a dedicated isolation bed becoming free"),
 		// EquipmentAssetIDs (2026-09-02, Biomedical Equipment integration brought forward from
 		// Sprint 9): references to inventory-api's Asset register (e.g. a bed-mounted monitor) —
 		// reference only, hospital-api never owns asset data. A JSON list rather than a single

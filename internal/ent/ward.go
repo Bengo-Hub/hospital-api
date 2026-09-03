@@ -24,6 +24,8 @@ type Ward struct {
 	OutletID uuid.UUID `json:"outlet_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Classification only — does not replace billable_item_code, which still prices this specific ward. Lets the UI group/filter wards and suggest (not force) a sensible default billable_item_code when a new ward is created
+	WardType ward.WardType `json:"ward_type,omitempty"`
 	// Informational headcount target; a bed-occupancy view counts real Bed rows, not this
 	Capacity int `json:"capacity,omitempty"`
 	// BillableItemCatalog code (department=inpatient) pricing a day in THIS ward, e.g. BED_DAY_ICU vs BED_DAY_GENERAL. Nil falls back to the tenant's default WARD_DAY_RATE code — see inpatient.Service's discharge-time ward-charge computation.
@@ -67,7 +69,7 @@ func (*Ward) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case ward.FieldCapacity:
 			values[i] = new(sql.NullInt64)
-		case ward.FieldName, ward.FieldBillableItemCode:
+		case ward.FieldName, ward.FieldWardType, ward.FieldBillableItemCode:
 			values[i] = new(sql.NullString)
 		case ward.FieldCreatedAt, ward.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -111,6 +113,12 @@ func (_m *Ward) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
+			}
+		case ward.FieldWardType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ward_type", values[i])
+			} else if value.Valid {
+				_m.WardType = ward.WardType(value.String)
 			}
 		case ward.FieldCapacity:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -192,6 +200,9 @@ func (_m *Ward) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("ward_type=")
+	builder.WriteString(fmt.Sprintf("%v", _m.WardType))
 	builder.WriteString(", ")
 	builder.WriteString("capacity=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Capacity))

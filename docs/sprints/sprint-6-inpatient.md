@@ -83,6 +83,28 @@ clinics just use fewer wards/beds; the code path is identical.
 
 ## Gap audit and Sprint 6.1 candidates (2026-09-02, later the same day)
 
+**Shipped 2026-09-03**: every candidate below landed. `Ward.ward_type` (classification only,
+`billable_item_code` still prices the ward) + `Bed.isolation_precaution` (set at `Admit`, cleared
+at bed-turnover in `closeAdmission`, changeable mid-stay via a new `PATCH .../isolation-precaution`
+route). Structured discharge summary fields on `Admission` (`discharge_diagnosis`/
+`procedures_performed`/`discharge_medications`/`follow_up_instructions`/`condition_at_discharge`),
+free-text `discharge_summary` kept as-is. New `VitalsChartEntry`/`WardRoundNote` entities +
+`GET/POST /admissions/{admissionID}/{vitals-chart,ward-rounds}` (kept inside the existing
+`inpatient` package/module rather than spinning off new ones — both are small, admission-scoped
+records this package already owns the parent entity for). Transfer history: `PatientTransfer` rows
+had literally zero HTTP-visible list route at all (not just a missing UI, as this section's own
+text assumed) — added `ListTransfersByAdmission` + `GET /admissions/{admissionID}/transfers`
+alongside the `TransferHistoryPanel`. Visitor log and the inventory-api `AssetReservation`
+overlap-check gap remain explicitly not built, per this section's own recommendation.
+
+**Found and fixed along the way**: the pre-existing `TestInpatientGoldenPath` integration test
+asserted a zero admission-account balance immediately after `Admit` and one charge after a
+department posted to it — both are now stale assumptions given Sprint 5's admission-deposit charge
+(a `facility`-tier tenant now starts an admission with a 5000 balance from `ADMISSION_DEPOSIT`
+alone); updated to assert 5000/5800/2 charges respectively. The main `TestGoldenPath` also needed a
+`Collect` call inserted before its `EnterResult` call, since Sprint 3's specimen-collection gate
+now hard-blocks result entry until a specimen is marked collected.
+
 A client-facing engineer reviewed the shipped module and flagged that "IPD is also not complete, so
 many sub modules still missing" — beds/assets weren't wired to inventory management, and the doc set
 didn't reflect it. This section is a **research-grounded gap audit, proposed design only, nothing

@@ -16,6 +16,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 	"github.com/google/uuid"
 )
 
@@ -224,6 +226,106 @@ func (_u *AdmissionUpdate) ClearDischargeSummary() *AdmissionUpdate {
 	return _u
 }
 
+// SetDischargeDiagnosis sets the "discharge_diagnosis" field.
+func (_u *AdmissionUpdate) SetDischargeDiagnosis(v string) *AdmissionUpdate {
+	_u.mutation.SetDischargeDiagnosis(v)
+	return _u
+}
+
+// SetNillableDischargeDiagnosis sets the "discharge_diagnosis" field if the given value is not nil.
+func (_u *AdmissionUpdate) SetNillableDischargeDiagnosis(v *string) *AdmissionUpdate {
+	if v != nil {
+		_u.SetDischargeDiagnosis(*v)
+	}
+	return _u
+}
+
+// ClearDischargeDiagnosis clears the value of the "discharge_diagnosis" field.
+func (_u *AdmissionUpdate) ClearDischargeDiagnosis() *AdmissionUpdate {
+	_u.mutation.ClearDischargeDiagnosis()
+	return _u
+}
+
+// SetProceduresPerformed sets the "procedures_performed" field.
+func (_u *AdmissionUpdate) SetProceduresPerformed(v string) *AdmissionUpdate {
+	_u.mutation.SetProceduresPerformed(v)
+	return _u
+}
+
+// SetNillableProceduresPerformed sets the "procedures_performed" field if the given value is not nil.
+func (_u *AdmissionUpdate) SetNillableProceduresPerformed(v *string) *AdmissionUpdate {
+	if v != nil {
+		_u.SetProceduresPerformed(*v)
+	}
+	return _u
+}
+
+// ClearProceduresPerformed clears the value of the "procedures_performed" field.
+func (_u *AdmissionUpdate) ClearProceduresPerformed() *AdmissionUpdate {
+	_u.mutation.ClearProceduresPerformed()
+	return _u
+}
+
+// SetDischargeMedications sets the "discharge_medications" field.
+func (_u *AdmissionUpdate) SetDischargeMedications(v string) *AdmissionUpdate {
+	_u.mutation.SetDischargeMedications(v)
+	return _u
+}
+
+// SetNillableDischargeMedications sets the "discharge_medications" field if the given value is not nil.
+func (_u *AdmissionUpdate) SetNillableDischargeMedications(v *string) *AdmissionUpdate {
+	if v != nil {
+		_u.SetDischargeMedications(*v)
+	}
+	return _u
+}
+
+// ClearDischargeMedications clears the value of the "discharge_medications" field.
+func (_u *AdmissionUpdate) ClearDischargeMedications() *AdmissionUpdate {
+	_u.mutation.ClearDischargeMedications()
+	return _u
+}
+
+// SetFollowUpInstructions sets the "follow_up_instructions" field.
+func (_u *AdmissionUpdate) SetFollowUpInstructions(v string) *AdmissionUpdate {
+	_u.mutation.SetFollowUpInstructions(v)
+	return _u
+}
+
+// SetNillableFollowUpInstructions sets the "follow_up_instructions" field if the given value is not nil.
+func (_u *AdmissionUpdate) SetNillableFollowUpInstructions(v *string) *AdmissionUpdate {
+	if v != nil {
+		_u.SetFollowUpInstructions(*v)
+	}
+	return _u
+}
+
+// ClearFollowUpInstructions clears the value of the "follow_up_instructions" field.
+func (_u *AdmissionUpdate) ClearFollowUpInstructions() *AdmissionUpdate {
+	_u.mutation.ClearFollowUpInstructions()
+	return _u
+}
+
+// SetConditionAtDischarge sets the "condition_at_discharge" field.
+func (_u *AdmissionUpdate) SetConditionAtDischarge(v admission.ConditionAtDischarge) *AdmissionUpdate {
+	_u.mutation.SetConditionAtDischarge(v)
+	return _u
+}
+
+// SetNillableConditionAtDischarge sets the "condition_at_discharge" field if the given value is not nil.
+func (_u *AdmissionUpdate) SetNillableConditionAtDischarge(v *admission.ConditionAtDischarge) *AdmissionUpdate {
+	if v != nil {
+		_u.SetConditionAtDischarge(*v)
+	}
+	return _u
+}
+
+// ClearConditionAtDischarge clears the value of the "condition_at_discharge" field.
+func (_u *AdmissionUpdate) ClearConditionAtDischarge() *AdmissionUpdate {
+	_u.mutation.ClearConditionAtDischarge()
+	return _u
+}
+
 // SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
 func (_u *AdmissionUpdate) SetInsuranceGuaranteeReference(v string) *AdmissionUpdate {
 	_u.mutation.SetInsuranceGuaranteeReference(v)
@@ -295,6 +397,36 @@ func (_u *AdmissionUpdate) AddMedicationAdministrations(v ...*MedicationAdminist
 	return _u.AddMedicationAdministrationIDs(ids...)
 }
 
+// AddVitalsChartEntryIDs adds the "vitals_chart_entries" edge to the VitalsChartEntry entity by IDs.
+func (_u *AdmissionUpdate) AddVitalsChartEntryIDs(ids ...uuid.UUID) *AdmissionUpdate {
+	_u.mutation.AddVitalsChartEntryIDs(ids...)
+	return _u
+}
+
+// AddVitalsChartEntries adds the "vitals_chart_entries" edges to the VitalsChartEntry entity.
+func (_u *AdmissionUpdate) AddVitalsChartEntries(v ...*VitalsChartEntry) *AdmissionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddVitalsChartEntryIDs(ids...)
+}
+
+// AddWardRoundNoteIDs adds the "ward_round_notes" edge to the WardRoundNote entity by IDs.
+func (_u *AdmissionUpdate) AddWardRoundNoteIDs(ids ...uuid.UUID) *AdmissionUpdate {
+	_u.mutation.AddWardRoundNoteIDs(ids...)
+	return _u
+}
+
+// AddWardRoundNotes adds the "ward_round_notes" edges to the WardRoundNote entity.
+func (_u *AdmissionUpdate) AddWardRoundNotes(v ...*WardRoundNote) *AdmissionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddWardRoundNoteIDs(ids...)
+}
+
 // Mutation returns the AdmissionMutation object of the builder.
 func (_u *AdmissionUpdate) Mutation() *AdmissionMutation {
 	return _u.mutation
@@ -331,6 +463,48 @@ func (_u *AdmissionUpdate) RemoveMedicationAdministrations(v ...*MedicationAdmin
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMedicationAdministrationIDs(ids...)
+}
+
+// ClearVitalsChartEntries clears all "vitals_chart_entries" edges to the VitalsChartEntry entity.
+func (_u *AdmissionUpdate) ClearVitalsChartEntries() *AdmissionUpdate {
+	_u.mutation.ClearVitalsChartEntries()
+	return _u
+}
+
+// RemoveVitalsChartEntryIDs removes the "vitals_chart_entries" edge to VitalsChartEntry entities by IDs.
+func (_u *AdmissionUpdate) RemoveVitalsChartEntryIDs(ids ...uuid.UUID) *AdmissionUpdate {
+	_u.mutation.RemoveVitalsChartEntryIDs(ids...)
+	return _u
+}
+
+// RemoveVitalsChartEntries removes "vitals_chart_entries" edges to VitalsChartEntry entities.
+func (_u *AdmissionUpdate) RemoveVitalsChartEntries(v ...*VitalsChartEntry) *AdmissionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveVitalsChartEntryIDs(ids...)
+}
+
+// ClearWardRoundNotes clears all "ward_round_notes" edges to the WardRoundNote entity.
+func (_u *AdmissionUpdate) ClearWardRoundNotes() *AdmissionUpdate {
+	_u.mutation.ClearWardRoundNotes()
+	return _u
+}
+
+// RemoveWardRoundNoteIDs removes the "ward_round_notes" edge to WardRoundNote entities by IDs.
+func (_u *AdmissionUpdate) RemoveWardRoundNoteIDs(ids ...uuid.UUID) *AdmissionUpdate {
+	_u.mutation.RemoveWardRoundNoteIDs(ids...)
+	return _u
+}
+
+// RemoveWardRoundNotes removes "ward_round_notes" edges to WardRoundNote entities.
+func (_u *AdmissionUpdate) RemoveWardRoundNotes(v ...*WardRoundNote) *AdmissionUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveWardRoundNoteIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -379,6 +553,11 @@ func (_u *AdmissionUpdate) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := admission.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Admission.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ConditionAtDischarge(); ok {
+		if err := admission.ConditionAtDischargeValidator(v); err != nil {
+			return &ValidationError{Name: "condition_at_discharge", err: fmt.Errorf(`ent: validator failed for field "Admission.condition_at_discharge": %w`, err)}
 		}
 	}
 	if _u.mutation.VisitCleared() && len(_u.mutation.VisitIDs()) > 0 {
@@ -443,6 +622,36 @@ func (_u *AdmissionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.DischargeSummaryCleared() {
 		_spec.ClearField(admission.FieldDischargeSummary, field.TypeString)
+	}
+	if value, ok := _u.mutation.DischargeDiagnosis(); ok {
+		_spec.SetField(admission.FieldDischargeDiagnosis, field.TypeString, value)
+	}
+	if _u.mutation.DischargeDiagnosisCleared() {
+		_spec.ClearField(admission.FieldDischargeDiagnosis, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProceduresPerformed(); ok {
+		_spec.SetField(admission.FieldProceduresPerformed, field.TypeString, value)
+	}
+	if _u.mutation.ProceduresPerformedCleared() {
+		_spec.ClearField(admission.FieldProceduresPerformed, field.TypeString)
+	}
+	if value, ok := _u.mutation.DischargeMedications(); ok {
+		_spec.SetField(admission.FieldDischargeMedications, field.TypeString, value)
+	}
+	if _u.mutation.DischargeMedicationsCleared() {
+		_spec.ClearField(admission.FieldDischargeMedications, field.TypeString)
+	}
+	if value, ok := _u.mutation.FollowUpInstructions(); ok {
+		_spec.SetField(admission.FieldFollowUpInstructions, field.TypeString, value)
+	}
+	if _u.mutation.FollowUpInstructionsCleared() {
+		_spec.ClearField(admission.FieldFollowUpInstructions, field.TypeString)
+	}
+	if value, ok := _u.mutation.ConditionAtDischarge(); ok {
+		_spec.SetField(admission.FieldConditionAtDischarge, field.TypeEnum, value)
+	}
+	if _u.mutation.ConditionAtDischargeCleared() {
+		_spec.ClearField(admission.FieldConditionAtDischarge, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.InsuranceGuaranteeReference(); ok {
 		_spec.SetField(admission.FieldInsuranceGuaranteeReference, field.TypeString, value)
@@ -552,6 +761,96 @@ func (_u *AdmissionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.VitalsChartEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedVitalsChartEntriesIDs(); len(nodes) > 0 && !_u.mutation.VitalsChartEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.VitalsChartEntriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.WardRoundNotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedWardRoundNotesIDs(); len(nodes) > 0 && !_u.mutation.WardRoundNotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.WardRoundNotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -771,6 +1070,106 @@ func (_u *AdmissionUpdateOne) ClearDischargeSummary() *AdmissionUpdateOne {
 	return _u
 }
 
+// SetDischargeDiagnosis sets the "discharge_diagnosis" field.
+func (_u *AdmissionUpdateOne) SetDischargeDiagnosis(v string) *AdmissionUpdateOne {
+	_u.mutation.SetDischargeDiagnosis(v)
+	return _u
+}
+
+// SetNillableDischargeDiagnosis sets the "discharge_diagnosis" field if the given value is not nil.
+func (_u *AdmissionUpdateOne) SetNillableDischargeDiagnosis(v *string) *AdmissionUpdateOne {
+	if v != nil {
+		_u.SetDischargeDiagnosis(*v)
+	}
+	return _u
+}
+
+// ClearDischargeDiagnosis clears the value of the "discharge_diagnosis" field.
+func (_u *AdmissionUpdateOne) ClearDischargeDiagnosis() *AdmissionUpdateOne {
+	_u.mutation.ClearDischargeDiagnosis()
+	return _u
+}
+
+// SetProceduresPerformed sets the "procedures_performed" field.
+func (_u *AdmissionUpdateOne) SetProceduresPerformed(v string) *AdmissionUpdateOne {
+	_u.mutation.SetProceduresPerformed(v)
+	return _u
+}
+
+// SetNillableProceduresPerformed sets the "procedures_performed" field if the given value is not nil.
+func (_u *AdmissionUpdateOne) SetNillableProceduresPerformed(v *string) *AdmissionUpdateOne {
+	if v != nil {
+		_u.SetProceduresPerformed(*v)
+	}
+	return _u
+}
+
+// ClearProceduresPerformed clears the value of the "procedures_performed" field.
+func (_u *AdmissionUpdateOne) ClearProceduresPerformed() *AdmissionUpdateOne {
+	_u.mutation.ClearProceduresPerformed()
+	return _u
+}
+
+// SetDischargeMedications sets the "discharge_medications" field.
+func (_u *AdmissionUpdateOne) SetDischargeMedications(v string) *AdmissionUpdateOne {
+	_u.mutation.SetDischargeMedications(v)
+	return _u
+}
+
+// SetNillableDischargeMedications sets the "discharge_medications" field if the given value is not nil.
+func (_u *AdmissionUpdateOne) SetNillableDischargeMedications(v *string) *AdmissionUpdateOne {
+	if v != nil {
+		_u.SetDischargeMedications(*v)
+	}
+	return _u
+}
+
+// ClearDischargeMedications clears the value of the "discharge_medications" field.
+func (_u *AdmissionUpdateOne) ClearDischargeMedications() *AdmissionUpdateOne {
+	_u.mutation.ClearDischargeMedications()
+	return _u
+}
+
+// SetFollowUpInstructions sets the "follow_up_instructions" field.
+func (_u *AdmissionUpdateOne) SetFollowUpInstructions(v string) *AdmissionUpdateOne {
+	_u.mutation.SetFollowUpInstructions(v)
+	return _u
+}
+
+// SetNillableFollowUpInstructions sets the "follow_up_instructions" field if the given value is not nil.
+func (_u *AdmissionUpdateOne) SetNillableFollowUpInstructions(v *string) *AdmissionUpdateOne {
+	if v != nil {
+		_u.SetFollowUpInstructions(*v)
+	}
+	return _u
+}
+
+// ClearFollowUpInstructions clears the value of the "follow_up_instructions" field.
+func (_u *AdmissionUpdateOne) ClearFollowUpInstructions() *AdmissionUpdateOne {
+	_u.mutation.ClearFollowUpInstructions()
+	return _u
+}
+
+// SetConditionAtDischarge sets the "condition_at_discharge" field.
+func (_u *AdmissionUpdateOne) SetConditionAtDischarge(v admission.ConditionAtDischarge) *AdmissionUpdateOne {
+	_u.mutation.SetConditionAtDischarge(v)
+	return _u
+}
+
+// SetNillableConditionAtDischarge sets the "condition_at_discharge" field if the given value is not nil.
+func (_u *AdmissionUpdateOne) SetNillableConditionAtDischarge(v *admission.ConditionAtDischarge) *AdmissionUpdateOne {
+	if v != nil {
+		_u.SetConditionAtDischarge(*v)
+	}
+	return _u
+}
+
+// ClearConditionAtDischarge clears the value of the "condition_at_discharge" field.
+func (_u *AdmissionUpdateOne) ClearConditionAtDischarge() *AdmissionUpdateOne {
+	_u.mutation.ClearConditionAtDischarge()
+	return _u
+}
+
 // SetInsuranceGuaranteeReference sets the "insurance_guarantee_reference" field.
 func (_u *AdmissionUpdateOne) SetInsuranceGuaranteeReference(v string) *AdmissionUpdateOne {
 	_u.mutation.SetInsuranceGuaranteeReference(v)
@@ -842,6 +1241,36 @@ func (_u *AdmissionUpdateOne) AddMedicationAdministrations(v ...*MedicationAdmin
 	return _u.AddMedicationAdministrationIDs(ids...)
 }
 
+// AddVitalsChartEntryIDs adds the "vitals_chart_entries" edge to the VitalsChartEntry entity by IDs.
+func (_u *AdmissionUpdateOne) AddVitalsChartEntryIDs(ids ...uuid.UUID) *AdmissionUpdateOne {
+	_u.mutation.AddVitalsChartEntryIDs(ids...)
+	return _u
+}
+
+// AddVitalsChartEntries adds the "vitals_chart_entries" edges to the VitalsChartEntry entity.
+func (_u *AdmissionUpdateOne) AddVitalsChartEntries(v ...*VitalsChartEntry) *AdmissionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddVitalsChartEntryIDs(ids...)
+}
+
+// AddWardRoundNoteIDs adds the "ward_round_notes" edge to the WardRoundNote entity by IDs.
+func (_u *AdmissionUpdateOne) AddWardRoundNoteIDs(ids ...uuid.UUID) *AdmissionUpdateOne {
+	_u.mutation.AddWardRoundNoteIDs(ids...)
+	return _u
+}
+
+// AddWardRoundNotes adds the "ward_round_notes" edges to the WardRoundNote entity.
+func (_u *AdmissionUpdateOne) AddWardRoundNotes(v ...*WardRoundNote) *AdmissionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddWardRoundNoteIDs(ids...)
+}
+
 // Mutation returns the AdmissionMutation object of the builder.
 func (_u *AdmissionUpdateOne) Mutation() *AdmissionMutation {
 	return _u.mutation
@@ -878,6 +1307,48 @@ func (_u *AdmissionUpdateOne) RemoveMedicationAdministrations(v ...*MedicationAd
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMedicationAdministrationIDs(ids...)
+}
+
+// ClearVitalsChartEntries clears all "vitals_chart_entries" edges to the VitalsChartEntry entity.
+func (_u *AdmissionUpdateOne) ClearVitalsChartEntries() *AdmissionUpdateOne {
+	_u.mutation.ClearVitalsChartEntries()
+	return _u
+}
+
+// RemoveVitalsChartEntryIDs removes the "vitals_chart_entries" edge to VitalsChartEntry entities by IDs.
+func (_u *AdmissionUpdateOne) RemoveVitalsChartEntryIDs(ids ...uuid.UUID) *AdmissionUpdateOne {
+	_u.mutation.RemoveVitalsChartEntryIDs(ids...)
+	return _u
+}
+
+// RemoveVitalsChartEntries removes "vitals_chart_entries" edges to VitalsChartEntry entities.
+func (_u *AdmissionUpdateOne) RemoveVitalsChartEntries(v ...*VitalsChartEntry) *AdmissionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveVitalsChartEntryIDs(ids...)
+}
+
+// ClearWardRoundNotes clears all "ward_round_notes" edges to the WardRoundNote entity.
+func (_u *AdmissionUpdateOne) ClearWardRoundNotes() *AdmissionUpdateOne {
+	_u.mutation.ClearWardRoundNotes()
+	return _u
+}
+
+// RemoveWardRoundNoteIDs removes the "ward_round_notes" edge to WardRoundNote entities by IDs.
+func (_u *AdmissionUpdateOne) RemoveWardRoundNoteIDs(ids ...uuid.UUID) *AdmissionUpdateOne {
+	_u.mutation.RemoveWardRoundNoteIDs(ids...)
+	return _u
+}
+
+// RemoveWardRoundNotes removes "ward_round_notes" edges to WardRoundNote entities.
+func (_u *AdmissionUpdateOne) RemoveWardRoundNotes(v ...*WardRoundNote) *AdmissionUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveWardRoundNoteIDs(ids...)
 }
 
 // Where appends a list predicates to the AdmissionUpdate builder.
@@ -939,6 +1410,11 @@ func (_u *AdmissionUpdateOne) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := admission.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Admission.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ConditionAtDischarge(); ok {
+		if err := admission.ConditionAtDischargeValidator(v); err != nil {
+			return &ValidationError{Name: "condition_at_discharge", err: fmt.Errorf(`ent: validator failed for field "Admission.condition_at_discharge": %w`, err)}
 		}
 	}
 	if _u.mutation.VisitCleared() && len(_u.mutation.VisitIDs()) > 0 {
@@ -1020,6 +1496,36 @@ func (_u *AdmissionUpdateOne) sqlSave(ctx context.Context) (_node *Admission, er
 	}
 	if _u.mutation.DischargeSummaryCleared() {
 		_spec.ClearField(admission.FieldDischargeSummary, field.TypeString)
+	}
+	if value, ok := _u.mutation.DischargeDiagnosis(); ok {
+		_spec.SetField(admission.FieldDischargeDiagnosis, field.TypeString, value)
+	}
+	if _u.mutation.DischargeDiagnosisCleared() {
+		_spec.ClearField(admission.FieldDischargeDiagnosis, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProceduresPerformed(); ok {
+		_spec.SetField(admission.FieldProceduresPerformed, field.TypeString, value)
+	}
+	if _u.mutation.ProceduresPerformedCleared() {
+		_spec.ClearField(admission.FieldProceduresPerformed, field.TypeString)
+	}
+	if value, ok := _u.mutation.DischargeMedications(); ok {
+		_spec.SetField(admission.FieldDischargeMedications, field.TypeString, value)
+	}
+	if _u.mutation.DischargeMedicationsCleared() {
+		_spec.ClearField(admission.FieldDischargeMedications, field.TypeString)
+	}
+	if value, ok := _u.mutation.FollowUpInstructions(); ok {
+		_spec.SetField(admission.FieldFollowUpInstructions, field.TypeString, value)
+	}
+	if _u.mutation.FollowUpInstructionsCleared() {
+		_spec.ClearField(admission.FieldFollowUpInstructions, field.TypeString)
+	}
+	if value, ok := _u.mutation.ConditionAtDischarge(); ok {
+		_spec.SetField(admission.FieldConditionAtDischarge, field.TypeEnum, value)
+	}
+	if _u.mutation.ConditionAtDischargeCleared() {
+		_spec.ClearField(admission.FieldConditionAtDischarge, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.InsuranceGuaranteeReference(); ok {
 		_spec.SetField(admission.FieldInsuranceGuaranteeReference, field.TypeString, value)
@@ -1129,6 +1635,96 @@ func (_u *AdmissionUpdateOne) sqlSave(ctx context.Context) (_node *Admission, er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(medicationadministration.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.VitalsChartEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedVitalsChartEntriesIDs(); len(nodes) > 0 && !_u.mutation.VitalsChartEntriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.VitalsChartEntriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.VitalsChartEntriesTable,
+			Columns: []string{admission.VitalsChartEntriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(vitalschartentry.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.WardRoundNotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedWardRoundNotesIDs(); len(nodes) > 0 && !_u.mutation.WardRoundNotesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.WardRoundNotesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   admission.WardRoundNotesTable,
+			Columns: []string{admission.WardRoundNotesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(wardroundnote.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

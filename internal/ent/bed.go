@@ -28,6 +28,8 @@ type Bed struct {
 	BedNumber string `json:"bed_number,omitempty"`
 	// Status holds the value of the "status" field.
 	Status bed.Status `json:"status,omitempty"`
+	// CDC transmission-based precaution category for whoever currently occupies this bed — a per-STAY state (set at Admit, cleared at Discharge/bed-turnover), not a fixed property of the ward. Modeled per-bed since isolation needs can arise in an ordinary general ward pending a dedicated isolation bed becoming free
+	IsolationPrecaution bed.IsolationPrecaution `json:"isolation_precaution,omitempty"`
 	// EquipmentAssetIds holds the value of the "equipment_asset_ids" field.
 	EquipmentAssetIds []uuid.UUID `json:"equipment_asset_ids,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -78,7 +80,7 @@ func (*Bed) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case bed.FieldEquipmentAssetIds:
 			values[i] = new([]byte)
-		case bed.FieldBedNumber, bed.FieldStatus:
+		case bed.FieldBedNumber, bed.FieldStatus, bed.FieldIsolationPrecaution:
 			values[i] = new(sql.NullString)
 		case bed.FieldCreatedAt, bed.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -128,6 +130,12 @@ func (_m *Bed) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = bed.Status(value.String)
+			}
+		case bed.FieldIsolationPrecaution:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field isolation_precaution", values[i])
+			} else if value.Valid {
+				_m.IsolationPrecaution = bed.IsolationPrecaution(value.String)
 			}
 		case bed.FieldEquipmentAssetIds:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -206,6 +214,9 @@ func (_m *Bed) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("isolation_precaution=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsolationPrecaution))
 	builder.WriteString(", ")
 	builder.WriteString("equipment_asset_ids=")
 	builder.WriteString(fmt.Sprintf("%v", _m.EquipmentAssetIds))

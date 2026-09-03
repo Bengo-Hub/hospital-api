@@ -116,6 +116,26 @@ func DischargeSummary(v string) predicate.Admission {
 	return predicate.Admission(sql.FieldEQ(FieldDischargeSummary, v))
 }
 
+// DischargeDiagnosis applies equality check predicate on the "discharge_diagnosis" field. It's identical to DischargeDiagnosisEQ.
+func DischargeDiagnosis(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldDischargeDiagnosis, v))
+}
+
+// ProceduresPerformed applies equality check predicate on the "procedures_performed" field. It's identical to ProceduresPerformedEQ.
+func ProceduresPerformed(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldProceduresPerformed, v))
+}
+
+// DischargeMedications applies equality check predicate on the "discharge_medications" field. It's identical to DischargeMedicationsEQ.
+func DischargeMedications(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldDischargeMedications, v))
+}
+
+// FollowUpInstructions applies equality check predicate on the "follow_up_instructions" field. It's identical to FollowUpInstructionsEQ.
+func FollowUpInstructions(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldFollowUpInstructions, v))
+}
+
 // InsuranceGuaranteeReference applies equality check predicate on the "insurance_guarantee_reference" field. It's identical to InsuranceGuaranteeReferenceEQ.
 func InsuranceGuaranteeReference(v string) predicate.Admission {
 	return predicate.Admission(sql.FieldEQ(FieldInsuranceGuaranteeReference, v))
@@ -686,6 +706,336 @@ func DischargeSummaryContainsFold(v string) predicate.Admission {
 	return predicate.Admission(sql.FieldContainsFold(FieldDischargeSummary, v))
 }
 
+// DischargeDiagnosisEQ applies the EQ predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisNEQ applies the NEQ predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisNEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldNEQ(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisIn applies the In predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldIn(FieldDischargeDiagnosis, vs...))
+}
+
+// DischargeDiagnosisNotIn applies the NotIn predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisNotIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldNotIn(FieldDischargeDiagnosis, vs...))
+}
+
+// DischargeDiagnosisGT applies the GT predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisGT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGT(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisGTE applies the GTE predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisGTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGTE(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisLT applies the LT predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisLT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLT(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisLTE applies the LTE predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisLTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLTE(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisContains applies the Contains predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisContains(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContains(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisHasPrefix applies the HasPrefix predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisHasPrefix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasPrefix(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisHasSuffix applies the HasSuffix predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisHasSuffix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasSuffix(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisIsNil applies the IsNil predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisIsNil() predicate.Admission {
+	return predicate.Admission(sql.FieldIsNull(FieldDischargeDiagnosis))
+}
+
+// DischargeDiagnosisNotNil applies the NotNil predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisNotNil() predicate.Admission {
+	return predicate.Admission(sql.FieldNotNull(FieldDischargeDiagnosis))
+}
+
+// DischargeDiagnosisEqualFold applies the EqualFold predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisEqualFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEqualFold(FieldDischargeDiagnosis, v))
+}
+
+// DischargeDiagnosisContainsFold applies the ContainsFold predicate on the "discharge_diagnosis" field.
+func DischargeDiagnosisContainsFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContainsFold(FieldDischargeDiagnosis, v))
+}
+
+// ProceduresPerformedEQ applies the EQ predicate on the "procedures_performed" field.
+func ProceduresPerformedEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedNEQ applies the NEQ predicate on the "procedures_performed" field.
+func ProceduresPerformedNEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldNEQ(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedIn applies the In predicate on the "procedures_performed" field.
+func ProceduresPerformedIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldIn(FieldProceduresPerformed, vs...))
+}
+
+// ProceduresPerformedNotIn applies the NotIn predicate on the "procedures_performed" field.
+func ProceduresPerformedNotIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldNotIn(FieldProceduresPerformed, vs...))
+}
+
+// ProceduresPerformedGT applies the GT predicate on the "procedures_performed" field.
+func ProceduresPerformedGT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGT(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedGTE applies the GTE predicate on the "procedures_performed" field.
+func ProceduresPerformedGTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGTE(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedLT applies the LT predicate on the "procedures_performed" field.
+func ProceduresPerformedLT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLT(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedLTE applies the LTE predicate on the "procedures_performed" field.
+func ProceduresPerformedLTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLTE(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedContains applies the Contains predicate on the "procedures_performed" field.
+func ProceduresPerformedContains(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContains(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedHasPrefix applies the HasPrefix predicate on the "procedures_performed" field.
+func ProceduresPerformedHasPrefix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasPrefix(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedHasSuffix applies the HasSuffix predicate on the "procedures_performed" field.
+func ProceduresPerformedHasSuffix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasSuffix(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedIsNil applies the IsNil predicate on the "procedures_performed" field.
+func ProceduresPerformedIsNil() predicate.Admission {
+	return predicate.Admission(sql.FieldIsNull(FieldProceduresPerformed))
+}
+
+// ProceduresPerformedNotNil applies the NotNil predicate on the "procedures_performed" field.
+func ProceduresPerformedNotNil() predicate.Admission {
+	return predicate.Admission(sql.FieldNotNull(FieldProceduresPerformed))
+}
+
+// ProceduresPerformedEqualFold applies the EqualFold predicate on the "procedures_performed" field.
+func ProceduresPerformedEqualFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEqualFold(FieldProceduresPerformed, v))
+}
+
+// ProceduresPerformedContainsFold applies the ContainsFold predicate on the "procedures_performed" field.
+func ProceduresPerformedContainsFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContainsFold(FieldProceduresPerformed, v))
+}
+
+// DischargeMedicationsEQ applies the EQ predicate on the "discharge_medications" field.
+func DischargeMedicationsEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsNEQ applies the NEQ predicate on the "discharge_medications" field.
+func DischargeMedicationsNEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldNEQ(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsIn applies the In predicate on the "discharge_medications" field.
+func DischargeMedicationsIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldIn(FieldDischargeMedications, vs...))
+}
+
+// DischargeMedicationsNotIn applies the NotIn predicate on the "discharge_medications" field.
+func DischargeMedicationsNotIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldNotIn(FieldDischargeMedications, vs...))
+}
+
+// DischargeMedicationsGT applies the GT predicate on the "discharge_medications" field.
+func DischargeMedicationsGT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGT(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsGTE applies the GTE predicate on the "discharge_medications" field.
+func DischargeMedicationsGTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGTE(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsLT applies the LT predicate on the "discharge_medications" field.
+func DischargeMedicationsLT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLT(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsLTE applies the LTE predicate on the "discharge_medications" field.
+func DischargeMedicationsLTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLTE(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsContains applies the Contains predicate on the "discharge_medications" field.
+func DischargeMedicationsContains(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContains(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsHasPrefix applies the HasPrefix predicate on the "discharge_medications" field.
+func DischargeMedicationsHasPrefix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasPrefix(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsHasSuffix applies the HasSuffix predicate on the "discharge_medications" field.
+func DischargeMedicationsHasSuffix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasSuffix(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsIsNil applies the IsNil predicate on the "discharge_medications" field.
+func DischargeMedicationsIsNil() predicate.Admission {
+	return predicate.Admission(sql.FieldIsNull(FieldDischargeMedications))
+}
+
+// DischargeMedicationsNotNil applies the NotNil predicate on the "discharge_medications" field.
+func DischargeMedicationsNotNil() predicate.Admission {
+	return predicate.Admission(sql.FieldNotNull(FieldDischargeMedications))
+}
+
+// DischargeMedicationsEqualFold applies the EqualFold predicate on the "discharge_medications" field.
+func DischargeMedicationsEqualFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEqualFold(FieldDischargeMedications, v))
+}
+
+// DischargeMedicationsContainsFold applies the ContainsFold predicate on the "discharge_medications" field.
+func DischargeMedicationsContainsFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContainsFold(FieldDischargeMedications, v))
+}
+
+// FollowUpInstructionsEQ applies the EQ predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsNEQ applies the NEQ predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsNEQ(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldNEQ(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsIn applies the In predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldIn(FieldFollowUpInstructions, vs...))
+}
+
+// FollowUpInstructionsNotIn applies the NotIn predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsNotIn(vs ...string) predicate.Admission {
+	return predicate.Admission(sql.FieldNotIn(FieldFollowUpInstructions, vs...))
+}
+
+// FollowUpInstructionsGT applies the GT predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsGT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGT(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsGTE applies the GTE predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsGTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldGTE(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsLT applies the LT predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsLT(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLT(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsLTE applies the LTE predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsLTE(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldLTE(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsContains applies the Contains predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsContains(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContains(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsHasPrefix applies the HasPrefix predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsHasPrefix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasPrefix(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsHasSuffix applies the HasSuffix predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsHasSuffix(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldHasSuffix(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsIsNil applies the IsNil predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsIsNil() predicate.Admission {
+	return predicate.Admission(sql.FieldIsNull(FieldFollowUpInstructions))
+}
+
+// FollowUpInstructionsNotNil applies the NotNil predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsNotNil() predicate.Admission {
+	return predicate.Admission(sql.FieldNotNull(FieldFollowUpInstructions))
+}
+
+// FollowUpInstructionsEqualFold applies the EqualFold predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsEqualFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldEqualFold(FieldFollowUpInstructions, v))
+}
+
+// FollowUpInstructionsContainsFold applies the ContainsFold predicate on the "follow_up_instructions" field.
+func FollowUpInstructionsContainsFold(v string) predicate.Admission {
+	return predicate.Admission(sql.FieldContainsFold(FieldFollowUpInstructions, v))
+}
+
+// ConditionAtDischargeEQ applies the EQ predicate on the "condition_at_discharge" field.
+func ConditionAtDischargeEQ(v ConditionAtDischarge) predicate.Admission {
+	return predicate.Admission(sql.FieldEQ(FieldConditionAtDischarge, v))
+}
+
+// ConditionAtDischargeNEQ applies the NEQ predicate on the "condition_at_discharge" field.
+func ConditionAtDischargeNEQ(v ConditionAtDischarge) predicate.Admission {
+	return predicate.Admission(sql.FieldNEQ(FieldConditionAtDischarge, v))
+}
+
+// ConditionAtDischargeIn applies the In predicate on the "condition_at_discharge" field.
+func ConditionAtDischargeIn(vs ...ConditionAtDischarge) predicate.Admission {
+	return predicate.Admission(sql.FieldIn(FieldConditionAtDischarge, vs...))
+}
+
+// ConditionAtDischargeNotIn applies the NotIn predicate on the "condition_at_discharge" field.
+func ConditionAtDischargeNotIn(vs ...ConditionAtDischarge) predicate.Admission {
+	return predicate.Admission(sql.FieldNotIn(FieldConditionAtDischarge, vs...))
+}
+
+// ConditionAtDischargeIsNil applies the IsNil predicate on the "condition_at_discharge" field.
+func ConditionAtDischargeIsNil() predicate.Admission {
+	return predicate.Admission(sql.FieldIsNull(FieldConditionAtDischarge))
+}
+
+// ConditionAtDischargeNotNil applies the NotNil predicate on the "condition_at_discharge" field.
+func ConditionAtDischargeNotNil() predicate.Admission {
+	return predicate.Admission(sql.FieldNotNull(FieldConditionAtDischarge))
+}
+
 // InsuranceGuaranteeReferenceEQ applies the EQ predicate on the "insurance_guarantee_reference" field.
 func InsuranceGuaranteeReferenceEQ(v string) predicate.Admission {
 	return predicate.Admission(sql.FieldEQ(FieldInsuranceGuaranteeReference, v))
@@ -912,6 +1262,52 @@ func HasMedicationAdministrations() predicate.Admission {
 func HasMedicationAdministrationsWith(preds ...predicate.MedicationAdministration) predicate.Admission {
 	return predicate.Admission(func(s *sql.Selector) {
 		step := newMedicationAdministrationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasVitalsChartEntries applies the HasEdge predicate on the "vitals_chart_entries" edge.
+func HasVitalsChartEntries() predicate.Admission {
+	return predicate.Admission(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, VitalsChartEntriesTable, VitalsChartEntriesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasVitalsChartEntriesWith applies the HasEdge predicate on the "vitals_chart_entries" edge with a given conditions (other predicates).
+func HasVitalsChartEntriesWith(preds ...predicate.VitalsChartEntry) predicate.Admission {
+	return predicate.Admission(func(s *sql.Selector) {
+		step := newVitalsChartEntriesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasWardRoundNotes applies the HasEdge predicate on the "ward_round_notes" edge.
+func HasWardRoundNotes() predicate.Admission {
+	return predicate.Admission(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, WardRoundNotesTable, WardRoundNotesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWardRoundNotesWith applies the HasEdge predicate on the "ward_round_notes" edge with a given conditions (other predicates).
+func HasWardRoundNotesWith(preds ...predicate.WardRoundNote) predicate.Admission {
+	return predicate.Admission(func(s *sql.Selector) {
+		step := newWardRoundNotesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

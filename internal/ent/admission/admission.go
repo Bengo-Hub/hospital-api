@@ -42,6 +42,16 @@ const (
 	FieldDischargedBy = "discharged_by"
 	// FieldDischargeSummary holds the string denoting the discharge_summary field in the database.
 	FieldDischargeSummary = "discharge_summary"
+	// FieldDischargeDiagnosis holds the string denoting the discharge_diagnosis field in the database.
+	FieldDischargeDiagnosis = "discharge_diagnosis"
+	// FieldProceduresPerformed holds the string denoting the procedures_performed field in the database.
+	FieldProceduresPerformed = "procedures_performed"
+	// FieldDischargeMedications holds the string denoting the discharge_medications field in the database.
+	FieldDischargeMedications = "discharge_medications"
+	// FieldFollowUpInstructions holds the string denoting the follow_up_instructions field in the database.
+	FieldFollowUpInstructions = "follow_up_instructions"
+	// FieldConditionAtDischarge holds the string denoting the condition_at_discharge field in the database.
+	FieldConditionAtDischarge = "condition_at_discharge"
 	// FieldInsuranceGuaranteeReference holds the string denoting the insurance_guarantee_reference field in the database.
 	FieldInsuranceGuaranteeReference = "insurance_guarantee_reference"
 	// FieldWardChargePosted holds the string denoting the ward_charge_posted field in the database.
@@ -56,6 +66,10 @@ const (
 	EdgeBed = "bed"
 	// EdgeMedicationAdministrations holds the string denoting the medication_administrations edge name in mutations.
 	EdgeMedicationAdministrations = "medication_administrations"
+	// EdgeVitalsChartEntries holds the string denoting the vitals_chart_entries edge name in mutations.
+	EdgeVitalsChartEntries = "vitals_chart_entries"
+	// EdgeWardRoundNotes holds the string denoting the ward_round_notes edge name in mutations.
+	EdgeWardRoundNotes = "ward_round_notes"
 	// Table holds the table name of the admission in the database.
 	Table = "admissions"
 	// VisitTable is the table that holds the visit relation/edge.
@@ -79,6 +93,20 @@ const (
 	MedicationAdministrationsInverseTable = "medication_administrations"
 	// MedicationAdministrationsColumn is the table column denoting the medication_administrations relation/edge.
 	MedicationAdministrationsColumn = "admission_id"
+	// VitalsChartEntriesTable is the table that holds the vitals_chart_entries relation/edge.
+	VitalsChartEntriesTable = "vitals_chart_entries"
+	// VitalsChartEntriesInverseTable is the table name for the VitalsChartEntry entity.
+	// It exists in this package in order to avoid circular dependency with the "vitalschartentry" package.
+	VitalsChartEntriesInverseTable = "vitals_chart_entries"
+	// VitalsChartEntriesColumn is the table column denoting the vitals_chart_entries relation/edge.
+	VitalsChartEntriesColumn = "admission_id"
+	// WardRoundNotesTable is the table that holds the ward_round_notes relation/edge.
+	WardRoundNotesTable = "ward_round_notes"
+	// WardRoundNotesInverseTable is the table name for the WardRoundNote entity.
+	// It exists in this package in order to avoid circular dependency with the "wardroundnote" package.
+	WardRoundNotesInverseTable = "ward_round_notes"
+	// WardRoundNotesColumn is the table column denoting the ward_round_notes relation/edge.
+	WardRoundNotesColumn = "admission_id"
 )
 
 // Columns holds all SQL columns for admission fields.
@@ -97,6 +125,11 @@ var Columns = []string{
 	FieldDischargedAt,
 	FieldDischargedBy,
 	FieldDischargeSummary,
+	FieldDischargeDiagnosis,
+	FieldProceduresPerformed,
+	FieldDischargeMedications,
+	FieldFollowUpInstructions,
+	FieldConditionAtDischarge,
 	FieldInsuranceGuaranteeReference,
 	FieldWardChargePosted,
 	FieldCreatedAt,
@@ -153,6 +186,32 @@ func StatusValidator(s Status) error {
 		return nil
 	default:
 		return fmt.Errorf("admission: invalid enum value for status field: %q", s)
+	}
+}
+
+// ConditionAtDischarge defines the type for the "condition_at_discharge" enum field.
+type ConditionAtDischarge string
+
+// ConditionAtDischarge values.
+const (
+	ConditionAtDischargeRecovered    ConditionAtDischarge = "recovered"
+	ConditionAtDischargeImproved     ConditionAtDischarge = "improved"
+	ConditionAtDischargeUnchanged    ConditionAtDischarge = "unchanged"
+	ConditionAtDischargeDeteriorated ConditionAtDischarge = "deteriorated"
+	ConditionAtDischargeDeceased     ConditionAtDischarge = "deceased"
+)
+
+func (cad ConditionAtDischarge) String() string {
+	return string(cad)
+}
+
+// ConditionAtDischargeValidator is a validator for the "condition_at_discharge" field enum values. It is called by the builders before save.
+func ConditionAtDischargeValidator(cad ConditionAtDischarge) error {
+	switch cad {
+	case ConditionAtDischargeRecovered, ConditionAtDischargeImproved, ConditionAtDischargeUnchanged, ConditionAtDischargeDeteriorated, ConditionAtDischargeDeceased:
+		return nil
+	default:
+		return fmt.Errorf("admission: invalid enum value for condition_at_discharge field: %q", cad)
 	}
 }
 
@@ -229,6 +288,31 @@ func ByDischargeSummary(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDischargeSummary, opts...).ToFunc()
 }
 
+// ByDischargeDiagnosis orders the results by the discharge_diagnosis field.
+func ByDischargeDiagnosis(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDischargeDiagnosis, opts...).ToFunc()
+}
+
+// ByProceduresPerformed orders the results by the procedures_performed field.
+func ByProceduresPerformed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProceduresPerformed, opts...).ToFunc()
+}
+
+// ByDischargeMedications orders the results by the discharge_medications field.
+func ByDischargeMedications(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDischargeMedications, opts...).ToFunc()
+}
+
+// ByFollowUpInstructions orders the results by the follow_up_instructions field.
+func ByFollowUpInstructions(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFollowUpInstructions, opts...).ToFunc()
+}
+
+// ByConditionAtDischarge orders the results by the condition_at_discharge field.
+func ByConditionAtDischarge(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConditionAtDischarge, opts...).ToFunc()
+}
+
 // ByInsuranceGuaranteeReference orders the results by the insurance_guarantee_reference field.
 func ByInsuranceGuaranteeReference(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInsuranceGuaranteeReference, opts...).ToFunc()
@@ -276,6 +360,34 @@ func ByMedicationAdministrations(term sql.OrderTerm, terms ...sql.OrderTerm) Ord
 		sqlgraph.OrderByNeighborTerms(s, newMedicationAdministrationsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByVitalsChartEntriesCount orders the results by vitals_chart_entries count.
+func ByVitalsChartEntriesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newVitalsChartEntriesStep(), opts...)
+	}
+}
+
+// ByVitalsChartEntries orders the results by vitals_chart_entries terms.
+func ByVitalsChartEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newVitalsChartEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByWardRoundNotesCount orders the results by ward_round_notes count.
+func ByWardRoundNotesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newWardRoundNotesStep(), opts...)
+	}
+}
+
+// ByWardRoundNotes orders the results by ward_round_notes terms.
+func ByWardRoundNotes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWardRoundNotesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newVisitStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -295,5 +407,19 @@ func newMedicationAdministrationsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MedicationAdministrationsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MedicationAdministrationsTable, MedicationAdministrationsColumn),
+	)
+}
+func newVitalsChartEntriesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(VitalsChartEntriesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, VitalsChartEntriesTable, VitalsChartEntriesColumn),
+	)
+}
+func newWardRoundNotesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WardRoundNotesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, WardRoundNotesTable, WardRoundNotesColumn),
 	)
 }

@@ -44,8 +44,18 @@ type Admission struct {
 	DischargedAt *time.Time `json:"discharged_at,omitempty"`
 	// DischargedBy holds the value of the "discharged_by" field.
 	DischargedBy *uuid.UUID `json:"discharged_by,omitempty"`
-	// DischargeSummary holds the value of the "discharge_summary" field.
+	// Free-text narrative — kept as-is for anything that doesn't fit the structured fields below, not replaced by them
 	DischargeSummary string `json:"discharge_summary,omitempty"`
+	// Joint Commission-style structured discharge summary component: primary diagnosis at discharge
+	DischargeDiagnosis string `json:"discharge_diagnosis,omitempty"`
+	// ProceduresPerformed holds the value of the "procedures_performed" field.
+	ProceduresPerformed string `json:"procedures_performed,omitempty"`
+	// DischargeMedications holds the value of the "discharge_medications" field.
+	DischargeMedications string `json:"discharge_medications,omitempty"`
+	// FollowUpInstructions holds the value of the "follow_up_instructions" field.
+	FollowUpInstructions string `json:"follow_up_instructions,omitempty"`
+	// ConditionAtDischarge holds the value of the "condition_at_discharge" field.
+	ConditionAtDischarge admission.ConditionAtDischarge `json:"condition_at_discharge,omitempty"`
 	// Letter-of-guarantee/undertaking reference recorded in place of a cash deposit for an insured admission
 	InsuranceGuaranteeReference string `json:"insurance_guarantee_reference,omitempty"`
 	// Guards against double-posting the final ward/day-rate charge across repeated discharge attempts while balance is still outstanding
@@ -68,9 +78,13 @@ type AdmissionEdges struct {
 	Bed *Bed `json:"bed,omitempty"`
 	// MedicationAdministrations holds the value of the medication_administrations edge.
 	MedicationAdministrations []*MedicationAdministration `json:"medication_administrations,omitempty"`
+	// VitalsChartEntries holds the value of the vitals_chart_entries edge.
+	VitalsChartEntries []*VitalsChartEntry `json:"vitals_chart_entries,omitempty"`
+	// WardRoundNotes holds the value of the ward_round_notes edge.
+	WardRoundNotes []*WardRoundNote `json:"ward_round_notes,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [5]bool
 }
 
 // VisitOrErr returns the Visit value or an error if the edge
@@ -104,6 +118,24 @@ func (e AdmissionEdges) MedicationAdministrationsOrErr() ([]*MedicationAdministr
 	return nil, &NotLoadedError{edge: "medication_administrations"}
 }
 
+// VitalsChartEntriesOrErr returns the VitalsChartEntries value or an error if the edge
+// was not loaded in eager-loading.
+func (e AdmissionEdges) VitalsChartEntriesOrErr() ([]*VitalsChartEntry, error) {
+	if e.loadedTypes[3] {
+		return e.VitalsChartEntries, nil
+	}
+	return nil, &NotLoadedError{edge: "vitals_chart_entries"}
+}
+
+// WardRoundNotesOrErr returns the WardRoundNotes value or an error if the edge
+// was not loaded in eager-loading.
+func (e AdmissionEdges) WardRoundNotesOrErr() ([]*WardRoundNote, error) {
+	if e.loadedTypes[4] {
+		return e.WardRoundNotes, nil
+	}
+	return nil, &NotLoadedError{edge: "ward_round_notes"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Admission) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -113,7 +145,7 @@ func (*Admission) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		case admission.FieldWardChargePosted:
 			values[i] = new(sql.NullBool)
-		case admission.FieldAdmissionNumber, admission.FieldStatus, admission.FieldDischargeSummary, admission.FieldInsuranceGuaranteeReference:
+		case admission.FieldAdmissionNumber, admission.FieldStatus, admission.FieldDischargeSummary, admission.FieldDischargeDiagnosis, admission.FieldProceduresPerformed, admission.FieldDischargeMedications, admission.FieldFollowUpInstructions, admission.FieldConditionAtDischarge, admission.FieldInsuranceGuaranteeReference:
 			values[i] = new(sql.NullString)
 		case admission.FieldAdmittedAt, admission.FieldDischargedAt, admission.FieldCreatedAt, admission.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -221,6 +253,36 @@ func (_m *Admission) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DischargeSummary = value.String
 			}
+		case admission.FieldDischargeDiagnosis:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field discharge_diagnosis", values[i])
+			} else if value.Valid {
+				_m.DischargeDiagnosis = value.String
+			}
+		case admission.FieldProceduresPerformed:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field procedures_performed", values[i])
+			} else if value.Valid {
+				_m.ProceduresPerformed = value.String
+			}
+		case admission.FieldDischargeMedications:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field discharge_medications", values[i])
+			} else if value.Valid {
+				_m.DischargeMedications = value.String
+			}
+		case admission.FieldFollowUpInstructions:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field follow_up_instructions", values[i])
+			} else if value.Valid {
+				_m.FollowUpInstructions = value.String
+			}
+		case admission.FieldConditionAtDischarge:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field condition_at_discharge", values[i])
+			} else if value.Valid {
+				_m.ConditionAtDischarge = admission.ConditionAtDischarge(value.String)
+			}
 		case admission.FieldInsuranceGuaranteeReference:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field insurance_guarantee_reference", values[i])
@@ -271,6 +333,16 @@ func (_m *Admission) QueryBed() *BedQuery {
 // QueryMedicationAdministrations queries the "medication_administrations" edge of the Admission entity.
 func (_m *Admission) QueryMedicationAdministrations() *MedicationAdministrationQuery {
 	return NewAdmissionClient(_m.config).QueryMedicationAdministrations(_m)
+}
+
+// QueryVitalsChartEntries queries the "vitals_chart_entries" edge of the Admission entity.
+func (_m *Admission) QueryVitalsChartEntries() *VitalsChartEntryQuery {
+	return NewAdmissionClient(_m.config).QueryVitalsChartEntries(_m)
+}
+
+// QueryWardRoundNotes queries the "ward_round_notes" edge of the Admission entity.
+func (_m *Admission) QueryWardRoundNotes() *WardRoundNoteQuery {
+	return NewAdmissionClient(_m.config).QueryWardRoundNotes(_m)
 }
 
 // Update returns a builder for updating this Admission.
@@ -340,6 +412,21 @@ func (_m *Admission) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("discharge_summary=")
 	builder.WriteString(_m.DischargeSummary)
+	builder.WriteString(", ")
+	builder.WriteString("discharge_diagnosis=")
+	builder.WriteString(_m.DischargeDiagnosis)
+	builder.WriteString(", ")
+	builder.WriteString("procedures_performed=")
+	builder.WriteString(_m.ProceduresPerformed)
+	builder.WriteString(", ")
+	builder.WriteString("discharge_medications=")
+	builder.WriteString(_m.DischargeMedications)
+	builder.WriteString(", ")
+	builder.WriteString("follow_up_instructions=")
+	builder.WriteString(_m.FollowUpInstructions)
+	builder.WriteString(", ")
+	builder.WriteString("condition_at_discharge=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ConditionAtDischarge))
 	builder.WriteString(", ")
 	builder.WriteString("insurance_guarantee_reference=")
 	builder.WriteString(_m.InsuranceGuaranteeReference)

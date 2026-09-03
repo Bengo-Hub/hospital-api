@@ -58,6 +58,20 @@ func (_c *BedCreate) SetNillableStatus(v *bed.Status) *BedCreate {
 	return _c
 }
 
+// SetIsolationPrecaution sets the "isolation_precaution" field.
+func (_c *BedCreate) SetIsolationPrecaution(v bed.IsolationPrecaution) *BedCreate {
+	_c.mutation.SetIsolationPrecaution(v)
+	return _c
+}
+
+// SetNillableIsolationPrecaution sets the "isolation_precaution" field if the given value is not nil.
+func (_c *BedCreate) SetNillableIsolationPrecaution(v *bed.IsolationPrecaution) *BedCreate {
+	if v != nil {
+		_c.SetIsolationPrecaution(*v)
+	}
+	return _c
+}
+
 // SetEquipmentAssetIds sets the "equipment_asset_ids" field.
 func (_c *BedCreate) SetEquipmentAssetIds(v []uuid.UUID) *BedCreate {
 	_c.mutation.SetEquipmentAssetIds(v)
@@ -165,6 +179,10 @@ func (_c *BedCreate) defaults() {
 		v := bed.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.IsolationPrecaution(); !ok {
+		v := bed.DefaultIsolationPrecaution
+		_c.mutation.SetIsolationPrecaution(v)
+	}
 	if _, ok := _c.mutation.EquipmentAssetIds(); !ok {
 		v := bed.DefaultEquipmentAssetIds
 		_c.mutation.SetEquipmentAssetIds(v)
@@ -205,6 +223,14 @@ func (_c *BedCreate) check() error {
 	if v, ok := _c.mutation.Status(); ok {
 		if err := bed.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Bed.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.IsolationPrecaution(); !ok {
+		return &ValidationError{Name: "isolation_precaution", err: errors.New(`ent: missing required field "Bed.isolation_precaution"`)}
+	}
+	if v, ok := _c.mutation.IsolationPrecaution(); ok {
+		if err := bed.IsolationPrecautionValidator(v); err != nil {
+			return &ValidationError{Name: "isolation_precaution", err: fmt.Errorf(`ent: validator failed for field "Bed.isolation_precaution": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
@@ -263,6 +289,10 @@ func (_c *BedCreate) createSpec() (*Bed, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(bed.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.IsolationPrecaution(); ok {
+		_spec.SetField(bed.FieldIsolationPrecaution, field.TypeEnum, value)
+		_node.IsolationPrecaution = value
 	}
 	if value, ok := _c.mutation.EquipmentAssetIds(); ok {
 		_spec.SetField(bed.FieldEquipmentAssetIds, field.TypeJSON, value)
@@ -409,6 +439,18 @@ func (u *BedUpsert) UpdateStatus() *BedUpsert {
 	return u
 }
 
+// SetIsolationPrecaution sets the "isolation_precaution" field.
+func (u *BedUpsert) SetIsolationPrecaution(v bed.IsolationPrecaution) *BedUpsert {
+	u.Set(bed.FieldIsolationPrecaution, v)
+	return u
+}
+
+// UpdateIsolationPrecaution sets the "isolation_precaution" field to the value that was provided on create.
+func (u *BedUpsert) UpdateIsolationPrecaution() *BedUpsert {
+	u.SetExcluded(bed.FieldIsolationPrecaution)
+	return u
+}
+
 // SetEquipmentAssetIds sets the "equipment_asset_ids" field.
 func (u *BedUpsert) SetEquipmentAssetIds(v []uuid.UUID) *BedUpsert {
 	u.Set(bed.FieldEquipmentAssetIds, v)
@@ -543,6 +585,20 @@ func (u *BedUpsertOne) SetStatus(v bed.Status) *BedUpsertOne {
 func (u *BedUpsertOne) UpdateStatus() *BedUpsertOne {
 	return u.Update(func(s *BedUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetIsolationPrecaution sets the "isolation_precaution" field.
+func (u *BedUpsertOne) SetIsolationPrecaution(v bed.IsolationPrecaution) *BedUpsertOne {
+	return u.Update(func(s *BedUpsert) {
+		s.SetIsolationPrecaution(v)
+	})
+}
+
+// UpdateIsolationPrecaution sets the "isolation_precaution" field to the value that was provided on create.
+func (u *BedUpsertOne) UpdateIsolationPrecaution() *BedUpsertOne {
+	return u.Update(func(s *BedUpsert) {
+		s.UpdateIsolationPrecaution()
 	})
 }
 
@@ -852,6 +908,20 @@ func (u *BedUpsertBulk) SetStatus(v bed.Status) *BedUpsertBulk {
 func (u *BedUpsertBulk) UpdateStatus() *BedUpsertBulk {
 	return u.Update(func(s *BedUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetIsolationPrecaution sets the "isolation_precaution" field.
+func (u *BedUpsertBulk) SetIsolationPrecaution(v bed.IsolationPrecaution) *BedUpsertBulk {
+	return u.Update(func(s *BedUpsert) {
+		s.SetIsolationPrecaution(v)
+	})
+}
+
+// UpdateIsolationPrecaution sets the "isolation_precaution" field to the value that was provided on create.
+func (u *BedUpsertBulk) UpdateIsolationPrecaution() *BedUpsertBulk {
+	return u.Update(func(s *BedUpsert) {
+		s.UpdateIsolationPrecaution()
 	})
 }
 

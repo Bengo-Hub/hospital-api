@@ -226,6 +226,26 @@ func StatusNotIn(vs ...Status) predicate.Bed {
 	return predicate.Bed(sql.FieldNotIn(FieldStatus, vs...))
 }
 
+// IsolationPrecautionEQ applies the EQ predicate on the "isolation_precaution" field.
+func IsolationPrecautionEQ(v IsolationPrecaution) predicate.Bed {
+	return predicate.Bed(sql.FieldEQ(FieldIsolationPrecaution, v))
+}
+
+// IsolationPrecautionNEQ applies the NEQ predicate on the "isolation_precaution" field.
+func IsolationPrecautionNEQ(v IsolationPrecaution) predicate.Bed {
+	return predicate.Bed(sql.FieldNEQ(FieldIsolationPrecaution, v))
+}
+
+// IsolationPrecautionIn applies the In predicate on the "isolation_precaution" field.
+func IsolationPrecautionIn(vs ...IsolationPrecaution) predicate.Bed {
+	return predicate.Bed(sql.FieldIn(FieldIsolationPrecaution, vs...))
+}
+
+// IsolationPrecautionNotIn applies the NotIn predicate on the "isolation_precaution" field.
+func IsolationPrecautionNotIn(vs ...IsolationPrecaution) predicate.Bed {
+	return predicate.Bed(sql.FieldNotIn(FieldIsolationPrecaution, vs...))
+}
+
 // EquipmentAssetIdsIsNil applies the IsNil predicate on the "equipment_asset_ids" field.
 func EquipmentAssetIdsIsNil() predicate.Bed {
 	return predicate.Bed(sql.FieldIsNull(FieldEquipmentAssetIds))

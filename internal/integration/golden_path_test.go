@@ -292,6 +292,14 @@ func TestGoldenPath(t *testing.T) {
 		t.Fatalf("lab order status after payment = %q, want %q", order.Status, laborder.StatusRequested)
 	}
 
+	// 5b. Specimen collection — EnterResult hard-gates on this since mvp-gap-backlog-2026-09-02
+	// Sprint 3 item 1 (specimen collection tracking).
+	if _, err := labSvc.Collect(ctx, tenantID, orderLines[0].ID, lab.CollectRequest{
+		CollectedBy: uuid.New(), SpecimenID: "SPEC-0001",
+	}); err != nil {
+		t.Fatalf("collect specimen: %v", err)
+	}
+
 	// 6. Result entry — asserts the visit advances to lab_complete and the examination reopens
 	// (the exact transition this migration's Wave 3 parity-audit fix added).
 	if _, err := labSvc.EnterResult(ctx, tenantID, orderLines[0].ID, lab.EnterResultRequest{

@@ -38,8 +38,8 @@ func TestInpatientGoldenPath(t *testing.T) {
 	tenantID := uuid.New()
 	outletID := uuid.New()
 
-	// "facility" tier seeds WARD_DAY_RATE=1500 (department=inpatient) alongside the registration/
-	// consultation fees the OPD check-in below posts.
+	// "facility" tier seeds WARD_DAY_RATE=1500 and ADMISSION_DEPOSIT=5000 (department=inpatient)
+	// alongside the registration/consultation fees the OPD check-in below posts.
 	if err := refdata.SeedFacilityBillableItems(ctx, client, tenantID, "facility", log); err != nil {
 		t.Fatalf("seed billable items: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestInpatientGoldenPath(t *testing.T) {
 	}
 
 	// 2. Set up a ward with two beds.
-	ward, err := inpatientSvc.CreateWard(ctx, tenantID, outletID, "General Ward", 10)
+	ward, err := inpatientSvc.CreateWard(ctx, tenantID, outletID, "General Ward", "", 10)
 	if err != nil {
 		t.Fatalf("create ward: %v", err)
 	}
@@ -84,7 +84,8 @@ func TestInpatientGoldenPath(t *testing.T) {
 	}
 
 	// 3. Admit — asserts the visit flips to IPD/admitted, the bed occupies, and a NEW (separate)
-	// admission account opens with a zero balance (nothing charged yet).
+	// admission account opens with the ADMISSION_DEPOSIT charged best-effort (mvp-gap-backlog-
+	// 2026-09-02 Sprint 5 item 1).
 	adm, err := inpatientSvc.Admit(ctx, tenantID, inpatient.AdmitRequest{
 		VisitID: visit.ID, BedID: bedA.ID, AdmittedBy: uuid.New(),
 	})
@@ -127,8 +128,8 @@ func TestInpatientGoldenPath(t *testing.T) {
 	if admAcct.ID == opdAcct.ID {
 		t.Fatalf("admission account must be separate from the OPD visit account")
 	}
-	if admAcct.Balance != 0 {
-		t.Fatalf("admission balance right after admit = %v, want 0", admAcct.Balance)
+	if admAcct.Balance != 5000 { // ADMISSION_DEPOSIT, "facility" tier
+		t.Fatalf("admission balance right after admit = %v, want 5000 (ADMISSION_DEPOSIT)", admAcct.Balance)
 	}
 	if admAcct.SettlementRequiredBefore != patientaccount.SettlementRequiredBeforeDischarge {
 		t.Fatalf("admission account settlement_required_before = %q, want %q", admAcct.SettlementRequiredBefore, patientaccount.SettlementRequiredBeforeDischarge)
@@ -153,11 +154,11 @@ func TestInpatientGoldenPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get admission account after lab charge: %v", err)
 	}
-	if admAcct.Balance != 800 {
-		t.Fatalf("admission balance after lab charge = %v, want 800 (must not touch the OPD account)", admAcct.Balance)
+	if admAcct.Balance != 5800 { // 5000 deposit + 800 lab
+		t.Fatalf("admission balance after lab charge = %v, want 5800 (must not touch the OPD account)", admAcct.Balance)
 	}
-	if len(admCharges) != 1 {
-		t.Fatalf("expected 1 charge on the admission account, got %d", len(admCharges))
+	if len(admCharges) != 2 { // ADMISSION_DEPOSIT (at admit) + the lab charge just posted
+		t.Fatalf("expected 2 charges on the admission account, got %d", len(admCharges))
 	}
 	opdAcctAfter, _, err := billingSvc.GetAccountByVisit(ctx, tenantID, visit.ID)
 	if err != nil {

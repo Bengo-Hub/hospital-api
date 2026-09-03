@@ -24,6 +24,8 @@ const (
 	FieldBedNumber = "bed_number"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldIsolationPrecaution holds the string denoting the isolation_precaution field in the database.
+	FieldIsolationPrecaution = "isolation_precaution"
 	// FieldEquipmentAssetIds holds the string denoting the equipment_asset_ids field in the database.
 	FieldEquipmentAssetIds = "equipment_asset_ids"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -59,6 +61,7 @@ var Columns = []string{
 	FieldWardID,
 	FieldBedNumber,
 	FieldStatus,
+	FieldIsolationPrecaution,
 	FieldEquipmentAssetIds,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -117,6 +120,34 @@ func StatusValidator(s Status) error {
 	}
 }
 
+// IsolationPrecaution defines the type for the "isolation_precaution" enum field.
+type IsolationPrecaution string
+
+// IsolationPrecautionNone is the default value of the IsolationPrecaution enum.
+const DefaultIsolationPrecaution = IsolationPrecautionNone
+
+// IsolationPrecaution values.
+const (
+	IsolationPrecautionContact  IsolationPrecaution = "contact"
+	IsolationPrecautionDroplet  IsolationPrecaution = "droplet"
+	IsolationPrecautionAirborne IsolationPrecaution = "airborne"
+	IsolationPrecautionNone     IsolationPrecaution = "none"
+)
+
+func (ip IsolationPrecaution) String() string {
+	return string(ip)
+}
+
+// IsolationPrecautionValidator is a validator for the "isolation_precaution" field enum values. It is called by the builders before save.
+func IsolationPrecautionValidator(ip IsolationPrecaution) error {
+	switch ip {
+	case IsolationPrecautionContact, IsolationPrecautionDroplet, IsolationPrecautionAirborne, IsolationPrecautionNone:
+		return nil
+	default:
+		return fmt.Errorf("bed: invalid enum value for isolation_precaution field: %q", ip)
+	}
+}
+
 // OrderOption defines the ordering options for the Bed queries.
 type OrderOption func(*sql.Selector)
 
@@ -143,6 +174,11 @@ func ByBedNumber(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByIsolationPrecaution orders the results by the isolation_precaution field.
+func ByIsolationPrecaution(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsolationPrecaution, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

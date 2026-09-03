@@ -27,6 +27,7 @@ func NewInpatientHandler(svc *inpatient.Service, rbacSvc outletmw.PermissionChec
 
 type createWardRequest struct {
 	Name             string `json:"name"`
+	WardType         string `json:"ward_type,omitempty"`
 	Capacity         int    `json:"capacity,omitempty"`
 	BillableItemCode string `json:"billable_item_code,omitempty"`
 }
@@ -44,7 +45,7 @@ func (h *InpatientHandler) CreateWard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	outletID := currentOutletID(r)
-	ward, err := h.svc.CreateWard(r.Context(), tenantID, outletID, in.Name, in.Capacity)
+	ward, err := h.svc.CreateWard(r.Context(), tenantID, outletID, in.Name, in.WardType, in.Capacity)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
@@ -176,6 +177,35 @@ func (h *InpatientHandler) SetBedStatus(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, bed)
 }
 
+type setBedIsolationPrecautionRequest struct {
+	IsolationPrecaution string `json:"isolation_precaution"`
+}
+
+// SetBedIsolationPrecaution handles PATCH /{tenant}/hospital/beds/{bedID}/isolation-precaution
+func (h *InpatientHandler) SetBedIsolationPrecaution(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bedID, err := uuid.Parse(chi.URLParam(r, "bedID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid bed ID")
+		return
+	}
+	var in setBedIsolationPrecautionRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	bed, err := h.svc.SetBedIsolationPrecaution(r.Context(), tenantID, bedID, in.IsolationPrecaution)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, bed)
+}
+
 type setBedEquipmentRequest struct {
 	AssetIDs []string `json:"asset_ids"`
 }
@@ -217,6 +247,7 @@ type admitRequest struct {
 	VisitID                     string `json:"visit_id"`
 	BedID                       string `json:"bed_id"`
 	InsuranceGuaranteeReference string `json:"insurance_guarantee_reference,omitempty"`
+	IsolationPrecaution         string `json:"isolation_precaution,omitempty"`
 }
 
 // Admit handles POST /{tenant}/hospital/admissions
@@ -244,6 +275,7 @@ func (h *InpatientHandler) Admit(w http.ResponseWriter, r *http.Request) {
 	adm, err := h.svc.Admit(r.Context(), tenantID, inpatient.AdmitRequest{
 		VisitID: visitID, BedID: bedID, AdmittedBy: currentUserID(r),
 		InsuranceGuaranteeReference: in.InsuranceGuaranteeReference,
+		IsolationPrecaution:         in.IsolationPrecaution,
 	})
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
@@ -362,8 +394,13 @@ func (h *InpatientHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 }
 
 type dischargeRequest struct {
-	Summary        string `json:"summary,omitempty"`
-	OverrideReason string `json:"override_reason,omitempty"`
+	Summary              string `json:"summary,omitempty"`
+	OverrideReason       string `json:"override_reason,omitempty"`
+	DischargeDiagnosis   string `json:"discharge_diagnosis,omitempty"`
+	ProceduresPerformed  string `json:"procedures_performed,omitempty"`
+	DischargeMedications string `json:"discharge_medications,omitempty"`
+	FollowUpInstructions string `json:"follow_up_instructions,omitempty"`
+	ConditionAtDischarge string `json:"condition_at_discharge,omitempty"`
 }
 
 // Discharge handles POST /{tenant}/hospital/admissions/{admissionID}/discharge
@@ -385,9 +422,14 @@ func (h *InpatientHandler) Discharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	adm, acct, err := h.svc.Discharge(r.Context(), tenantID, admissionID, inpatient.DischargeRequest{
-		DischargedBy:   currentUserID(r),
-		Summary:        in.Summary,
-		OverrideReason: in.OverrideReason,
+		DischargedBy:         currentUserID(r),
+		Summary:              in.Summary,
+		OverrideReason:       in.OverrideReason,
+		DischargeDiagnosis:   in.DischargeDiagnosis,
+		ProceduresPerformed:  in.ProceduresPerformed,
+		DischargeMedications: in.DischargeMedications,
+		FollowUpInstructions: in.FollowUpInstructions,
+		ConditionAtDischarge: in.ConditionAtDischarge,
 	})
 	if err != nil {
 		if outstanding, isOutstanding := err.(*inpatient.ErrOutstandingBalance); isOutstanding {
@@ -398,4 +440,141 @@ func (h *InpatientHandler) Discharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"admission": adm, "account": acct})
+}
+
+// ListTransfers handles GET /{tenant}/hospital/admissions/{admissionID}/transfers
+func (h *InpatientHandler) ListTransfers(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	admissionID, err := uuid.Parse(chi.URLParam(r, "admissionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid admission ID")
+		return
+	}
+	list, err := h.svc.ListTransfersByAdmission(r.Context(), tenantID, admissionID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list transfers")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+// ── Nursing vitals chart / doctor's ward rounds ─────────────────────────────────────────────
+
+type recordVitalsChartRequest struct {
+	BPSystolic         *int     `json:"bp_systolic,omitempty"`
+	BPDiastolic        *int     `json:"bp_diastolic,omitempty"`
+	TemperatureCelsius *float64 `json:"temperature_celsius,omitempty"`
+	PulseBPM           *int     `json:"pulse_bpm,omitempty"`
+	RespirationRate    *int     `json:"respiration_rate,omitempty"`
+	SpO2Percent        *float64 `json:"spo2_percent,omitempty"`
+	PainScore          *int     `json:"pain_score,omitempty"`
+	Notes              string   `json:"notes,omitempty"`
+}
+
+// RecordVitalsChart handles POST /{tenant}/hospital/admissions/{admissionID}/vitals-chart
+func (h *InpatientHandler) RecordVitalsChart(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	admissionID, err := uuid.Parse(chi.URLParam(r, "admissionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid admission ID")
+		return
+	}
+	var in recordVitalsChartRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	entry, err := h.svc.RecordVitalsChart(r.Context(), tenantID, inpatient.RecordVitalsChartRequest{
+		AdmissionID: admissionID, RecordedBy: currentUserID(r),
+		BPSystolic: in.BPSystolic, BPDiastolic: in.BPDiastolic, TemperatureCelsius: in.TemperatureCelsius,
+		PulseBPM: in.PulseBPM, RespirationRate: in.RespirationRate, SpO2Percent: in.SpO2Percent,
+		PainScore: in.PainScore, Notes: in.Notes,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, entry)
+}
+
+// ListVitalsChart handles GET /{tenant}/hospital/admissions/{admissionID}/vitals-chart
+func (h *InpatientHandler) ListVitalsChart(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	admissionID, err := uuid.Parse(chi.URLParam(r, "admissionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid admission ID")
+		return
+	}
+	list, err := h.svc.ListVitalsChart(r.Context(), tenantID, admissionID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list vitals chart")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
+}
+
+type recordWardRoundRequest struct {
+	Notes         string `json:"notes"`
+	DiagnosisCode string `json:"diagnosis_code,omitempty"`
+	DiagnosisName string `json:"diagnosis_name,omitempty"`
+}
+
+// RecordWardRound handles POST /{tenant}/hospital/admissions/{admissionID}/ward-rounds
+func (h *InpatientHandler) RecordWardRound(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	admissionID, err := uuid.Parse(chi.URLParam(r, "admissionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid admission ID")
+		return
+	}
+	var in recordWardRoundRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	note, err := h.svc.RecordWardRound(r.Context(), tenantID, inpatient.RecordWardRoundRequest{
+		AdmissionID: admissionID, ClinicianID: currentUserID(r),
+		Notes: in.Notes, DiagnosisCode: in.DiagnosisCode, DiagnosisName: in.DiagnosisName,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusCreated, note)
+}
+
+// ListWardRounds handles GET /{tenant}/hospital/admissions/{admissionID}/ward-rounds
+func (h *InpatientHandler) ListWardRounds(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	admissionID, err := uuid.Parse(chi.URLParam(r, "admissionID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid admission ID")
+		return
+	}
+	list, err := h.svc.ListWardRounds(r.Context(), tenantID, admissionID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to list ward rounds")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"data": list})
 }

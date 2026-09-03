@@ -43,6 +43,20 @@ func (_c *WardCreate) SetName(v string) *WardCreate {
 	return _c
 }
 
+// SetWardType sets the "ward_type" field.
+func (_c *WardCreate) SetWardType(v ward.WardType) *WardCreate {
+	_c.mutation.SetWardType(v)
+	return _c
+}
+
+// SetNillableWardType sets the "ward_type" field if the given value is not nil.
+func (_c *WardCreate) SetNillableWardType(v *ward.WardType) *WardCreate {
+	if v != nil {
+		_c.SetWardType(*v)
+	}
+	return _c
+}
+
 // SetCapacity sets the "capacity" field.
 func (_c *WardCreate) SetCapacity(v int) *WardCreate {
 	_c.mutation.SetCapacity(v)
@@ -215,6 +229,11 @@ func (_c *WardCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Ward.name": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.WardType(); ok {
+		if err := ward.WardTypeValidator(v); err != nil {
+			return &ValidationError{Name: "ward_type", err: fmt.Errorf(`ent: validator failed for field "Ward.ward_type": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Capacity(); !ok {
 		return &ValidationError{Name: "capacity", err: errors.New(`ent: missing required field "Ward.capacity"`)}
 	}
@@ -274,6 +293,10 @@ func (_c *WardCreate) createSpec() (*Ward, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(ward.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := _c.mutation.WardType(); ok {
+		_spec.SetField(ward.FieldWardType, field.TypeEnum, value)
+		_node.WardType = value
 	}
 	if value, ok := _c.mutation.Capacity(); ok {
 		_spec.SetField(ward.FieldCapacity, field.TypeInt, value)
@@ -396,6 +419,24 @@ func (u *WardUpsert) SetName(v string) *WardUpsert {
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *WardUpsert) UpdateName() *WardUpsert {
 	u.SetExcluded(ward.FieldName)
+	return u
+}
+
+// SetWardType sets the "ward_type" field.
+func (u *WardUpsert) SetWardType(v ward.WardType) *WardUpsert {
+	u.Set(ward.FieldWardType, v)
+	return u
+}
+
+// UpdateWardType sets the "ward_type" field to the value that was provided on create.
+func (u *WardUpsert) UpdateWardType() *WardUpsert {
+	u.SetExcluded(ward.FieldWardType)
+	return u
+}
+
+// ClearWardType clears the value of the "ward_type" field.
+func (u *WardUpsert) ClearWardType() *WardUpsert {
+	u.SetNull(ward.FieldWardType)
 	return u
 }
 
@@ -549,6 +590,27 @@ func (u *WardUpsertOne) SetName(v string) *WardUpsertOne {
 func (u *WardUpsertOne) UpdateName() *WardUpsertOne {
 	return u.Update(func(s *WardUpsert) {
 		s.UpdateName()
+	})
+}
+
+// SetWardType sets the "ward_type" field.
+func (u *WardUpsertOne) SetWardType(v ward.WardType) *WardUpsertOne {
+	return u.Update(func(s *WardUpsert) {
+		s.SetWardType(v)
+	})
+}
+
+// UpdateWardType sets the "ward_type" field to the value that was provided on create.
+func (u *WardUpsertOne) UpdateWardType() *WardUpsertOne {
+	return u.Update(func(s *WardUpsert) {
+		s.UpdateWardType()
+	})
+}
+
+// ClearWardType clears the value of the "ward_type" field.
+func (u *WardUpsertOne) ClearWardType() *WardUpsertOne {
+	return u.Update(func(s *WardUpsert) {
+		s.ClearWardType()
 	})
 }
 
@@ -879,6 +941,27 @@ func (u *WardUpsertBulk) SetName(v string) *WardUpsertBulk {
 func (u *WardUpsertBulk) UpdateName() *WardUpsertBulk {
 	return u.Update(func(s *WardUpsert) {
 		s.UpdateName()
+	})
+}
+
+// SetWardType sets the "ward_type" field.
+func (u *WardUpsertBulk) SetWardType(v ward.WardType) *WardUpsertBulk {
+	return u.Update(func(s *WardUpsert) {
+		s.SetWardType(v)
+	})
+}
+
+// UpdateWardType sets the "ward_type" field to the value that was provided on create.
+func (u *WardUpsertBulk) UpdateWardType() *WardUpsertBulk {
+	return u.Update(func(s *WardUpsert) {
+		s.UpdateWardType()
+	})
+}
+
+// ClearWardType clears the value of the "ward_type" field.
+func (u *WardUpsertBulk) ClearWardType() *WardUpsertBulk {
+	return u.Update(func(s *WardUpsert) {
+		s.ClearWardType()
 	})
 }
 

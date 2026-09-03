@@ -18,6 +18,8 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/medicationadministration"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 	"github.com/google/uuid"
 )
 
@@ -31,6 +33,8 @@ type AdmissionQuery struct {
 	withVisit                     *PatientVisitQuery
 	withBed                       *BedQuery
 	withMedicationAdministrations *MedicationAdministrationQuery
+	withVitalsChartEntries        *VitalsChartEntryQuery
+	withWardRoundNotes            *WardRoundNoteQuery
 	modifiers                     []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -127,6 +131,50 @@ func (_q *AdmissionQuery) QueryMedicationAdministrations() *MedicationAdministra
 			sqlgraph.From(admission.Table, admission.FieldID, selector),
 			sqlgraph.To(medicationadministration.Table, medicationadministration.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, admission.MedicationAdministrationsTable, admission.MedicationAdministrationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryVitalsChartEntries chains the current query on the "vitals_chart_entries" edge.
+func (_q *AdmissionQuery) QueryVitalsChartEntries() *VitalsChartEntryQuery {
+	query := (&VitalsChartEntryClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(admission.Table, admission.FieldID, selector),
+			sqlgraph.To(vitalschartentry.Table, vitalschartentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, admission.VitalsChartEntriesTable, admission.VitalsChartEntriesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWardRoundNotes chains the current query on the "ward_round_notes" edge.
+func (_q *AdmissionQuery) QueryWardRoundNotes() *WardRoundNoteQuery {
+	query := (&WardRoundNoteClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(admission.Table, admission.FieldID, selector),
+			sqlgraph.To(wardroundnote.Table, wardroundnote.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, admission.WardRoundNotesTable, admission.WardRoundNotesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -329,6 +377,8 @@ func (_q *AdmissionQuery) Clone() *AdmissionQuery {
 		withVisit:                     _q.withVisit.Clone(),
 		withBed:                       _q.withBed.Clone(),
 		withMedicationAdministrations: _q.withMedicationAdministrations.Clone(),
+		withVitalsChartEntries:        _q.withVitalsChartEntries.Clone(),
+		withWardRoundNotes:            _q.withWardRoundNotes.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -365,6 +415,28 @@ func (_q *AdmissionQuery) WithMedicationAdministrations(opts ...func(*Medication
 		opt(query)
 	}
 	_q.withMedicationAdministrations = query
+	return _q
+}
+
+// WithVitalsChartEntries tells the query-builder to eager-load the nodes that are connected to
+// the "vitals_chart_entries" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AdmissionQuery) WithVitalsChartEntries(opts ...func(*VitalsChartEntryQuery)) *AdmissionQuery {
+	query := (&VitalsChartEntryClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withVitalsChartEntries = query
+	return _q
+}
+
+// WithWardRoundNotes tells the query-builder to eager-load the nodes that are connected to
+// the "ward_round_notes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AdmissionQuery) WithWardRoundNotes(opts ...func(*WardRoundNoteQuery)) *AdmissionQuery {
+	query := (&WardRoundNoteClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withWardRoundNotes = query
 	return _q
 }
 
@@ -446,10 +518,12 @@ func (_q *AdmissionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ad
 	var (
 		nodes       = []*Admission{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [5]bool{
 			_q.withVisit != nil,
 			_q.withBed != nil,
 			_q.withMedicationAdministrations != nil,
+			_q.withVitalsChartEntries != nil,
+			_q.withWardRoundNotes != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -491,6 +565,22 @@ func (_q *AdmissionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ad
 			func(n *Admission, e *MedicationAdministration) {
 				n.Edges.MedicationAdministrations = append(n.Edges.MedicationAdministrations, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withVitalsChartEntries; query != nil {
+		if err := _q.loadVitalsChartEntries(ctx, query, nodes,
+			func(n *Admission) { n.Edges.VitalsChartEntries = []*VitalsChartEntry{} },
+			func(n *Admission, e *VitalsChartEntry) {
+				n.Edges.VitalsChartEntries = append(n.Edges.VitalsChartEntries, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withWardRoundNotes; query != nil {
+		if err := _q.loadWardRoundNotes(ctx, query, nodes,
+			func(n *Admission) { n.Edges.WardRoundNotes = []*WardRoundNote{} },
+			func(n *Admission, e *WardRoundNote) { n.Edges.WardRoundNotes = append(n.Edges.WardRoundNotes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -570,6 +660,66 @@ func (_q *AdmissionQuery) loadMedicationAdministrations(ctx context.Context, que
 	}
 	query.Where(predicate.MedicationAdministration(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(admission.MedicationAdministrationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AdmissionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "admission_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AdmissionQuery) loadVitalsChartEntries(ctx context.Context, query *VitalsChartEntryQuery, nodes []*Admission, init func(*Admission), assign func(*Admission, *VitalsChartEntry)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Admission)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(vitalschartentry.FieldAdmissionID)
+	}
+	query.Where(predicate.VitalsChartEntry(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(admission.VitalsChartEntriesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AdmissionID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "admission_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *AdmissionQuery) loadWardRoundNotes(ctx context.Context, query *WardRoundNoteQuery, nodes []*Admission, init func(*Admission), assign func(*Admission, *WardRoundNote)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Admission)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(wardroundnote.FieldAdmissionID)
+	}
+	query.Where(predicate.WardRoundNote(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(admission.WardRoundNotesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

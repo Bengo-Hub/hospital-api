@@ -114,8 +114,14 @@ type TriageRecord func(*sql.Selector)
 // UserRoleAssignment is the predicate function for userroleassignment builders.
 type UserRoleAssignment func(*sql.Selector)
 
+// VitalsChartEntry is the predicate function for vitalschartentry builders.
+type VitalsChartEntry func(*sql.Selector)
+
 // WalkInSale is the predicate function for walkinsale builders.
 type WalkInSale func(*sql.Selector)
 
 // Ward is the predicate function for ward builders.
 type Ward func(*sql.Selector)
+
+// WardRoundNote is the predicate function for wardroundnote builders.
+type WardRoundNote func(*sql.Selector)

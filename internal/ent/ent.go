@@ -48,8 +48,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/bengobox/hospital-service/internal/ent/ward"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -146,8 +148,10 @@ func checkColumn(t, c string) error {
 			theatrebooking.Table:           theatrebooking.ValidColumn,
 			triagerecord.Table:             triagerecord.ValidColumn,
 			userroleassignment.Table:       userroleassignment.ValidColumn,
+			vitalschartentry.Table:         vitalschartentry.ValidColumn,
 			walkinsale.Table:               walkinsale.ValidColumn,
 			ward.Table:                     ward.ValidColumn,
+			wardroundnote.Table:            wardroundnote.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

@@ -23,6 +23,11 @@ var (
 		{Name: "discharged_at", Type: field.TypeTime, Nullable: true},
 		{Name: "discharged_by", Type: field.TypeUUID, Nullable: true},
 		{Name: "discharge_summary", Type: field.TypeString, Nullable: true},
+		{Name: "discharge_diagnosis", Type: field.TypeString, Nullable: true},
+		{Name: "procedures_performed", Type: field.TypeString, Nullable: true},
+		{Name: "discharge_medications", Type: field.TypeString, Nullable: true},
+		{Name: "follow_up_instructions", Type: field.TypeString, Nullable: true},
+		{Name: "condition_at_discharge", Type: field.TypeEnum, Nullable: true, Enums: []string{"recovered", "improved", "unchanged", "deteriorated", "deceased"}},
 		{Name: "insurance_guarantee_reference", Type: field.TypeString, Nullable: true},
 		{Name: "ward_charge_posted", Type: field.TypeBool, Default: false},
 		{Name: "created_at", Type: field.TypeTime},
@@ -38,13 +43,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "admissions_beds_admissions",
-				Columns:    []*schema.Column{AdmissionsColumns[16]},
+				Columns:    []*schema.Column{AdmissionsColumns[21]},
 				RefColumns: []*schema.Column{BedsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "admissions_patient_visits_admissions",
-				Columns:    []*schema.Column{AdmissionsColumns[17]},
+				Columns:    []*schema.Column{AdmissionsColumns[22]},
 				RefColumns: []*schema.Column{PatientVisitsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -53,7 +58,7 @@ var (
 			{
 				Name:    "admission_tenant_id_patient_visit_id",
 				Unique:  false,
-				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[17]},
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[22]},
 			},
 			{
 				Name:    "admission_tenant_id_status",
@@ -68,7 +73,7 @@ var (
 			{
 				Name:    "admission_tenant_id_bed_id",
 				Unique:  false,
-				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[16]},
+				Columns: []*schema.Column{AdmissionsColumns[1], AdmissionsColumns[21]},
 			},
 			{
 				Name:    "admission_tenant_id_admission_number",
@@ -83,6 +88,7 @@ var (
 		{Name: "tenant_id", Type: field.TypeUUID},
 		{Name: "bed_number", Type: field.TypeString},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"available", "occupied", "cleaning", "out_of_service"}, Default: "available"},
+		{Name: "isolation_precaution", Type: field.TypeEnum, Enums: []string{"contact", "droplet", "airborne", "none"}, Default: "none"},
 		{Name: "equipment_asset_ids", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -96,7 +102,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "beds_wards_beds",
-				Columns:    []*schema.Column{BedsColumns[7]},
+				Columns:    []*schema.Column{BedsColumns[8]},
 				RefColumns: []*schema.Column{WardsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -105,7 +111,7 @@ var (
 			{
 				Name:    "bed_tenant_id_ward_id",
 				Unique:  false,
-				Columns: []*schema.Column{BedsColumns[1], BedsColumns[7]},
+				Columns: []*schema.Column{BedsColumns[1], BedsColumns[8]},
 			},
 			{
 				Name:    "bed_tenant_id_status",
@@ -115,7 +121,7 @@ var (
 			{
 				Name:    "bed_ward_id_bed_number",
 				Unique:  true,
-				Columns: []*schema.Column{BedsColumns[7], BedsColumns[2]},
+				Columns: []*schema.Column{BedsColumns[8], BedsColumns[2]},
 			},
 		},
 	}
@@ -1444,6 +1450,43 @@ var (
 			},
 		},
 	}
+	// VitalsChartEntriesColumns holds the columns for the "vitals_chart_entries" table.
+	VitalsChartEntriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "recorded_by", Type: field.TypeUUID},
+		{Name: "bp_systolic", Type: field.TypeInt, Nullable: true},
+		{Name: "bp_diastolic", Type: field.TypeInt, Nullable: true},
+		{Name: "temperature_celsius", Type: field.TypeFloat64, Nullable: true},
+		{Name: "pulse_bpm", Type: field.TypeInt, Nullable: true},
+		{Name: "respiration_rate", Type: field.TypeInt, Nullable: true},
+		{Name: "spo2_percent", Type: field.TypeFloat64, Nullable: true},
+		{Name: "pain_score", Type: field.TypeInt, Nullable: true},
+		{Name: "notes", Type: field.TypeString, Nullable: true},
+		{Name: "recorded_at", Type: field.TypeTime},
+		{Name: "admission_id", Type: field.TypeUUID},
+	}
+	// VitalsChartEntriesTable holds the schema information for the "vitals_chart_entries" table.
+	VitalsChartEntriesTable = &schema.Table{
+		Name:       "vitals_chart_entries",
+		Columns:    VitalsChartEntriesColumns,
+		PrimaryKey: []*schema.Column{VitalsChartEntriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "vitals_chart_entries_admissions_vitals_chart_entries",
+				Columns:    []*schema.Column{VitalsChartEntriesColumns[12]},
+				RefColumns: []*schema.Column{AdmissionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "vitalschartentry_tenant_id_admission_id",
+				Unique:  false,
+				Columns: []*schema.Column{VitalsChartEntriesColumns[1], VitalsChartEntriesColumns[12]},
+			},
+		},
+	}
 	// WalkInSalesColumns holds the columns for the "walk_in_sales" table.
 	WalkInSalesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -1509,6 +1552,7 @@ var (
 		{Name: "tenant_id", Type: field.TypeUUID},
 		{Name: "outlet_id", Type: field.TypeUUID},
 		{Name: "name", Type: field.TypeString},
+		{Name: "ward_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"general", "private", "semi_private", "isolation", "icu"}},
 		{Name: "capacity", Type: field.TypeInt, Default: 0},
 		{Name: "billable_item_code", Type: field.TypeString, Nullable: true},
 		{Name: "is_active", Type: field.TypeBool, Default: true},
@@ -1530,6 +1574,38 @@ var (
 				Name:    "ward_tenant_id_outlet_id_name",
 				Unique:  true,
 				Columns: []*schema.Column{WardsColumns[1], WardsColumns[2], WardsColumns[3]},
+			},
+		},
+	}
+	// WardRoundNotesColumns holds the columns for the "ward_round_notes" table.
+	WardRoundNotesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "clinician_id", Type: field.TypeUUID},
+		{Name: "notes", Type: field.TypeString},
+		{Name: "diagnosis_code", Type: field.TypeString, Nullable: true},
+		{Name: "diagnosis_name", Type: field.TypeString, Nullable: true},
+		{Name: "recorded_at", Type: field.TypeTime},
+		{Name: "admission_id", Type: field.TypeUUID},
+	}
+	// WardRoundNotesTable holds the schema information for the "ward_round_notes" table.
+	WardRoundNotesTable = &schema.Table{
+		Name:       "ward_round_notes",
+		Columns:    WardRoundNotesColumns,
+		PrimaryKey: []*schema.Column{WardRoundNotesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ward_round_notes_admissions_ward_round_notes",
+				Columns:    []*schema.Column{WardRoundNotesColumns[7]},
+				RefColumns: []*schema.Column{AdmissionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "wardroundnote_tenant_id_admission_id",
+				Unique:  false,
+				Columns: []*schema.Column{WardRoundNotesColumns[1], WardRoundNotesColumns[7]},
 			},
 		},
 	}
@@ -1571,8 +1647,10 @@ var (
 		TheatreBookingsTable,
 		TriageRecordsTable,
 		UserRoleAssignmentsTable,
+		VitalsChartEntriesTable,
 		WalkInSalesTable,
 		WardsTable,
+		WardRoundNotesTable,
 	}
 )
 
@@ -1596,5 +1674,7 @@ func init() {
 	TriageRecordsTable.ForeignKeys[0].RefTable = PatientVisitsTable
 	UserRoleAssignmentsTable.ForeignKeys[0].RefTable = HospitalUsersTable
 	UserRoleAssignmentsTable.ForeignKeys[1].RefTable = HospitalRolesTable
+	VitalsChartEntriesTable.ForeignKeys[0].RefTable = AdmissionsTable
 	WalkInSalesTable.ForeignKeys[0].RefTable = PrescriptionsTable
+	WardRoundNotesTable.ForeignKeys[0].RefTable = AdmissionsTable
 }

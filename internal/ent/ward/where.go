@@ -241,6 +241,36 @@ func NameContainsFold(v string) predicate.Ward {
 	return predicate.Ward(sql.FieldContainsFold(FieldName, v))
 }
 
+// WardTypeEQ applies the EQ predicate on the "ward_type" field.
+func WardTypeEQ(v WardType) predicate.Ward {
+	return predicate.Ward(sql.FieldEQ(FieldWardType, v))
+}
+
+// WardTypeNEQ applies the NEQ predicate on the "ward_type" field.
+func WardTypeNEQ(v WardType) predicate.Ward {
+	return predicate.Ward(sql.FieldNEQ(FieldWardType, v))
+}
+
+// WardTypeIn applies the In predicate on the "ward_type" field.
+func WardTypeIn(vs ...WardType) predicate.Ward {
+	return predicate.Ward(sql.FieldIn(FieldWardType, vs...))
+}
+
+// WardTypeNotIn applies the NotIn predicate on the "ward_type" field.
+func WardTypeNotIn(vs ...WardType) predicate.Ward {
+	return predicate.Ward(sql.FieldNotIn(FieldWardType, vs...))
+}
+
+// WardTypeIsNil applies the IsNil predicate on the "ward_type" field.
+func WardTypeIsNil() predicate.Ward {
+	return predicate.Ward(sql.FieldIsNull(FieldWardType))
+}
+
+// WardTypeNotNil applies the NotNil predicate on the "ward_type" field.
+func WardTypeNotNil() predicate.Ward {
+	return predicate.Ward(sql.FieldNotNull(FieldWardType))
+}
+
 // CapacityEQ applies the EQ predicate on the "capacity" field.
 func CapacityEQ(v int) predicate.Ward {
 	return predicate.Ward(sql.FieldEQ(FieldCapacity, v))

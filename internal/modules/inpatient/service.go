@@ -22,7 +22,9 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patienttransfer"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
 	"github.com/bengobox/hospital-service/internal/ent/ward"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 	"github.com/bengobox/hospital-service/internal/events"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
@@ -55,17 +57,22 @@ func (e *ErrOutstandingBalance) Error() string {
 
 // ── Ward / Bed ───────────────────────────────────────────────────────────────────────────────
 
-// CreateWard adds a new ward for an outlet.
-func (s *Service) CreateWard(ctx context.Context, tenantID, outletID uuid.UUID, name string, capacity int) (*ent.Ward, error) {
+// CreateWard adds a new ward for an outlet. wardType is a classification only (general/private/
+// semi_private/isolation/icu) — it never overrides billable_item_code, which the caller must still
+// set explicitly for real pricing; the UI uses wardType to suggest (not force) a sensible default.
+func (s *Service) CreateWard(ctx context.Context, tenantID, outletID uuid.UUID, name, wardType string, capacity int) (*ent.Ward, error) {
 	if name == "" {
 		return nil, fmt.Errorf("inpatient: ward name is required")
 	}
-	w, err := s.client.Ward.Create().
+	create := s.client.Ward.Create().
 		SetTenantID(tenantID).
 		SetOutletID(outletID).
 		SetName(name).
-		SetCapacity(capacity).
-		Save(ctx)
+		SetCapacity(capacity)
+	if wardType != "" {
+		create = create.SetWardType(ward.WardType(wardType))
+	}
+	w, err := create.Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("inpatient: create ward: %w", err)
 	}
@@ -151,6 +158,27 @@ func (s *Service) SetBedStatus(ctx context.Context, tenantID, bedID uuid.UUID, s
 	updated, err := s.client.Bed.UpdateOneID(bedID).SetStatus(bed.Status(status)).Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("inpatient: update bed status: %w", err)
+	}
+	return updated, nil
+}
+
+// SetBedIsolationPrecaution changes the isolation-precaution flag on a bed mid-stay (e.g. a
+// patient later found to need droplet precautions after admission, or a facility clearing it
+// early once a dedicated isolation bed frees up before discharge) — Admit/Discharge handle the
+// common set-at-admission/clear-at-discharge cases, this covers everything in between.
+func (s *Service) SetBedIsolationPrecaution(ctx context.Context, tenantID, bedID uuid.UUID, precaution string) (*ent.Bed, error) {
+	if _, err := s.client.Bed.Query().Where(bed.ID(bedID), bed.TenantID(tenantID)).Only(ctx); err != nil {
+		return nil, fmt.Errorf("inpatient: bed not found: %w", err)
+	}
+	v := bed.IsolationPrecaution(precaution)
+	switch v {
+	case bed.IsolationPrecautionContact, bed.IsolationPrecautionDroplet, bed.IsolationPrecautionAirborne, bed.IsolationPrecautionNone:
+	default:
+		return nil, fmt.Errorf("inpatient: invalid isolation precaution %q", precaution)
+	}
+	updated, err := s.client.Bed.UpdateOneID(bedID).SetIsolationPrecaution(v).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: update bed isolation precaution: %w", err)
 	}
 	return updated, nil
 }
@@ -248,6 +276,7 @@ type AdmitRequest struct {
 	BedID                       uuid.UUID
 	AdmittedBy                  uuid.UUID
 	InsuranceGuaranteeReference string
+	IsolationPrecaution         string // contact|droplet|airborne|none — optional, defaults to none
 }
 
 // Admit opens a new inpatient admission: validates the bed is available and the visit has no
@@ -313,7 +342,11 @@ func (s *Service) Admit(ctx context.Context, tenantID uuid.UUID, req AdmitReques
 		return nil, fmt.Errorf("inpatient: create admission: %w", err)
 	}
 
-	if _, err = tx.Bed.UpdateOneID(req.BedID).SetStatus(bed.StatusOccupied).Save(ctx); err != nil {
+	bedUpdate := tx.Bed.UpdateOneID(req.BedID).SetStatus(bed.StatusOccupied)
+	if v := bed.IsolationPrecaution(req.IsolationPrecaution); v != "" {
+		bedUpdate = bedUpdate.SetIsolationPrecaution(v)
+	}
+	if _, err = bedUpdate.Save(ctx); err != nil {
 		return nil, fmt.Errorf("inpatient: occupy bed: %w", err)
 	}
 	if _, err = tx.PatientVisit.UpdateOneID(req.VisitID).
@@ -377,6 +410,123 @@ func (s *Service) chargeAdmissionDeposit(ctx context.Context, tx *ent.Tx, tenant
 // GetAdmission fetches an admission by ID, tenant-scoped.
 func (s *Service) GetAdmission(ctx context.Context, tenantID, admissionID uuid.UUID) (*ent.Admission, error) {
 	return s.client.Admission.Query().Where(admission.ID(admissionID), admission.TenantID(tenantID)).Only(ctx)
+}
+
+// ListTransfersByAdmission returns an admission's transfer history, newest first — PatientTransfer
+// rows already exist and are used for ward-charge billing segmentation, but had no HTTP-visible
+// list surface at all until now (mvp-gap-backlog-2026-09-02.md Sprint 6.1 candidate).
+func (s *Service) ListTransfersByAdmission(ctx context.Context, tenantID, admissionID uuid.UUID) ([]*ent.PatientTransfer, error) {
+	return s.client.PatientTransfer.Query().
+		Where(patienttransfer.TenantID(tenantID), patienttransfer.AdmissionID(admissionID)).
+		Order(ent.Desc(patienttransfer.FieldTransferredAt)).
+		All(ctx)
+}
+
+// ── Nursing vitals chart / doctor's ward rounds (mvp-gap-backlog-2026-09-02.md Sprint 6.1) ─────
+//
+// Kept in this package rather than a new module — both are small, admission-scoped records this
+// package already owns the parent entity for, mirroring how Sprint 1's patients package owns
+// TriageRecord rather than spinning off a separate module for it.
+
+// RecordVitalsChartRequest is the input to RecordVitalsChart.
+type RecordVitalsChartRequest struct {
+	AdmissionID        uuid.UUID
+	RecordedBy         uuid.UUID
+	BPSystolic         *int
+	BPDiastolic        *int
+	TemperatureCelsius *float64
+	PulseBPM           *int
+	RespirationRate    *int
+	SpO2Percent        *float64
+	PainScore          *int
+	Notes              string
+}
+
+// RecordVitalsChart charts one nursing vitals reading for an admission — a repeated time series,
+// unlike Sprint 2's one-shot-per-visit TriageRecord (see VitalsChartEntry's own doc comment).
+func (s *Service) RecordVitalsChart(ctx context.Context, tenantID uuid.UUID, req RecordVitalsChartRequest) (*ent.VitalsChartEntry, error) {
+	if _, err := s.client.Admission.Query().Where(admission.ID(req.AdmissionID), admission.TenantID(tenantID)).Only(ctx); err != nil {
+		return nil, fmt.Errorf("inpatient: admission not found: %w", err)
+	}
+	create := s.client.VitalsChartEntry.Create().
+		SetTenantID(tenantID).
+		SetAdmissionID(req.AdmissionID).
+		SetRecordedBy(req.RecordedBy).
+		SetNotes(req.Notes)
+	if req.BPSystolic != nil {
+		create = create.SetBpSystolic(*req.BPSystolic)
+	}
+	if req.BPDiastolic != nil {
+		create = create.SetBpDiastolic(*req.BPDiastolic)
+	}
+	if req.TemperatureCelsius != nil {
+		create = create.SetTemperatureCelsius(*req.TemperatureCelsius)
+	}
+	if req.PulseBPM != nil {
+		create = create.SetPulseBpm(*req.PulseBPM)
+	}
+	if req.RespirationRate != nil {
+		create = create.SetRespirationRate(*req.RespirationRate)
+	}
+	if req.SpO2Percent != nil {
+		create = create.SetSpo2Percent(*req.SpO2Percent)
+	}
+	if req.PainScore != nil {
+		create = create.SetPainScore(*req.PainScore)
+	}
+	entry, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: record vitals chart entry: %w", err)
+	}
+	return entry, nil
+}
+
+// ListVitalsChart returns an admission's vitals chart entries, newest first.
+func (s *Service) ListVitalsChart(ctx context.Context, tenantID, admissionID uuid.UUID) ([]*ent.VitalsChartEntry, error) {
+	return s.client.VitalsChartEntry.Query().
+		Where(vitalschartentry.TenantID(tenantID), vitalschartentry.AdmissionID(admissionID)).
+		Order(ent.Desc(vitalschartentry.FieldRecordedAt)).
+		All(ctx)
+}
+
+// RecordWardRoundRequest is the input to RecordWardRound.
+type RecordWardRoundRequest struct {
+	AdmissionID   uuid.UUID
+	ClinicianID   uuid.UUID
+	Notes         string
+	DiagnosisCode string
+	DiagnosisName string
+}
+
+// RecordWardRound records a doctor's daily progress note for an ongoing admission — a different
+// author/cadence/content from RecordVitalsChart (see WardRoundNote's own doc comment).
+func (s *Service) RecordWardRound(ctx context.Context, tenantID uuid.UUID, req RecordWardRoundRequest) (*ent.WardRoundNote, error) {
+	if req.Notes == "" {
+		return nil, fmt.Errorf("inpatient: notes is required")
+	}
+	if _, err := s.client.Admission.Query().Where(admission.ID(req.AdmissionID), admission.TenantID(tenantID)).Only(ctx); err != nil {
+		return nil, fmt.Errorf("inpatient: admission not found: %w", err)
+	}
+	note, err := s.client.WardRoundNote.Create().
+		SetTenantID(tenantID).
+		SetAdmissionID(req.AdmissionID).
+		SetClinicianID(req.ClinicianID).
+		SetNotes(req.Notes).
+		SetDiagnosisCode(req.DiagnosisCode).
+		SetDiagnosisName(req.DiagnosisName).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: record ward round note: %w", err)
+	}
+	return note, nil
+}
+
+// ListWardRounds returns an admission's ward-round notes, newest first.
+func (s *Service) ListWardRounds(ctx context.Context, tenantID, admissionID uuid.UUID) ([]*ent.WardRoundNote, error) {
+	return s.client.WardRoundNote.Query().
+		Where(wardroundnote.TenantID(tenantID), wardroundnote.AdmissionID(admissionID)).
+		Order(ent.Desc(wardroundnote.FieldRecordedAt)).
+		All(ctx)
 }
 
 // ListAdmissions is the inpatient worklist — every current inpatient by default, or a specific
@@ -715,6 +865,13 @@ type DischargeRequest struct {
 	// rbac.PermBillingOverrideSettlement before setting this; Discharge itself does not re-check
 	// permissions, matching billing.Service.OverrideSettlement's own contract.
 	OverrideReason string
+	// Structured discharge summary components (mvp-gap-backlog-2026-09-02.md Sprint 6.1) —
+	// additive alongside Summary (the free-text discharge_summary field), which stays as-is.
+	DischargeDiagnosis   string
+	ProceduresPerformed  string
+	DischargeMedications string
+	FollowUpInstructions string
+	ConditionAtDischarge string // recovered|improved|unchanged|deteriorated|deceased
 }
 
 // Discharge posts the final ward/day-rate charge(s) (once), then blocks (returning
@@ -730,6 +887,9 @@ func (s *Service) Discharge(ctx context.Context, tenantID, admissionID uuid.UUID
 	}
 	return s.closeAdmission(ctx, tenantID, adm, closeParams{
 		by: req.DischargedBy, summary: req.Summary, overrideReason: req.OverrideReason,
+		dischargeDiagnosis: req.DischargeDiagnosis, proceduresPerformed: req.ProceduresPerformed,
+		dischargeMedications: req.DischargeMedications, followUpInstructions: req.FollowUpInstructions,
+		conditionAtDischarge: req.ConditionAtDischarge,
 	})
 }
 
@@ -743,6 +903,13 @@ type closeParams struct {
 	// transferOut, when set, means this close is an inter-facility transfer-out: a PatientTransfer
 	// row is recorded alongside the ordinary discharge writes.
 	transferOut *TransferRequest
+	// Structured discharge summary components (mvp-gap-backlog-2026-09-02.md Sprint 6.1) — all
+	// optional, additive alongside the free-text summary above.
+	dischargeDiagnosis   string
+	proceduresPerformed  string
+	dischargeMedications string
+	followUpInstructions string
+	conditionAtDischarge string
 }
 
 func (s *Service) closeAdmission(ctx context.Context, tenantID uuid.UUID, adm *ent.Admission, p closeParams) (*ent.Admission, *ent.PatientAccount, error) {
@@ -780,15 +947,28 @@ func (s *Service) closeAdmission(ctx context.Context, tenantID uuid.UUID, adm *e
 	update := tx.Admission.UpdateOneID(adm.ID).
 		SetStatus(admission.StatusDischarged).
 		SetDischargedAt(now).
-		SetDischargeSummary(p.summary)
+		SetDischargeSummary(p.summary).
+		SetDischargeDiagnosis(p.dischargeDiagnosis).
+		SetProceduresPerformed(p.proceduresPerformed).
+		SetDischargeMedications(p.dischargeMedications).
+		SetFollowUpInstructions(p.followUpInstructions)
 	if p.by != uuid.Nil {
 		update = update.SetDischargedBy(p.by)
+	}
+	if v := admission.ConditionAtDischarge(p.conditionAtDischarge); v != "" {
+		update = update.SetConditionAtDischarge(v)
 	}
 	updatedAdm, err := update.Save(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("inpatient: update admission: %w", err)
 	}
-	if _, err = tx.Bed.UpdateOneID(adm.BedID).SetStatus(bed.StatusCleaning).Save(ctx); err != nil {
+	// Bed turnover clears any isolation precaution along with freeing the bed — the precaution is
+	// a per-STAY state (see Bed.isolation_precaution's own doc comment), not carried to whoever
+	// occupies this bed next.
+	if _, err = tx.Bed.UpdateOneID(adm.BedID).
+		SetStatus(bed.StatusCleaning).
+		SetIsolationPrecaution(bed.IsolationPrecautionNone).
+		Save(ctx); err != nil {
 		return nil, nil, fmt.Errorf("inpatient: release bed: %w", err)
 	}
 	if _, err = tx.PatientVisit.UpdateOneID(adm.PatientVisitID).

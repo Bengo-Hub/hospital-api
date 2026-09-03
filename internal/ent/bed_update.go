@@ -88,6 +88,20 @@ func (_u *BedUpdate) SetNillableStatus(v *bed.Status) *BedUpdate {
 	return _u
 }
 
+// SetIsolationPrecaution sets the "isolation_precaution" field.
+func (_u *BedUpdate) SetIsolationPrecaution(v bed.IsolationPrecaution) *BedUpdate {
+	_u.mutation.SetIsolationPrecaution(v)
+	return _u
+}
+
+// SetNillableIsolationPrecaution sets the "isolation_precaution" field if the given value is not nil.
+func (_u *BedUpdate) SetNillableIsolationPrecaution(v *bed.IsolationPrecaution) *BedUpdate {
+	if v != nil {
+		_u.SetIsolationPrecaution(*v)
+	}
+	return _u
+}
+
 // SetEquipmentAssetIds sets the "equipment_asset_ids" field.
 func (_u *BedUpdate) SetEquipmentAssetIds(v []uuid.UUID) *BedUpdate {
 	_u.mutation.SetEquipmentAssetIds(v)
@@ -212,6 +226,11 @@ func (_u *BedUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Bed.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.IsolationPrecaution(); ok {
+		if err := bed.IsolationPrecautionValidator(v); err != nil {
+			return &ValidationError{Name: "isolation_precaution", err: fmt.Errorf(`ent: validator failed for field "Bed.isolation_precaution": %w`, err)}
+		}
+	}
 	if _u.mutation.WardCleared() && len(_u.mutation.WardIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Bed.ward"`)
 	}
@@ -238,6 +257,9 @@ func (_u *BedUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(bed.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.IsolationPrecaution(); ok {
+		_spec.SetField(bed.FieldIsolationPrecaution, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
 		_spec.SetField(bed.FieldEquipmentAssetIds, field.TypeJSON, value)
@@ -403,6 +425,20 @@ func (_u *BedUpdateOne) SetNillableStatus(v *bed.Status) *BedUpdateOne {
 	return _u
 }
 
+// SetIsolationPrecaution sets the "isolation_precaution" field.
+func (_u *BedUpdateOne) SetIsolationPrecaution(v bed.IsolationPrecaution) *BedUpdateOne {
+	_u.mutation.SetIsolationPrecaution(v)
+	return _u
+}
+
+// SetNillableIsolationPrecaution sets the "isolation_precaution" field if the given value is not nil.
+func (_u *BedUpdateOne) SetNillableIsolationPrecaution(v *bed.IsolationPrecaution) *BedUpdateOne {
+	if v != nil {
+		_u.SetIsolationPrecaution(*v)
+	}
+	return _u
+}
+
 // SetEquipmentAssetIds sets the "equipment_asset_ids" field.
 func (_u *BedUpdateOne) SetEquipmentAssetIds(v []uuid.UUID) *BedUpdateOne {
 	_u.mutation.SetEquipmentAssetIds(v)
@@ -540,6 +576,11 @@ func (_u *BedUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "Bed.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.IsolationPrecaution(); ok {
+		if err := bed.IsolationPrecautionValidator(v); err != nil {
+			return &ValidationError{Name: "isolation_precaution", err: fmt.Errorf(`ent: validator failed for field "Bed.isolation_precaution": %w`, err)}
+		}
+	}
 	if _u.mutation.WardCleared() && len(_u.mutation.WardIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Bed.ward"`)
 	}
@@ -583,6 +624,9 @@ func (_u *BedUpdateOne) sqlSave(ctx context.Context) (_node *Bed, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(bed.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.IsolationPrecaution(); ok {
+		_spec.SetField(bed.FieldIsolationPrecaution, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.EquipmentAssetIds(); ok {
 		_spec.SetField(bed.FieldEquipmentAssetIds, field.TypeJSON, value)

@@ -41,8 +41,10 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/theatrebooking"
 	"github.com/bengobox/hospital-service/internal/ent/triagerecord"
 	"github.com/bengobox/hospital-service/internal/ent/userroleassignment"
+	"github.com/bengobox/hospital-service/internal/ent/vitalschartentry"
 	"github.com/bengobox/hospital-service/internal/ent/walkinsale"
 	"github.com/bengobox/hospital-service/internal/ent/ward"
+	"github.com/bengobox/hospital-service/internal/ent/wardroundnote"
 	"github.com/google/uuid"
 )
 
@@ -61,15 +63,15 @@ func init() {
 	// admission.DefaultAdmittedAt holds the default value on creation for the admitted_at field.
 	admission.DefaultAdmittedAt = admissionDescAdmittedAt.Default.(func() time.Time)
 	// admissionDescWardChargePosted is the schema descriptor for ward_charge_posted field.
-	admissionDescWardChargePosted := admissionFields[15].Descriptor()
+	admissionDescWardChargePosted := admissionFields[20].Descriptor()
 	// admission.DefaultWardChargePosted holds the default value on creation for the ward_charge_posted field.
 	admission.DefaultWardChargePosted = admissionDescWardChargePosted.Default.(bool)
 	// admissionDescCreatedAt is the schema descriptor for created_at field.
-	admissionDescCreatedAt := admissionFields[16].Descriptor()
+	admissionDescCreatedAt := admissionFields[21].Descriptor()
 	// admission.DefaultCreatedAt holds the default value on creation for the created_at field.
 	admission.DefaultCreatedAt = admissionDescCreatedAt.Default.(func() time.Time)
 	// admissionDescUpdatedAt is the schema descriptor for updated_at field.
-	admissionDescUpdatedAt := admissionFields[17].Descriptor()
+	admissionDescUpdatedAt := admissionFields[22].Descriptor()
 	// admission.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	admission.DefaultUpdatedAt = admissionDescUpdatedAt.Default.(func() time.Time)
 	// admission.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -85,15 +87,15 @@ func init() {
 	// bed.BedNumberValidator is a validator for the "bed_number" field. It is called by the builders before save.
 	bed.BedNumberValidator = bedDescBedNumber.Validators[0].(func(string) error)
 	// bedDescEquipmentAssetIds is the schema descriptor for equipment_asset_ids field.
-	bedDescEquipmentAssetIds := bedFields[5].Descriptor()
+	bedDescEquipmentAssetIds := bedFields[6].Descriptor()
 	// bed.DefaultEquipmentAssetIds holds the default value on creation for the equipment_asset_ids field.
 	bed.DefaultEquipmentAssetIds = bedDescEquipmentAssetIds.Default.([]uuid.UUID)
 	// bedDescCreatedAt is the schema descriptor for created_at field.
-	bedDescCreatedAt := bedFields[6].Descriptor()
+	bedDescCreatedAt := bedFields[7].Descriptor()
 	// bed.DefaultCreatedAt holds the default value on creation for the created_at field.
 	bed.DefaultCreatedAt = bedDescCreatedAt.Default.(func() time.Time)
 	// bedDescUpdatedAt is the schema descriptor for updated_at field.
-	bedDescUpdatedAt := bedFields[7].Descriptor()
+	bedDescUpdatedAt := bedFields[8].Descriptor()
 	// bed.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	bed.DefaultUpdatedAt = bedDescUpdatedAt.Default.(func() time.Time)
 	// bed.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -876,6 +878,16 @@ func init() {
 	userroleassignmentDescID := userroleassignmentFields[0].Descriptor()
 	// userroleassignment.DefaultID holds the default value on creation for the id field.
 	userroleassignment.DefaultID = userroleassignmentDescID.Default.(func() uuid.UUID)
+	vitalschartentryFields := schema.VitalsChartEntry{}.Fields()
+	_ = vitalschartentryFields
+	// vitalschartentryDescRecordedAt is the schema descriptor for recorded_at field.
+	vitalschartentryDescRecordedAt := vitalschartentryFields[12].Descriptor()
+	// vitalschartentry.DefaultRecordedAt holds the default value on creation for the recorded_at field.
+	vitalschartentry.DefaultRecordedAt = vitalschartentryDescRecordedAt.Default.(func() time.Time)
+	// vitalschartentryDescID is the schema descriptor for id field.
+	vitalschartentryDescID := vitalschartentryFields[0].Descriptor()
+	// vitalschartentry.DefaultID holds the default value on creation for the id field.
+	vitalschartentry.DefaultID = vitalschartentryDescID.Default.(func() uuid.UUID)
 	walkinsaleFields := schema.WalkInSale{}.Fields()
 	_ = walkinsaleFields
 	// walkinsaleDescPrescriptionNumber is the schema descriptor for prescription_number field.
@@ -911,19 +923,19 @@ func init() {
 	// ward.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	ward.NameValidator = wardDescName.Validators[0].(func(string) error)
 	// wardDescCapacity is the schema descriptor for capacity field.
-	wardDescCapacity := wardFields[4].Descriptor()
+	wardDescCapacity := wardFields[5].Descriptor()
 	// ward.DefaultCapacity holds the default value on creation for the capacity field.
 	ward.DefaultCapacity = wardDescCapacity.Default.(int)
 	// wardDescIsActive is the schema descriptor for is_active field.
-	wardDescIsActive := wardFields[6].Descriptor()
+	wardDescIsActive := wardFields[7].Descriptor()
 	// ward.DefaultIsActive holds the default value on creation for the is_active field.
 	ward.DefaultIsActive = wardDescIsActive.Default.(bool)
 	// wardDescCreatedAt is the schema descriptor for created_at field.
-	wardDescCreatedAt := wardFields[7].Descriptor()
+	wardDescCreatedAt := wardFields[8].Descriptor()
 	// ward.DefaultCreatedAt holds the default value on creation for the created_at field.
 	ward.DefaultCreatedAt = wardDescCreatedAt.Default.(func() time.Time)
 	// wardDescUpdatedAt is the schema descriptor for updated_at field.
-	wardDescUpdatedAt := wardFields[8].Descriptor()
+	wardDescUpdatedAt := wardFields[9].Descriptor()
 	// ward.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	ward.DefaultUpdatedAt = wardDescUpdatedAt.Default.(func() time.Time)
 	// ward.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -932,4 +944,18 @@ func init() {
 	wardDescID := wardFields[0].Descriptor()
 	// ward.DefaultID holds the default value on creation for the id field.
 	ward.DefaultID = wardDescID.Default.(func() uuid.UUID)
+	wardroundnoteFields := schema.WardRoundNote{}.Fields()
+	_ = wardroundnoteFields
+	// wardroundnoteDescNotes is the schema descriptor for notes field.
+	wardroundnoteDescNotes := wardroundnoteFields[4].Descriptor()
+	// wardroundnote.NotesValidator is a validator for the "notes" field. It is called by the builders before save.
+	wardroundnote.NotesValidator = wardroundnoteDescNotes.Validators[0].(func(string) error)
+	// wardroundnoteDescRecordedAt is the schema descriptor for recorded_at field.
+	wardroundnoteDescRecordedAt := wardroundnoteFields[7].Descriptor()
+	// wardroundnote.DefaultRecordedAt holds the default value on creation for the recorded_at field.
+	wardroundnote.DefaultRecordedAt = wardroundnoteDescRecordedAt.Default.(func() time.Time)
+	// wardroundnoteDescID is the schema descriptor for id field.
+	wardroundnoteDescID := wardroundnoteFields[0].Descriptor()
+	// wardroundnote.DefaultID holds the default value on creation for the id field.
+	wardroundnote.DefaultID = wardroundnoteDescID.Default.(func() uuid.UUID)
 }

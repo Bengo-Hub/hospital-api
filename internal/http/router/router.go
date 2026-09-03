@@ -524,6 +524,9 @@ func New(d Deps) http.Handler {
 					Patch("/beds/{bedID}/status", d.Inpatient.SetBedStatus)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
+					Patch("/beds/{bedID}/isolation-precaution", d.Inpatient.SetBedIsolationPrecaution)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
 					Put("/beds/{bedID}/equipment", d.Inpatient.SetBedEquipment)
 
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
@@ -539,8 +542,27 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
 					Post("/admissions/{admissionID}/transfer", d.Inpatient.Transfer)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions/{admissionID}/transfers", d.Inpatient.ListTransfers)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
 					Post("/admissions/{admissionID}/discharge", d.Inpatient.Discharge)
+
+				// Nursing vitals chart / doctor's ward rounds (Sprint 6.1) — nurse charts (Add),
+				// clinician's ward-round note reuses the same tier since both are routine inpatient
+				// clinical documentation, not a settlement/admin action (Change/Manage).
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientAdd)).
+					Post("/admissions/{admissionID}/vitals-chart", d.Inpatient.RecordVitalsChart)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions/{admissionID}/vitals-chart", d.Inpatient.ListVitalsChart)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientAdd)).
+					Post("/admissions/{admissionID}/ward-rounds", d.Inpatient.RecordWardRound)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientView)).
+					Get("/admissions/{admissionID}/ward-rounds", d.Inpatient.ListWardRounds)
 			}
 
 			// Medication Administration Record (MAR, 2026-09-03) — nurse-charted per-dose record

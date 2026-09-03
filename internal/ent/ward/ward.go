@@ -3,6 +3,7 @@
 package ward
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -21,6 +22,8 @@ const (
 	FieldOutletID = "outlet_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldWardType holds the string denoting the ward_type field in the database.
+	FieldWardType = "ward_type"
 	// FieldCapacity holds the string denoting the capacity field in the database.
 	FieldCapacity = "capacity"
 	// FieldBillableItemCode holds the string denoting the billable_item_code field in the database.
@@ -50,6 +53,7 @@ var Columns = []string{
 	FieldTenantID,
 	FieldOutletID,
 	FieldName,
+	FieldWardType,
 	FieldCapacity,
 	FieldBillableItemCode,
 	FieldIsActive,
@@ -84,6 +88,32 @@ var (
 	DefaultID func() uuid.UUID
 )
 
+// WardType defines the type for the "ward_type" enum field.
+type WardType string
+
+// WardType values.
+const (
+	WardTypeGeneral     WardType = "general"
+	WardTypePrivate     WardType = "private"
+	WardTypeSemiPrivate WardType = "semi_private"
+	WardTypeIsolation   WardType = "isolation"
+	WardTypeIcu         WardType = "icu"
+)
+
+func (wt WardType) String() string {
+	return string(wt)
+}
+
+// WardTypeValidator is a validator for the "ward_type" field enum values. It is called by the builders before save.
+func WardTypeValidator(wt WardType) error {
+	switch wt {
+	case WardTypeGeneral, WardTypePrivate, WardTypeSemiPrivate, WardTypeIsolation, WardTypeIcu:
+		return nil
+	default:
+		return fmt.Errorf("ward: invalid enum value for ward_type field: %q", wt)
+	}
+}
+
 // OrderOption defines the ordering options for the Ward queries.
 type OrderOption func(*sql.Selector)
 
@@ -105,6 +135,11 @@ func ByOutletID(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByWardType orders the results by the ward_type field.
+func ByWardType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWardType, opts...).ToFunc()
 }
 
 // ByCapacity orders the results by the capacity field.

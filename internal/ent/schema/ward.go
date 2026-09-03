@@ -23,6 +23,9 @@ func (Ward) Fields() []ent.Field {
 		field.UUID("tenant_id", uuid.UUID{}),
 		field.UUID("outlet_id", uuid.UUID{}),
 		field.String("name").NotEmpty(),
+		field.Enum("ward_type").Values("general", "private", "semi_private", "isolation", "icu").
+			Optional().
+			Comment("Classification only — does not replace billable_item_code, which still prices this specific ward. Lets the UI group/filter wards and suggest (not force) a sensible default billable_item_code when a new ward is created"),
 		field.Int("capacity").Default(0).
 			Comment("Informational headcount target; a bed-occupancy view counts real Bed rows, not this"),
 		field.String("billable_item_code").Optional().Nillable().
