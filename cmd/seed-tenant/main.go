@@ -54,6 +54,8 @@ var demoWards = []seedWard{
 
 func main() {
 	slug := flag.String("tenant-slug", "", "tenant slug to seed demo data for (required)")
+	outletCode := flag.String("outlet-code", "", "outlet code to seed wards/beds under (optional — omit to use the tenant's first outlet; a tenant with multiple outlets, e.g. codevertex-demo's AFYA/AFYAC, should always set this explicitly)")
+	facilityTypeOverride := flag.String("facility-type", "", "override the facility_type used for billable-item catalog defaults (chemist|clinic|facility|hospital) — omit to read it from the tenant's metadata, falling back to \"facility\" if unset/empty")
 	flag.Parse()
 	if *slug == "" {
 		log.Fatal("seed-tenant: -tenant-slug is required")
@@ -84,10 +86,13 @@ func main() {
 	}
 	log.Printf("seed-tenant: tenant %q resolved to id=%s", *slug, t.ID)
 
-	facilityType, _ := t.Metadata["facility_type"].(string)
+	facilityType := *facilityTypeOverride
+	if facilityType == "" {
+		facilityType, _ = t.Metadata["facility_type"].(string)
+	}
 	if facilityType == "" {
 		facilityType = "facility"
-		log.Printf("seed-tenant: no facility_type in tenant metadata, defaulting to %q", facilityType)
+		log.Printf("seed-tenant: no facility_type in tenant metadata and no -facility-type override, defaulting to %q", facilityType)
 	}
 
 	// Fresh-tenant path (no-ops if the tenant already has any catalog rows at all).
@@ -104,9 +109,13 @@ func main() {
 		log.Printf("seed-tenant: billable item %s OK (id=%s)", item.Code, item.ID)
 	}
 
-	out, err := client.Outlet.Query().Where(outlet.TenantID(t.ID)).First(ctx)
+	outletQuery := client.Outlet.Query().Where(outlet.TenantID(t.ID))
+	if *outletCode != "" {
+		outletQuery = outletQuery.Where(outlet.Code(*outletCode))
+	}
+	out, err := outletQuery.First(ctx)
 	if err != nil {
-		log.Fatalf("seed-tenant: no outlet found for tenant %q: %v", *slug, err)
+		log.Fatalf("seed-tenant: no outlet found for tenant %q (outlet-code=%q): %v", *slug, *outletCode, err)
 	}
 	log.Printf("seed-tenant: outlet resolved to id=%s (%s)", out.ID, out.Name)
 
