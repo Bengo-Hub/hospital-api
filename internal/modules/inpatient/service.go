@@ -213,6 +213,24 @@ func (s *Service) SetBedStatus(ctx context.Context, tenantID, bedID uuid.UUID, s
 	return updated, nil
 }
 
+// RenameBed changes a bed's label (e.g. fixing a typo'd bed_number). Previously the only fixable
+// bed field was status/isolation/equipment — a mislabeled bed could never be corrected, only
+// worked around by setting it out_of_service and creating a new one.
+func (s *Service) RenameBed(ctx context.Context, tenantID, bedID uuid.UUID, bedNumber string) (*ent.Bed, error) {
+	if bedNumber == "" {
+		return nil, fmt.Errorf("inpatient: bed_number is required")
+	}
+	existing, err := s.client.Bed.Query().Where(bed.ID(bedID), bed.TenantID(tenantID)).Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: bed not found: %w", err)
+	}
+	updated, err := s.client.Bed.UpdateOneID(existing.ID).SetBedNumber(bedNumber).Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("inpatient: rename bed: %w", err)
+	}
+	return updated, nil
+}
+
 // SetBedIsolationPrecaution changes the isolation-precaution flag on a bed mid-stay (e.g. a
 // patient later found to need droplet precautions after admission, or a facility clearing it
 // early once a dedicated isolation bed frees up before discharge) — Admit/Discharge handle the

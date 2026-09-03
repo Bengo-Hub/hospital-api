@@ -290,6 +290,59 @@ func (s *Service) CreateDiagnosisEntry(ctx context.Context, tenantID uuid.UUID, 
 		Save(ctx)
 }
 
+// DiagnosisEntryUpdate is a partial update to one tenant-owned catalogue entry — mirrors
+// lab.LabTestEntryUpdate's pointer-field shape. Code is deliberately not updatable (same
+// convention as the lab catalogue) since it's the value already referenced by existing
+// ExaminationRecord.diagnosis_history entries. Only ever touches DiagnosisCatalogEntry — the
+// global DiagnosisCatalogDefault set is a different table entirely and is never editable here (a
+// tenant-scoped ID lookup against it would simply 404, which is the correct behavior).
+type DiagnosisEntryUpdate struct {
+	Name     *string
+	Category *string
+	IsActive *bool
+}
+
+// UpdateDiagnosisEntry applies a partial update to one tenant-owned catalogue entry.
+func (s *Service) UpdateDiagnosisEntry(ctx context.Context, tenantID, entryID uuid.UUID, in DiagnosisEntryUpdate) (*ent.DiagnosisCatalogEntry, error) {
+	existing, err := s.client.DiagnosisCatalogEntry.Query().
+		Where(diagnosiscatalogentry.ID(entryID), diagnosiscatalogentry.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("consultation: catalog entry not found: %w", err)
+	}
+	upd := s.client.DiagnosisCatalogEntry.UpdateOneID(existing.ID)
+	if in.Name != nil {
+		if *in.Name == "" {
+			return nil, fmt.Errorf("consultation: name is required")
+		}
+		upd = upd.SetName(*in.Name)
+	}
+	if in.Category != nil {
+		upd = upd.SetCategory(*in.Category)
+	}
+	if in.IsActive != nil {
+		upd = upd.SetIsActive(*in.IsActive)
+	}
+	updated, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("consultation: update catalog entry: %w", err)
+	}
+	return updated, nil
+}
+
+// DeactivateDiagnosisEntry soft-deletes a tenant-owned catalogue entry (is_active=false) — never a
+// hard delete, matching lab.Service.DeactivateLabTestEntry's convention, since past
+// ExaminationRecord.diagnosis_history entries may still reference the code.
+func (s *Service) DeactivateDiagnosisEntry(ctx context.Context, tenantID, entryID uuid.UUID) (*ent.DiagnosisCatalogEntry, error) {
+	existing, err := s.client.DiagnosisCatalogEntry.Query().
+		Where(diagnosiscatalogentry.ID(entryID), diagnosiscatalogentry.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("consultation: catalog entry not found: %w", err)
+	}
+	return s.client.DiagnosisCatalogEntry.UpdateOneID(existing.ID).SetIsActive(false).Save(ctx)
+}
+
 // CreateReferralRequest is the input to CreateReferral.
 type CreateReferralRequest struct {
 	VisitID    uuid.UUID

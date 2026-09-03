@@ -215,6 +215,35 @@ func (h *InpatientHandler) SetBedStatus(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, bed)
 }
 
+type renameBedRequest struct {
+	BedNumber string `json:"bed_number"`
+}
+
+// RenameBed handles PUT /{tenant}/hospital/beds/{bedID}
+func (h *InpatientHandler) RenameBed(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bedID, err := uuid.Parse(chi.URLParam(r, "bedID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid bed ID")
+		return
+	}
+	var in renameBedRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	bed, err := h.svc.RenameBed(r.Context(), tenantID, bedID, in.BedNumber)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, bed)
+}
+
 type setBedIsolationPrecautionRequest struct {
 	IsolationPrecaution string `json:"isolation_precaution"`
 }

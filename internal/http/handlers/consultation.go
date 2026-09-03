@@ -128,6 +128,59 @@ func (h *ConsultationHandler) CreateDiagnosisEntry(w http.ResponseWriter, r *htt
 	respondJSON(w, http.StatusCreated, e)
 }
 
+type updateDiagnosisEntryRequest struct {
+	Name     *string `json:"name,omitempty"`
+	Category *string `json:"category,omitempty"`
+	IsActive *bool   `json:"is_active,omitempty"`
+}
+
+// UpdateDiagnosisEntry handles PUT /{tenant}/hospital/diagnosis-catalog/{entryID}
+func (h *ConsultationHandler) UpdateDiagnosisEntry(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	entryID, err := uuid.Parse(chi.URLParam(r, "entryID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid entry ID")
+		return
+	}
+	var in updateDiagnosisEntryRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	e, err := h.svc.UpdateDiagnosisEntry(r.Context(), tenantID, entryID, consultation.DiagnosisEntryUpdate{
+		Name: in.Name, Category: in.Category, IsActive: in.IsActive,
+	})
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, e)
+}
+
+// DeactivateDiagnosisEntry handles POST /{tenant}/hospital/diagnosis-catalog/{entryID}/deactivate
+func (h *ConsultationHandler) DeactivateDiagnosisEntry(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	entryID, err := uuid.Parse(chi.URLParam(r, "entryID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid entry ID")
+		return
+	}
+	e, err := h.svc.DeactivateDiagnosisEntry(r.Context(), tenantID, entryID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, e)
+}
+
 type createReferralRequest struct {
 	ReferredTo string `json:"referred_to"`
 	Reason     string `json:"reason,omitempty"`

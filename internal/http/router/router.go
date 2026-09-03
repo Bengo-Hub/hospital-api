@@ -272,6 +272,12 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
 					Post("/diagnosis-catalog", d.Consultation.CreateDiagnosisEntry)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
+					Put("/diagnosis-catalog/{entryID}", d.Consultation.UpdateDiagnosisEntry)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureConsultation),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermConsultationManage)).
+					Post("/diagnosis-catalog/{entryID}/deactivate", d.Consultation.DeactivateDiagnosisEntry)
 			}
 
 			// Sprint 5 core — Billing ledger. FeatureBilling is in every Afya tier including
@@ -526,6 +532,9 @@ func New(d Deps) http.Handler {
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
 					Patch("/beds/{bedID}/status", d.Inpatient.SetBedStatus)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientManage)).
+					Put("/beds/{bedID}", d.Inpatient.RenameBed)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermInpatientChange)).
 					Patch("/beds/{bedID}/isolation-precaution", d.Inpatient.SetBedIsolationPrecaution)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureInpatientModule),
@@ -598,6 +607,9 @@ func New(d Deps) http.Handler {
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
 					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreView)).
 					Get("/theatre-bookings/{bookingID}", d.Theatre.GetBooking)
+				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
+					outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermTheatreChange)).
+					Put("/theatre-bookings/{bookingID}", d.Theatre.UpdateBooking)
 				prot.With(subscriptions.RequireFeature(subscriptions.FeatureTheatreModule),
 					outletmw.RequireServicePermission(d.RBACSvc,
 						rbacmodule.PermBillingCollectOwn, rbacmodule.PermBillingCollectAny)).

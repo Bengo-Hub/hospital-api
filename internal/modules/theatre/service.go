@@ -248,6 +248,101 @@ func (s *Service) CreateBooking(ctx context.Context, tenantID uuid.UUID, req Cre
 	return booking, nil
 }
 
+// BookingUpdate is a partial reschedule of a not-yet-started booking's core fields. Deliberately
+// excludes FeeAmount: CreateBooking already posts a BillableCharge for the procedure fee at
+// creation time (before any payment gate), so allowing the fee to be edited afterward here would
+// silently desync the booking's displayed fee from the charge a patient may have already been
+// asked to pay — that correction belongs to billing's own charge-adjustment tools
+// (WaiveCharge/UpdateCatalogItem), not a booking reschedule. Cancel-and-recreate is the documented
+// escape hatch for "the fee was wrong," same as before this endpoint existed.
+type BookingUpdate struct {
+	TheatreRoom     *string
+	SurgeryType     *string
+	ScheduledAt     *time.Time
+	DurationMinutes *int
+	SurgeonID       *uuid.UUID
+	ClearSurgeonID  bool
+}
+
+// UpdateBooking reschedules a booking's core fields (room/type/time/duration/surgeon) — only
+// while it's still awaiting_payment or scheduled (not yet started). Re-runs the exact same
+// room/staff conflict checks CreateBooking does, excluding this booking's own ID, whenever the
+// room/time/duration/surgeon actually changes.
+func (s *Service) UpdateBooking(ctx context.Context, tenantID, bookingID uuid.UUID, in BookingUpdate) (*ent.TheatreBooking, error) {
+	existing, err := s.client.TheatreBooking.Query().
+		Where(theatrebooking.ID(bookingID), theatrebooking.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("theatre: booking not found: %w", err)
+	}
+	if existing.Status != theatrebooking.StatusAwaitingPayment && existing.Status != theatrebooking.StatusScheduled {
+		return nil, fmt.Errorf("theatre: booking can only be rescheduled while awaiting payment or scheduled (current status: %s)", existing.Status)
+	}
+
+	room := existing.TheatreRoom
+	if in.TheatreRoom != nil {
+		if *in.TheatreRoom == "" {
+			return nil, fmt.Errorf("theatre: theatre_room cannot be empty")
+		}
+		room = *in.TheatreRoom
+	}
+	scheduledAt := existing.ScheduledAt
+	if in.ScheduledAt != nil {
+		scheduledAt = *in.ScheduledAt
+	}
+	duration := existing.DurationMinutes
+	if in.DurationMinutes != nil && *in.DurationMinutes > 0 {
+		duration = *in.DurationMinutes
+	}
+	surgeonID := existing.SurgeonID
+	if in.ClearSurgeonID {
+		surgeonID = nil
+	} else if in.SurgeonID != nil {
+		surgeonID = in.SurgeonID
+	}
+
+	roomOrTimeChanged := room != existing.TheatreRoom || !scheduledAt.Equal(existing.ScheduledAt) || duration != existing.DurationMinutes
+	surgeonChanged := (surgeonID == nil) != (existing.SurgeonID == nil) ||
+		(surgeonID != nil && existing.SurgeonID != nil && *surgeonID != *existing.SurgeonID)
+	if roomOrTimeChanged {
+		conflict, cerr := s.hasOverlap(ctx, tenantID, room, scheduledAt, duration, bookingID)
+		if cerr != nil {
+			return nil, cerr
+		}
+		if conflict {
+			return nil, fmt.Errorf("theatre: %s is already booked for an overlapping time slot", room)
+		}
+	}
+	if (roomOrTimeChanged || surgeonChanged) && surgeonID != nil {
+		staffConflict, serr := s.staffBookingConflict(ctx, tenantID, *surgeonID, room, scheduledAt, duration, bookingID)
+		if serr != nil {
+			return nil, serr
+		}
+		if staffConflict {
+			return nil, fmt.Errorf("theatre: the assigned surgeon is already booked in another theatre for an overlapping time slot")
+		}
+	}
+
+	upd := s.client.TheatreBooking.UpdateOneID(existing.ID).
+		SetTheatreRoom(room).
+		SetSurgeryType(existing.SurgeryType).
+		SetScheduledAt(scheduledAt).
+		SetDurationMinutes(duration)
+	if in.SurgeryType != nil && *in.SurgeryType != "" {
+		upd = upd.SetSurgeryType(*in.SurgeryType)
+	}
+	if in.ClearSurgeonID {
+		upd = upd.ClearSurgeonID()
+	} else if surgeonID != nil {
+		upd = upd.SetSurgeonID(*surgeonID)
+	}
+	updated, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("theatre: reschedule booking: %w", err)
+	}
+	return updated, nil
+}
+
 // GetBooking fetches a booking by ID, tenant-scoped.
 func (s *Service) GetBooking(ctx context.Context, tenantID, bookingID uuid.UUID) (*ent.TheatreBooking, error) {
 	return s.client.TheatreBooking.Query().

@@ -71,6 +71,62 @@ func (h *TheatreHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, booking)
 }
 
+type updateBookingRequest struct {
+	TheatreRoom     *string `json:"theatre_room,omitempty"`
+	SurgeryType     *string `json:"surgery_type,omitempty"`
+	SurgeonID       *string `json:"surgeon_id,omitempty"`
+	ClearSurgeonID  bool    `json:"clear_surgeon_id,omitempty"`
+	ScheduledAt     *string `json:"scheduled_at,omitempty"`
+	DurationMinutes *int    `json:"duration_minutes,omitempty"`
+}
+
+// UpdateBooking handles PUT /{tenant}/hospital/theatre-bookings/{bookingID} — reschedules a
+// not-yet-started booking's core fields. See theatre.BookingUpdate's doc comment for why
+// fee_amount is deliberately not accepted here.
+func (h *TheatreHandler) UpdateBooking(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	bookingID, err := uuid.Parse(chi.URLParam(r, "bookingID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid booking ID")
+		return
+	}
+	var in updateBookingRequest
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	req := theatre.BookingUpdate{
+		TheatreRoom: in.TheatreRoom, SurgeryType: in.SurgeryType,
+		DurationMinutes: in.DurationMinutes, ClearSurgeonID: in.ClearSurgeonID,
+	}
+	if in.ScheduledAt != nil {
+		scheduledAt, perr := time.Parse(time.RFC3339, *in.ScheduledAt)
+		if perr != nil {
+			respondError(w, http.StatusBadRequest, "invalid scheduled_at (expected RFC3339)")
+			return
+		}
+		req.ScheduledAt = &scheduledAt
+	}
+	if in.SurgeonID != nil && *in.SurgeonID != "" {
+		id, perr := uuid.Parse(*in.SurgeonID)
+		if perr != nil {
+			respondError(w, http.StatusBadRequest, "invalid surgeon_id")
+			return
+		}
+		req.SurgeonID = &id
+	}
+	booking, err := h.svc.UpdateBooking(r.Context(), tenantID, bookingID, req)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, booking)
+}
+
 // ListSchedule handles GET /{tenant}/hospital/theatre-bookings?date=2026-09-02
 func (h *TheatreHandler) ListSchedule(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := tenantFromRequest(r)
