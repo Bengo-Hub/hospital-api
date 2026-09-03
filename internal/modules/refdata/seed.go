@@ -263,3 +263,50 @@ func SeedFacilityBillableItems(ctx context.Context, client *ent.Client, tenantID
 		zap.Int("created", created))
 	return nil
 }
+
+// EnsureBillableItem idempotently creates ONE specific starter catalog code for a tenant that
+// already has other catalog rows — SeedFacilityBillableItems' own count>0 guard intentionally
+// no-ops for any tenant with existing rows (so it never clobbers admin customization), which means
+// a code added to facilityBillableItemDefaults AFTER a tenant was first provisioned (e.g.
+// ADMISSION_DEPOSIT, added 2026-09-03 for Sprint 5) never backfills onto tenants provisioned
+// earlier. This targets exactly one already-known-missing code without touching any other row —
+// for backfilling an established tenant, not a substitute for the fresh-tenant seed above. Reuses
+// the same facilityBillableItemDefaults data (never duplicated), so pricing/policy for the code
+// stays identical to what a brand-new tenant of the same facility_type would get.
+func EnsureBillableItem(ctx context.Context, client *ent.Client, tenantID uuid.UUID, facilityType, code string) (*ent.BillableItemCatalog, error) {
+	exists, err := client.BillableItemCatalog.Query().
+		Where(billableitemcatalog.TenantID(tenantID), billableitemcatalog.Code(code)).
+		Only(ctx)
+	if err == nil {
+		return exists, nil
+	}
+	if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("refdata: check billable item %s for tenant %s: %w", code, tenantID, err)
+	}
+
+	key := strings.ToLower(strings.TrimSpace(facilityType))
+	items, ok := facilityBillableItemDefaults[key]
+	if !ok {
+		key = "clinic"
+		items = facilityBillableItemDefaults[key]
+	}
+	for _, it := range items {
+		if it.code != code {
+			continue
+		}
+		create := client.BillableItemCatalog.Create().
+			SetTenantID(tenantID).
+			SetDepartment(it.department).
+			SetCode(it.code).
+			SetName(it.name).
+			SetAppliesTo(it.appliesTo).
+			SetRequiresPrepayment(it.requiresPrepayment).
+			SetCollectionMode(it.collectionMode).
+			SetIsActive(true)
+		if it.price != nil {
+			create = create.SetPrice(*it.price)
+		}
+		return create.Save(ctx)
+	}
+	return nil, fmt.Errorf("refdata: no default definition for code %q at facility_type %q", code, key)
+}
