@@ -43,6 +43,12 @@ func (HospitalUser) Fields() []ent.Field {
 		field.String("status").
 			Default("active").
 			Comment("Status: active, inactive, suspended"),
+		field.String("professional_registration_number").
+			Optional().
+			Comment("KMPDC/Nursing Council/Pharmacy and Poisons Board etc. registration number for internal clinical staff — distinct from facility-level KMPDC tracking (tenant metadata) and from Prescription.prescriber_license (a free-text field for an external/chemist walk-in prescriber)"),
+		field.String("professional_registration_body").
+			Optional().
+			Comment(`The issuing body, e.g. "KMPDC", "Nursing Council of Kenya", "Pharmacy and Poisons Board" — free text, not a closed enum, since Kenya has other regulatory bodies too`),
 		field.String("sync_status").
 			Default("synced").
 			Comment("Sync status: synced, pending, failed"),

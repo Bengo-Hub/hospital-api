@@ -231,6 +231,7 @@ func New(ctx context.Context) (*App, error) {
 	}
 	pharmacySvc := pharmacy.NewService(ormClient, inventorySvc, billingSvc, log, authAPIClient, validator, rbacService, witnessTokenSecret)
 	pharmacyHandler := handlers.NewPharmacyHandler(pharmacySvc, rbacService)
+	pharmacyHandler.SetIdentityService(identitySvc)
 	// Late-bound: patientsSvc is constructed before pharmacySvc exists (see NewService's own doc
 	// comment) — wires UpdatePatient's allergy-recheck auto-trigger (mvp-gap-backlog Sprint 4 #3).
 	patientsSvc.SetPharmacyService(pharmacySvc)

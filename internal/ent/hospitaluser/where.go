@@ -81,6 +81,16 @@ func Status(v string) predicate.HospitalUser {
 	return predicate.HospitalUser(sql.FieldEQ(FieldStatus, v))
 }
 
+// ProfessionalRegistrationNumber applies equality check predicate on the "professional_registration_number" field. It's identical to ProfessionalRegistrationNumberEQ.
+func ProfessionalRegistrationNumber(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldEQ(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationBody applies equality check predicate on the "professional_registration_body" field. It's identical to ProfessionalRegistrationBodyEQ.
+func ProfessionalRegistrationBody(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldEQ(FieldProfessionalRegistrationBody, v))
+}
+
 // SyncStatus applies equality check predicate on the "sync_status" field. It's identical to SyncStatusEQ.
 func SyncStatus(v string) predicate.HospitalUser {
 	return predicate.HospitalUser(sql.FieldEQ(FieldSyncStatus, v))
@@ -364,6 +374,156 @@ func StatusEqualFold(v string) predicate.HospitalUser {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.HospitalUser {
 	return predicate.HospitalUser(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// ProfessionalRegistrationNumberEQ applies the EQ predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberEQ(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldEQ(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberNEQ applies the NEQ predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberNEQ(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldNEQ(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberIn applies the In predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberIn(vs ...string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldIn(FieldProfessionalRegistrationNumber, vs...))
+}
+
+// ProfessionalRegistrationNumberNotIn applies the NotIn predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberNotIn(vs ...string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldNotIn(FieldProfessionalRegistrationNumber, vs...))
+}
+
+// ProfessionalRegistrationNumberGT applies the GT predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberGT(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldGT(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberGTE applies the GTE predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberGTE(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldGTE(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberLT applies the LT predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberLT(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldLT(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberLTE applies the LTE predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberLTE(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldLTE(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberContains applies the Contains predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberContains(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldContains(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberHasPrefix applies the HasPrefix predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberHasPrefix(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldHasPrefix(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberHasSuffix applies the HasSuffix predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberHasSuffix(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldHasSuffix(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberIsNil applies the IsNil predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberIsNil() predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldIsNull(FieldProfessionalRegistrationNumber))
+}
+
+// ProfessionalRegistrationNumberNotNil applies the NotNil predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberNotNil() predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldNotNull(FieldProfessionalRegistrationNumber))
+}
+
+// ProfessionalRegistrationNumberEqualFold applies the EqualFold predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberEqualFold(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldEqualFold(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationNumberContainsFold applies the ContainsFold predicate on the "professional_registration_number" field.
+func ProfessionalRegistrationNumberContainsFold(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldContainsFold(FieldProfessionalRegistrationNumber, v))
+}
+
+// ProfessionalRegistrationBodyEQ applies the EQ predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyEQ(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldEQ(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyNEQ applies the NEQ predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyNEQ(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldNEQ(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyIn applies the In predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyIn(vs ...string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldIn(FieldProfessionalRegistrationBody, vs...))
+}
+
+// ProfessionalRegistrationBodyNotIn applies the NotIn predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyNotIn(vs ...string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldNotIn(FieldProfessionalRegistrationBody, vs...))
+}
+
+// ProfessionalRegistrationBodyGT applies the GT predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyGT(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldGT(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyGTE applies the GTE predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyGTE(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldGTE(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyLT applies the LT predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyLT(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldLT(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyLTE applies the LTE predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyLTE(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldLTE(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyContains applies the Contains predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyContains(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldContains(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyHasPrefix applies the HasPrefix predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyHasPrefix(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldHasPrefix(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyHasSuffix applies the HasSuffix predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyHasSuffix(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldHasSuffix(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyIsNil applies the IsNil predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyIsNil() predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldIsNull(FieldProfessionalRegistrationBody))
+}
+
+// ProfessionalRegistrationBodyNotNil applies the NotNil predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyNotNil() predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldNotNull(FieldProfessionalRegistrationBody))
+}
+
+// ProfessionalRegistrationBodyEqualFold applies the EqualFold predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyEqualFold(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldEqualFold(FieldProfessionalRegistrationBody, v))
+}
+
+// ProfessionalRegistrationBodyContainsFold applies the ContainsFold predicate on the "professional_registration_body" field.
+func ProfessionalRegistrationBodyContainsFold(v string) predicate.HospitalUser {
+	return predicate.HospitalUser(sql.FieldContainsFold(FieldProfessionalRegistrationBody, v))
 }
 
 // SyncStatusEQ applies the EQ predicate on the "sync_status" field.

@@ -25,6 +25,10 @@ const (
 	FieldName = "name"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldProfessionalRegistrationNumber holds the string denoting the professional_registration_number field in the database.
+	FieldProfessionalRegistrationNumber = "professional_registration_number"
+	// FieldProfessionalRegistrationBody holds the string denoting the professional_registration_body field in the database.
+	FieldProfessionalRegistrationBody = "professional_registration_body"
 	// FieldSyncStatus holds the string denoting the sync_status field in the database.
 	FieldSyncStatus = "sync_status"
 	// FieldLastSyncAt holds the string denoting the last_sync_at field in the database.
@@ -63,6 +67,8 @@ var Columns = []string{
 	FieldEmail,
 	FieldName,
 	FieldStatus,
+	FieldProfessionalRegistrationNumber,
+	FieldProfessionalRegistrationBody,
 	FieldSyncStatus,
 	FieldLastSyncAt,
 	FieldCreatedAt,
@@ -127,6 +133,16 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByProfessionalRegistrationNumber orders the results by the professional_registration_number field.
+func ByProfessionalRegistrationNumber(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProfessionalRegistrationNumber, opts...).ToFunc()
+}
+
+// ByProfessionalRegistrationBody orders the results by the professional_registration_body field.
+func ByProfessionalRegistrationBody(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProfessionalRegistrationBody, opts...).ToFunc()
 }
 
 // BySyncStatus orders the results by the sync_status field.

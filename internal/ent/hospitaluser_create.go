@@ -72,6 +72,34 @@ func (_c *HospitalUserCreate) SetNillableStatus(v *string) *HospitalUserCreate {
 	return _c
 }
 
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (_c *HospitalUserCreate) SetProfessionalRegistrationNumber(v string) *HospitalUserCreate {
+	_c.mutation.SetProfessionalRegistrationNumber(v)
+	return _c
+}
+
+// SetNillableProfessionalRegistrationNumber sets the "professional_registration_number" field if the given value is not nil.
+func (_c *HospitalUserCreate) SetNillableProfessionalRegistrationNumber(v *string) *HospitalUserCreate {
+	if v != nil {
+		_c.SetProfessionalRegistrationNumber(*v)
+	}
+	return _c
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (_c *HospitalUserCreate) SetProfessionalRegistrationBody(v string) *HospitalUserCreate {
+	_c.mutation.SetProfessionalRegistrationBody(v)
+	return _c
+}
+
+// SetNillableProfessionalRegistrationBody sets the "professional_registration_body" field if the given value is not nil.
+func (_c *HospitalUserCreate) SetNillableProfessionalRegistrationBody(v *string) *HospitalUserCreate {
+	if v != nil {
+		_c.SetProfessionalRegistrationBody(*v)
+	}
+	return _c
+}
+
 // SetSyncStatus sets the "sync_status" field.
 func (_c *HospitalUserCreate) SetSyncStatus(v string) *HospitalUserCreate {
 	_c.mutation.SetSyncStatus(v)
@@ -302,6 +330,14 @@ func (_c *HospitalUserCreate) createSpec() (*HospitalUser, *sqlgraph.CreateSpec)
 		_spec.SetField(hospitaluser.FieldStatus, field.TypeString, value)
 		_node.Status = value
 	}
+	if value, ok := _c.mutation.ProfessionalRegistrationNumber(); ok {
+		_spec.SetField(hospitaluser.FieldProfessionalRegistrationNumber, field.TypeString, value)
+		_node.ProfessionalRegistrationNumber = value
+	}
+	if value, ok := _c.mutation.ProfessionalRegistrationBody(); ok {
+		_spec.SetField(hospitaluser.FieldProfessionalRegistrationBody, field.TypeString, value)
+		_node.ProfessionalRegistrationBody = value
+	}
 	if value, ok := _c.mutation.SyncStatus(); ok {
 		_spec.SetField(hospitaluser.FieldSyncStatus, field.TypeString, value)
 		_node.SyncStatus = value
@@ -466,6 +502,42 @@ func (u *HospitalUserUpsert) SetStatus(v string) *HospitalUserUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *HospitalUserUpsert) UpdateStatus() *HospitalUserUpsert {
 	u.SetExcluded(hospitaluser.FieldStatus)
+	return u
+}
+
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (u *HospitalUserUpsert) SetProfessionalRegistrationNumber(v string) *HospitalUserUpsert {
+	u.Set(hospitaluser.FieldProfessionalRegistrationNumber, v)
+	return u
+}
+
+// UpdateProfessionalRegistrationNumber sets the "professional_registration_number" field to the value that was provided on create.
+func (u *HospitalUserUpsert) UpdateProfessionalRegistrationNumber() *HospitalUserUpsert {
+	u.SetExcluded(hospitaluser.FieldProfessionalRegistrationNumber)
+	return u
+}
+
+// ClearProfessionalRegistrationNumber clears the value of the "professional_registration_number" field.
+func (u *HospitalUserUpsert) ClearProfessionalRegistrationNumber() *HospitalUserUpsert {
+	u.SetNull(hospitaluser.FieldProfessionalRegistrationNumber)
+	return u
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (u *HospitalUserUpsert) SetProfessionalRegistrationBody(v string) *HospitalUserUpsert {
+	u.Set(hospitaluser.FieldProfessionalRegistrationBody, v)
+	return u
+}
+
+// UpdateProfessionalRegistrationBody sets the "professional_registration_body" field to the value that was provided on create.
+func (u *HospitalUserUpsert) UpdateProfessionalRegistrationBody() *HospitalUserUpsert {
+	u.SetExcluded(hospitaluser.FieldProfessionalRegistrationBody)
+	return u
+}
+
+// ClearProfessionalRegistrationBody clears the value of the "professional_registration_body" field.
+func (u *HospitalUserUpsert) ClearProfessionalRegistrationBody() *HospitalUserUpsert {
+	u.SetNull(hospitaluser.FieldProfessionalRegistrationBody)
 	return u
 }
 
@@ -636,6 +708,48 @@ func (u *HospitalUserUpsertOne) SetStatus(v string) *HospitalUserUpsertOne {
 func (u *HospitalUserUpsertOne) UpdateStatus() *HospitalUserUpsertOne {
 	return u.Update(func(s *HospitalUserUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (u *HospitalUserUpsertOne) SetProfessionalRegistrationNumber(v string) *HospitalUserUpsertOne {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.SetProfessionalRegistrationNumber(v)
+	})
+}
+
+// UpdateProfessionalRegistrationNumber sets the "professional_registration_number" field to the value that was provided on create.
+func (u *HospitalUserUpsertOne) UpdateProfessionalRegistrationNumber() *HospitalUserUpsertOne {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.UpdateProfessionalRegistrationNumber()
+	})
+}
+
+// ClearProfessionalRegistrationNumber clears the value of the "professional_registration_number" field.
+func (u *HospitalUserUpsertOne) ClearProfessionalRegistrationNumber() *HospitalUserUpsertOne {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.ClearProfessionalRegistrationNumber()
+	})
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (u *HospitalUserUpsertOne) SetProfessionalRegistrationBody(v string) *HospitalUserUpsertOne {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.SetProfessionalRegistrationBody(v)
+	})
+}
+
+// UpdateProfessionalRegistrationBody sets the "professional_registration_body" field to the value that was provided on create.
+func (u *HospitalUserUpsertOne) UpdateProfessionalRegistrationBody() *HospitalUserUpsertOne {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.UpdateProfessionalRegistrationBody()
+	})
+}
+
+// ClearProfessionalRegistrationBody clears the value of the "professional_registration_body" field.
+func (u *HospitalUserUpsertOne) ClearProfessionalRegistrationBody() *HospitalUserUpsertOne {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.ClearProfessionalRegistrationBody()
 	})
 }
 
@@ -980,6 +1094,48 @@ func (u *HospitalUserUpsertBulk) SetStatus(v string) *HospitalUserUpsertBulk {
 func (u *HospitalUserUpsertBulk) UpdateStatus() *HospitalUserUpsertBulk {
 	return u.Update(func(s *HospitalUserUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (u *HospitalUserUpsertBulk) SetProfessionalRegistrationNumber(v string) *HospitalUserUpsertBulk {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.SetProfessionalRegistrationNumber(v)
+	})
+}
+
+// UpdateProfessionalRegistrationNumber sets the "professional_registration_number" field to the value that was provided on create.
+func (u *HospitalUserUpsertBulk) UpdateProfessionalRegistrationNumber() *HospitalUserUpsertBulk {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.UpdateProfessionalRegistrationNumber()
+	})
+}
+
+// ClearProfessionalRegistrationNumber clears the value of the "professional_registration_number" field.
+func (u *HospitalUserUpsertBulk) ClearProfessionalRegistrationNumber() *HospitalUserUpsertBulk {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.ClearProfessionalRegistrationNumber()
+	})
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (u *HospitalUserUpsertBulk) SetProfessionalRegistrationBody(v string) *HospitalUserUpsertBulk {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.SetProfessionalRegistrationBody(v)
+	})
+}
+
+// UpdateProfessionalRegistrationBody sets the "professional_registration_body" field to the value that was provided on create.
+func (u *HospitalUserUpsertBulk) UpdateProfessionalRegistrationBody() *HospitalUserUpsertBulk {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.UpdateProfessionalRegistrationBody()
+	})
+}
+
+// ClearProfessionalRegistrationBody clears the value of the "professional_registration_body" field.
+func (u *HospitalUserUpsertBulk) ClearProfessionalRegistrationBody() *HospitalUserUpsertBulk {
+	return u.Update(func(s *HospitalUserUpsert) {
+		s.ClearProfessionalRegistrationBody()
 	})
 }
 

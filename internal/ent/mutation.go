@@ -12060,26 +12060,28 @@ func (m *HospitalRoleMutation) ResetEdge(name string) error {
 // HospitalUserMutation represents an operation that mutates the HospitalUser nodes in the graph.
 type HospitalUserMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *uuid.UUID
-	auth_service_user_id    *uuid.UUID
-	email                   *string
-	name                    *string
-	status                  *string
-	sync_status             *string
-	last_sync_at            *time.Time
-	created_at              *time.Time
-	updated_at              *time.Time
-	clearedFields           map[string]struct{}
-	tenant                  *uuid.UUID
-	clearedtenant           bool
-	role_assignments        map[uuid.UUID]struct{}
-	removedrole_assignments map[uuid.UUID]struct{}
-	clearedrole_assignments bool
-	done                    bool
-	oldValue                func(context.Context) (*HospitalUser, error)
-	predicates              []predicate.HospitalUser
+	op                               Op
+	typ                              string
+	id                               *uuid.UUID
+	auth_service_user_id             *uuid.UUID
+	email                            *string
+	name                             *string
+	status                           *string
+	professional_registration_number *string
+	professional_registration_body   *string
+	sync_status                      *string
+	last_sync_at                     *time.Time
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	clearedFields                    map[string]struct{}
+	tenant                           *uuid.UUID
+	clearedtenant                    bool
+	role_assignments                 map[uuid.UUID]struct{}
+	removedrole_assignments          map[uuid.UUID]struct{}
+	clearedrole_assignments          bool
+	done                             bool
+	oldValue                         func(context.Context) (*HospitalUser, error)
+	predicates                       []predicate.HospitalUser
 }
 
 var _ ent.Mutation = (*HospitalUserMutation)(nil)
@@ -12379,6 +12381,104 @@ func (m *HospitalUserMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (m *HospitalUserMutation) SetProfessionalRegistrationNumber(s string) {
+	m.professional_registration_number = &s
+}
+
+// ProfessionalRegistrationNumber returns the value of the "professional_registration_number" field in the mutation.
+func (m *HospitalUserMutation) ProfessionalRegistrationNumber() (r string, exists bool) {
+	v := m.professional_registration_number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProfessionalRegistrationNumber returns the old "professional_registration_number" field's value of the HospitalUser entity.
+// If the HospitalUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserMutation) OldProfessionalRegistrationNumber(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProfessionalRegistrationNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProfessionalRegistrationNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProfessionalRegistrationNumber: %w", err)
+	}
+	return oldValue.ProfessionalRegistrationNumber, nil
+}
+
+// ClearProfessionalRegistrationNumber clears the value of the "professional_registration_number" field.
+func (m *HospitalUserMutation) ClearProfessionalRegistrationNumber() {
+	m.professional_registration_number = nil
+	m.clearedFields[hospitaluser.FieldProfessionalRegistrationNumber] = struct{}{}
+}
+
+// ProfessionalRegistrationNumberCleared returns if the "professional_registration_number" field was cleared in this mutation.
+func (m *HospitalUserMutation) ProfessionalRegistrationNumberCleared() bool {
+	_, ok := m.clearedFields[hospitaluser.FieldProfessionalRegistrationNumber]
+	return ok
+}
+
+// ResetProfessionalRegistrationNumber resets all changes to the "professional_registration_number" field.
+func (m *HospitalUserMutation) ResetProfessionalRegistrationNumber() {
+	m.professional_registration_number = nil
+	delete(m.clearedFields, hospitaluser.FieldProfessionalRegistrationNumber)
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (m *HospitalUserMutation) SetProfessionalRegistrationBody(s string) {
+	m.professional_registration_body = &s
+}
+
+// ProfessionalRegistrationBody returns the value of the "professional_registration_body" field in the mutation.
+func (m *HospitalUserMutation) ProfessionalRegistrationBody() (r string, exists bool) {
+	v := m.professional_registration_body
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProfessionalRegistrationBody returns the old "professional_registration_body" field's value of the HospitalUser entity.
+// If the HospitalUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HospitalUserMutation) OldProfessionalRegistrationBody(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProfessionalRegistrationBody is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProfessionalRegistrationBody requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProfessionalRegistrationBody: %w", err)
+	}
+	return oldValue.ProfessionalRegistrationBody, nil
+}
+
+// ClearProfessionalRegistrationBody clears the value of the "professional_registration_body" field.
+func (m *HospitalUserMutation) ClearProfessionalRegistrationBody() {
+	m.professional_registration_body = nil
+	m.clearedFields[hospitaluser.FieldProfessionalRegistrationBody] = struct{}{}
+}
+
+// ProfessionalRegistrationBodyCleared returns if the "professional_registration_body" field was cleared in this mutation.
+func (m *HospitalUserMutation) ProfessionalRegistrationBodyCleared() bool {
+	_, ok := m.clearedFields[hospitaluser.FieldProfessionalRegistrationBody]
+	return ok
+}
+
+// ResetProfessionalRegistrationBody resets all changes to the "professional_registration_body" field.
+func (m *HospitalUserMutation) ResetProfessionalRegistrationBody() {
+	m.professional_registration_body = nil
+	delete(m.clearedFields, hospitaluser.FieldProfessionalRegistrationBody)
+}
+
 // SetSyncStatus sets the "sync_status" field.
 func (m *HospitalUserMutation) SetSyncStatus(s string) {
 	m.sync_status = &s
@@ -12651,7 +12751,7 @@ func (m *HospitalUserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *HospitalUserMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 11)
 	if m.tenant != nil {
 		fields = append(fields, hospitaluser.FieldTenantID)
 	}
@@ -12666,6 +12766,12 @@ func (m *HospitalUserMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, hospitaluser.FieldStatus)
+	}
+	if m.professional_registration_number != nil {
+		fields = append(fields, hospitaluser.FieldProfessionalRegistrationNumber)
+	}
+	if m.professional_registration_body != nil {
+		fields = append(fields, hospitaluser.FieldProfessionalRegistrationBody)
 	}
 	if m.sync_status != nil {
 		fields = append(fields, hospitaluser.FieldSyncStatus)
@@ -12697,6 +12803,10 @@ func (m *HospitalUserMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case hospitaluser.FieldStatus:
 		return m.Status()
+	case hospitaluser.FieldProfessionalRegistrationNumber:
+		return m.ProfessionalRegistrationNumber()
+	case hospitaluser.FieldProfessionalRegistrationBody:
+		return m.ProfessionalRegistrationBody()
 	case hospitaluser.FieldSyncStatus:
 		return m.SyncStatus()
 	case hospitaluser.FieldLastSyncAt:
@@ -12724,6 +12834,10 @@ func (m *HospitalUserMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldName(ctx)
 	case hospitaluser.FieldStatus:
 		return m.OldStatus(ctx)
+	case hospitaluser.FieldProfessionalRegistrationNumber:
+		return m.OldProfessionalRegistrationNumber(ctx)
+	case hospitaluser.FieldProfessionalRegistrationBody:
+		return m.OldProfessionalRegistrationBody(ctx)
 	case hospitaluser.FieldSyncStatus:
 		return m.OldSyncStatus(ctx)
 	case hospitaluser.FieldLastSyncAt:
@@ -12775,6 +12889,20 @@ func (m *HospitalUserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case hospitaluser.FieldProfessionalRegistrationNumber:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProfessionalRegistrationNumber(v)
+		return nil
+	case hospitaluser.FieldProfessionalRegistrationBody:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProfessionalRegistrationBody(v)
 		return nil
 	case hospitaluser.FieldSyncStatus:
 		v, ok := value.(string)
@@ -12837,6 +12965,12 @@ func (m *HospitalUserMutation) ClearedFields() []string {
 	if m.FieldCleared(hospitaluser.FieldName) {
 		fields = append(fields, hospitaluser.FieldName)
 	}
+	if m.FieldCleared(hospitaluser.FieldProfessionalRegistrationNumber) {
+		fields = append(fields, hospitaluser.FieldProfessionalRegistrationNumber)
+	}
+	if m.FieldCleared(hospitaluser.FieldProfessionalRegistrationBody) {
+		fields = append(fields, hospitaluser.FieldProfessionalRegistrationBody)
+	}
 	if m.FieldCleared(hospitaluser.FieldLastSyncAt) {
 		fields = append(fields, hospitaluser.FieldLastSyncAt)
 	}
@@ -12856,6 +12990,12 @@ func (m *HospitalUserMutation) ClearField(name string) error {
 	switch name {
 	case hospitaluser.FieldName:
 		m.ClearName()
+		return nil
+	case hospitaluser.FieldProfessionalRegistrationNumber:
+		m.ClearProfessionalRegistrationNumber()
+		return nil
+	case hospitaluser.FieldProfessionalRegistrationBody:
+		m.ClearProfessionalRegistrationBody()
 		return nil
 	case hospitaluser.FieldLastSyncAt:
 		m.ClearLastSyncAt()
@@ -12882,6 +13022,12 @@ func (m *HospitalUserMutation) ResetField(name string) error {
 		return nil
 	case hospitaluser.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case hospitaluser.FieldProfessionalRegistrationNumber:
+		m.ResetProfessionalRegistrationNumber()
+		return nil
+	case hospitaluser.FieldProfessionalRegistrationBody:
+		m.ResetProfessionalRegistrationBody()
 		return nil
 	case hospitaluser.FieldSyncStatus:
 		m.ResetSyncStatus()

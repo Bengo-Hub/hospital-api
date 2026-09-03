@@ -361,15 +361,15 @@ func init() {
 	// hospitaluser.DefaultStatus holds the default value on creation for the status field.
 	hospitaluser.DefaultStatus = hospitaluserDescStatus.Default.(string)
 	// hospitaluserDescSyncStatus is the schema descriptor for sync_status field.
-	hospitaluserDescSyncStatus := hospitaluserFields[6].Descriptor()
+	hospitaluserDescSyncStatus := hospitaluserFields[8].Descriptor()
 	// hospitaluser.DefaultSyncStatus holds the default value on creation for the sync_status field.
 	hospitaluser.DefaultSyncStatus = hospitaluserDescSyncStatus.Default.(string)
 	// hospitaluserDescCreatedAt is the schema descriptor for created_at field.
-	hospitaluserDescCreatedAt := hospitaluserFields[8].Descriptor()
+	hospitaluserDescCreatedAt := hospitaluserFields[10].Descriptor()
 	// hospitaluser.DefaultCreatedAt holds the default value on creation for the created_at field.
 	hospitaluser.DefaultCreatedAt = hospitaluserDescCreatedAt.Default.(func() time.Time)
 	// hospitaluserDescUpdatedAt is the schema descriptor for updated_at field.
-	hospitaluserDescUpdatedAt := hospitaluserFields[9].Descriptor()
+	hospitaluserDescUpdatedAt := hospitaluserFields[11].Descriptor()
 	// hospitaluser.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	hospitaluser.DefaultUpdatedAt = hospitaluserDescUpdatedAt.Default.(func() time.Time)
 	// hospitaluser.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -13,6 +13,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent"
 	outletmw "github.com/bengobox/hospital-service/internal/http/middleware"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
+	"github.com/bengobox/hospital-service/internal/modules/identity"
 	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
 	"github.com/bengobox/hospital-service/internal/modules/printing"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
@@ -20,13 +21,22 @@ import (
 
 // PharmacyHandler implements Sprint 4's prescription lifecycle/dispensing HTTP surface.
 type PharmacyHandler struct {
-	svc     *pharmacy.Service
-	rbacSvc outletmw.PermissionChecker
+	svc         *pharmacy.Service
+	rbacSvc     outletmw.PermissionChecker
+	identitySvc *identity.Service
 }
 
 // NewPharmacyHandler creates a new PharmacyHandler.
 func NewPharmacyHandler(svc *pharmacy.Service, rbacSvc outletmw.PermissionChecker) *PharmacyHandler {
 	return &PharmacyHandler{svc: svc, rbacSvc: rbacSvc}
+}
+
+// SetIdentityService wires the identity service used to auto-thread an internal clinician's
+// professional_registration_number into CreatePrescription — late-bound (mirrors identity.
+// Service.SetRBACService/SetAuditWriter's own optional, always-safe contract), since
+// PharmacyHandler is constructed before nothing else here needs identitySvc.
+func (h *PharmacyHandler) SetIdentityService(svc *identity.Service) {
+	h.identitySvc = svc
 }
 
 type prescriptionLineRequest struct {
@@ -87,6 +97,14 @@ func (h *PharmacyHandler) CreatePrescription(w http.ResponseWriter, r *http.Requ
 	if in.OutletID != "" {
 		if id, err := uuid.Parse(in.OutletID); err == nil {
 			outletID = id
+		}
+	}
+	// Auto-thread a professional registration number for an internal clinician (not an external/
+	// chemist walk-in prescriber, which already carries its own free-text prescriber_license) who
+	// didn't already supply one — mvp-gap-backlog-2026-09-02.md's RBAC/user-management item.
+	if in.ExternalFacilityName == "" && in.PrescriberLicense == "" && h.identitySvc != nil {
+		if user, uerr := h.identitySvc.GetUserByAuthServiceID(r.Context(), tenantID, currentUserID(r)); uerr == nil {
+			in.PrescriberLicense = user.ProfessionalRegistrationNumber
 		}
 	}
 	rx, err := h.svc.CreatePrescription(r.Context(), tenantID, pharmacy.CreatePrescriptionRequest{

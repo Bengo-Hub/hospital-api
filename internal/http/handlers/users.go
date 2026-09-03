@@ -28,12 +28,14 @@ func NewUsersHandler(identitySvc *identity.Service, rbacSvc *rbac.Service) *User
 }
 
 type userDTO struct {
-	ID        string   `json:"id"`
-	Email     string   `json:"email"`
-	Name      string   `json:"name"`
-	Status    string   `json:"status"`
-	Roles     []string `json:"roles"`
-	CreatedAt string   `json:"created_at"`
+	ID                             string   `json:"id"`
+	Email                          string   `json:"email"`
+	Name                           string   `json:"name"`
+	Status                         string   `json:"status"`
+	Roles                          []string `json:"roles"`
+	ProfessionalRegistrationNumber string   `json:"professional_registration_number,omitempty"`
+	ProfessionalRegistrationBody   string   `json:"professional_registration_body,omitempty"`
+	CreatedAt                      string   `json:"created_at"`
 }
 
 type roleDTO struct {
@@ -101,12 +103,14 @@ func (h *UsersHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		out = append(out, userDTO{
-			ID:        u.ID.String(),
-			Email:     u.Email,
-			Name:      u.Name,
-			Status:    u.Status,
-			Roles:     roleCodes,
-			CreatedAt: u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			ID:                             u.ID.String(),
+			Email:                          u.Email,
+			Name:                           u.Name,
+			Status:                         u.Status,
+			Roles:                          roleCodes,
+			ProfessionalRegistrationNumber: u.ProfessionalRegistrationNumber,
+			ProfessionalRegistrationBody:   u.ProfessionalRegistrationBody,
+			CreatedAt:                      u.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"data": out})
@@ -246,6 +250,37 @@ func (h *UsersHandler) SetUserStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"status": "ok"})
+}
+
+type updateUserProfileRequest struct {
+	ProfessionalRegistrationNumber *string `json:"professional_registration_number,omitempty"`
+	ProfessionalRegistrationBody   *string `json:"professional_registration_body,omitempty"`
+}
+
+// UpdateProfessionalRegistration handles PUT /{tenant}/hospital/users/{userID}/professional-registration
+func (h *UsersHandler) UpdateProfessionalRegistration(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := tenantFromRequest(r)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "tenant context required")
+		return
+	}
+	userID, err := uuid.Parse(chi.URLParam(r, "userID"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	var req updateUserProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	updated, err := h.identitySvc.UpdateUserProfile(r.Context(), tenantID, currentUserID(r), userID,
+		req.ProfessionalRegistrationNumber, req.ProfessionalRegistrationBody)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, updated)
 }
 
 type roleCodeRequest struct {

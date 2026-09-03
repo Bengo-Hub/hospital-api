@@ -118,12 +118,15 @@ facility KMPDC registration number as tenant metadata), never at the individual-
 Kenya's real regulatory practice requires annual individual licensing for doctors (KMPDC), nurses
 (Nursing Council of Kenya), and pharmacists (Pharmacy and Poisons Board), and a clinical document
 (prescription, lab request) issued by an internal staff member today carries no practitioner
-registration number at all. **Proposed**: additive nullable `HospitalUser.
-professional_registration_number` and `professional_registration_body` fields (for example "KMPDC",
-"Nursing Council of Kenya", or "Pharmacy and Poisons Board"), surfaced on the Users admin page, and
-threaded automatically into `CreatePrescriptionRequest.PrescriberLicense` when an internal clinician
-(not an external/chemist walk-in) creates a prescription. Small, additive, no destructive change.
-Effort: quick.
+registration number at all. **Shipped 2026-09-03**: additive nullable `HospitalUser.
+professional_registration_number`/`professional_registration_body` fields, a new
+`identity.Service.UpdateUserProfile` + `PUT /users/{userID}/professional-registration` route,
+surfaced on the Users admin page (`ProfessionalRegistrationCell`), and threaded automatically into
+`CreatePrescriptionRequest.PrescriberLicense` when an internal clinician (not an external/chemist
+walk-in) creates a prescription with no license already supplied. **Note**: not wired into
+`InviteMemberModal` as originally sketched — a `HospitalUser` row doesn't exist until a staff
+member's first real sign-in (JIT-provisioned then, per `EnsureUserFromToken`), so there is nowhere
+to persist these fields at invite time; the Users-page edit action is the only viable surface.
 
 **Session/audit trail for clinical actions specifically.** Confirmed: `RbacAuditLog` is deliberately
 scoped, per its own schema doc comment, to identity/RBAC mutations only (role assigned/changed, role
@@ -138,7 +141,7 @@ this pass**, since it's already deliberately deferred, not a new proposal.
 
 | Gap | Effort | Notes |
 |---|---|---|
-| No professional license/registration number field for internal clinical staff | Quick, additive fields | Facility-level KMPDC tracking already planned (tenant metadata); individual-practitioner tracking is a separate, currently absent, gap. |
+| No professional license/registration number field for internal clinical staff | Quick, additive fields | **Shipped 2026-09-03.** |
 | No clinical-record audit trail (patient/exam/lab/prescription view or edit) | Deferred by design | Already acknowledged in the 2026-08-30 rebuild memory as Sprint 12 scope; not a new finding, flagged for sizing accuracy only. |
 | Shift/duty-roster integration | Out of scope | Confirmed owned by `erp-api`, unchanged. |
 

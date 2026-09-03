@@ -29,6 +29,10 @@ type HospitalUser struct {
 	Name string `json:"name,omitempty"`
 	// Status: active, inactive, suspended
 	Status string `json:"status,omitempty"`
+	// KMPDC/Nursing Council/Pharmacy and Poisons Board etc. registration number for internal clinical staff — distinct from facility-level KMPDC tracking (tenant metadata) and from Prescription.prescriber_license (a free-text field for an external/chemist walk-in prescriber)
+	ProfessionalRegistrationNumber string `json:"professional_registration_number,omitempty"`
+	// The issuing body, e.g. "KMPDC", "Nursing Council of Kenya", "Pharmacy and Poisons Board" — free text, not a closed enum, since Kenya has other regulatory bodies too
+	ProfessionalRegistrationBody string `json:"professional_registration_body,omitempty"`
 	// Sync status: synced, pending, failed
 	SyncStatus string `json:"sync_status,omitempty"`
 	// LastSyncAt holds the value of the "last_sync_at" field.
@@ -79,7 +83,7 @@ func (*HospitalUser) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case hospitaluser.FieldEmail, hospitaluser.FieldName, hospitaluser.FieldStatus, hospitaluser.FieldSyncStatus:
+		case hospitaluser.FieldEmail, hospitaluser.FieldName, hospitaluser.FieldStatus, hospitaluser.FieldProfessionalRegistrationNumber, hospitaluser.FieldProfessionalRegistrationBody, hospitaluser.FieldSyncStatus:
 			values[i] = new(sql.NullString)
 		case hospitaluser.FieldLastSyncAt, hospitaluser.FieldCreatedAt, hospitaluser.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -135,6 +139,18 @@ func (_m *HospitalUser) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = value.String
+			}
+		case hospitaluser.FieldProfessionalRegistrationNumber:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field professional_registration_number", values[i])
+			} else if value.Valid {
+				_m.ProfessionalRegistrationNumber = value.String
+			}
+		case hospitaluser.FieldProfessionalRegistrationBody:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field professional_registration_body", values[i])
+			} else if value.Valid {
+				_m.ProfessionalRegistrationBody = value.String
 			}
 		case hospitaluser.FieldSyncStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -221,6 +237,12 @@ func (_m *HospitalUser) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	builder.WriteString("professional_registration_number=")
+	builder.WriteString(_m.ProfessionalRegistrationNumber)
+	builder.WriteString(", ")
+	builder.WriteString("professional_registration_body=")
+	builder.WriteString(_m.ProfessionalRegistrationBody)
 	builder.WriteString(", ")
 	builder.WriteString("sync_status=")
 	builder.WriteString(_m.SyncStatus)

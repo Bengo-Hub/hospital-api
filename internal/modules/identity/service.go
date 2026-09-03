@@ -268,6 +268,40 @@ func (s *Service) SetUserStatus(ctx context.Context, tenantID, actorID, userID u
 	return updated, nil
 }
 
+// UpdateUserProfile updates a HospitalUser's professional-registration fields (mvp-gap-backlog-
+// 2026-09-02's RBAC/user-management item — KMPDC/Nursing Council/Pharmacy and Poisons Board etc.
+// registration for an internal clinician, distinct from facility-level KMPDC tracking and from
+// Prescription.prescriber_license's own free-text external-prescriber field). Mirrors
+// SetUserStatus's shape; nil pointers leave the corresponding field untouched.
+func (s *Service) UpdateUserProfile(ctx context.Context, tenantID, actorID, userID uuid.UUID, regNumber, regBody *string) (*ent.HospitalUser, error) {
+	existing, err := s.client.HospitalUser.Query().
+		Where(hospitaluser.IDEQ(userID), hospitaluser.TenantIDEQ(tenantID)).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	upd := s.client.HospitalUser.UpdateOne(existing)
+	if regNumber != nil {
+		upd = upd.SetProfessionalRegistrationNumber(*regNumber)
+	}
+	if regBody != nil {
+		upd = upd.SetProfessionalRegistrationBody(*regBody)
+	}
+	updated, err := upd.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("update user profile: %w", err)
+	}
+	if s.audit != nil {
+		s.audit.Record(ctx, auditlog.Entry{
+			TenantID: tenantID, ActorID: actorID, Action: "user.profile_updated",
+			TargetType: "user", TargetID: userID,
+			Before: map[string]any{"professional_registration_number": existing.ProfessionalRegistrationNumber, "professional_registration_body": existing.ProfessionalRegistrationBody},
+			After:  map[string]any{"professional_registration_number": updated.ProfessionalRegistrationNumber, "professional_registration_body": updated.ProfessionalRegistrationBody},
+		})
+	}
+	return updated, nil
+}
+
 // GetTenant returns the tenant row — used by the read-only Config admin page to display the
 // facility_type/enabled_modules resolved from subscriptions-api (Tenant.metadata cache).
 func (s *Service) GetTenant(ctx context.Context, tenantID uuid.UUID) (*ent.Tenant, error) {
@@ -343,6 +377,17 @@ func (s *Service) ListUsers(ctx context.Context, tenantID uuid.UUID) ([]*ent.Hos
 		Where(hospitaluser.TenantIDEQ(tenantID)).
 		Order(ent.Asc(hospitaluser.FieldEmail)).
 		All(ctx)
+}
+
+// GetUserByAuthServiceID resolves a HospitalUser by the auth-service user id a JWT's `sub` claim
+// carries (what currentUserID(r) returns throughout this codebase's HTTP handlers) — NOT
+// HospitalUser's own locally-generated `id`. Used to auto-thread a clinician's
+// professional_registration_number into a prescription they write (see PharmacyHandler.
+// CreatePrescription) without requiring the caller to already hold the local row id.
+func (s *Service) GetUserByAuthServiceID(ctx context.Context, tenantID, authServiceUserID uuid.UUID) (*ent.HospitalUser, error) {
+	return s.client.HospitalUser.Query().
+		Where(hospitaluser.TenantIDEQ(tenantID), hospitaluser.AuthServiceUserIDEQ(authServiceUserID)).
+		Only(ctx)
 }
 
 // ListUserOutlets returns userID's (a LOCAL HospitalUser.ID) outlet assignments for tenantID —

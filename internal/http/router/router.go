@@ -646,6 +646,8 @@ func New(d Deps) http.Handler {
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Put("/users/{userID}/status", d.Users.SetUserStatus)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
+					Put("/users/{userID}/professional-registration", d.Users.UpdateProfessionalRegistration)
+				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Post("/users/{userID}/roles", d.Users.AssignExtraRole)
 				prot.With(outletmw.RequireServicePermission(d.RBACSvc, rbacmodule.PermUsersManage)).
 					Delete("/users/{userID}/roles/{roleCode}", d.Users.RevokeExtraRole)

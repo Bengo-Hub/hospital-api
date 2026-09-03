@@ -107,6 +107,46 @@ func (_u *HospitalUserUpdate) SetNillableStatus(v *string) *HospitalUserUpdate {
 	return _u
 }
 
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (_u *HospitalUserUpdate) SetProfessionalRegistrationNumber(v string) *HospitalUserUpdate {
+	_u.mutation.SetProfessionalRegistrationNumber(v)
+	return _u
+}
+
+// SetNillableProfessionalRegistrationNumber sets the "professional_registration_number" field if the given value is not nil.
+func (_u *HospitalUserUpdate) SetNillableProfessionalRegistrationNumber(v *string) *HospitalUserUpdate {
+	if v != nil {
+		_u.SetProfessionalRegistrationNumber(*v)
+	}
+	return _u
+}
+
+// ClearProfessionalRegistrationNumber clears the value of the "professional_registration_number" field.
+func (_u *HospitalUserUpdate) ClearProfessionalRegistrationNumber() *HospitalUserUpdate {
+	_u.mutation.ClearProfessionalRegistrationNumber()
+	return _u
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (_u *HospitalUserUpdate) SetProfessionalRegistrationBody(v string) *HospitalUserUpdate {
+	_u.mutation.SetProfessionalRegistrationBody(v)
+	return _u
+}
+
+// SetNillableProfessionalRegistrationBody sets the "professional_registration_body" field if the given value is not nil.
+func (_u *HospitalUserUpdate) SetNillableProfessionalRegistrationBody(v *string) *HospitalUserUpdate {
+	if v != nil {
+		_u.SetProfessionalRegistrationBody(*v)
+	}
+	return _u
+}
+
+// ClearProfessionalRegistrationBody clears the value of the "professional_registration_body" field.
+func (_u *HospitalUserUpdate) ClearProfessionalRegistrationBody() *HospitalUserUpdate {
+	_u.mutation.ClearProfessionalRegistrationBody()
+	return _u
+}
+
 // SetSyncStatus sets the "sync_status" field.
 func (_u *HospitalUserUpdate) SetSyncStatus(v string) *HospitalUserUpdate {
 	_u.mutation.SetSyncStatus(v)
@@ -274,6 +314,18 @@ func (_u *HospitalUserUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(hospitaluser.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ProfessionalRegistrationNumber(); ok {
+		_spec.SetField(hospitaluser.FieldProfessionalRegistrationNumber, field.TypeString, value)
+	}
+	if _u.mutation.ProfessionalRegistrationNumberCleared() {
+		_spec.ClearField(hospitaluser.FieldProfessionalRegistrationNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProfessionalRegistrationBody(); ok {
+		_spec.SetField(hospitaluser.FieldProfessionalRegistrationBody, field.TypeString, value)
+	}
+	if _u.mutation.ProfessionalRegistrationBodyCleared() {
+		_spec.ClearField(hospitaluser.FieldProfessionalRegistrationBody, field.TypeString)
 	}
 	if value, ok := _u.mutation.SyncStatus(); ok {
 		_spec.SetField(hospitaluser.FieldSyncStatus, field.TypeString, value)
@@ -454,6 +506,46 @@ func (_u *HospitalUserUpdateOne) SetNillableStatus(v *string) *HospitalUserUpdat
 	if v != nil {
 		_u.SetStatus(*v)
 	}
+	return _u
+}
+
+// SetProfessionalRegistrationNumber sets the "professional_registration_number" field.
+func (_u *HospitalUserUpdateOne) SetProfessionalRegistrationNumber(v string) *HospitalUserUpdateOne {
+	_u.mutation.SetProfessionalRegistrationNumber(v)
+	return _u
+}
+
+// SetNillableProfessionalRegistrationNumber sets the "professional_registration_number" field if the given value is not nil.
+func (_u *HospitalUserUpdateOne) SetNillableProfessionalRegistrationNumber(v *string) *HospitalUserUpdateOne {
+	if v != nil {
+		_u.SetProfessionalRegistrationNumber(*v)
+	}
+	return _u
+}
+
+// ClearProfessionalRegistrationNumber clears the value of the "professional_registration_number" field.
+func (_u *HospitalUserUpdateOne) ClearProfessionalRegistrationNumber() *HospitalUserUpdateOne {
+	_u.mutation.ClearProfessionalRegistrationNumber()
+	return _u
+}
+
+// SetProfessionalRegistrationBody sets the "professional_registration_body" field.
+func (_u *HospitalUserUpdateOne) SetProfessionalRegistrationBody(v string) *HospitalUserUpdateOne {
+	_u.mutation.SetProfessionalRegistrationBody(v)
+	return _u
+}
+
+// SetNillableProfessionalRegistrationBody sets the "professional_registration_body" field if the given value is not nil.
+func (_u *HospitalUserUpdateOne) SetNillableProfessionalRegistrationBody(v *string) *HospitalUserUpdateOne {
+	if v != nil {
+		_u.SetProfessionalRegistrationBody(*v)
+	}
+	return _u
+}
+
+// ClearProfessionalRegistrationBody clears the value of the "professional_registration_body" field.
+func (_u *HospitalUserUpdateOne) ClearProfessionalRegistrationBody() *HospitalUserUpdateOne {
+	_u.mutation.ClearProfessionalRegistrationBody()
 	return _u
 }
 
@@ -654,6 +746,18 @@ func (_u *HospitalUserUpdateOne) sqlSave(ctx context.Context) (_node *HospitalUs
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(hospitaluser.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ProfessionalRegistrationNumber(); ok {
+		_spec.SetField(hospitaluser.FieldProfessionalRegistrationNumber, field.TypeString, value)
+	}
+	if _u.mutation.ProfessionalRegistrationNumberCleared() {
+		_spec.ClearField(hospitaluser.FieldProfessionalRegistrationNumber, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProfessionalRegistrationBody(); ok {
+		_spec.SetField(hospitaluser.FieldProfessionalRegistrationBody, field.TypeString, value)
+	}
+	if _u.mutation.ProfessionalRegistrationBodyCleared() {
+		_spec.ClearField(hospitaluser.FieldProfessionalRegistrationBody, field.TypeString)
 	}
 	if value, ok := _u.mutation.SyncStatus(); ok {
 		_spec.SetField(hospitaluser.FieldSyncStatus, field.TypeString, value)

@@ -482,6 +482,8 @@ var (
 		{Name: "email", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "active"},
+		{Name: "professional_registration_number", Type: field.TypeString, Nullable: true},
+		{Name: "professional_registration_body", Type: field.TypeString, Nullable: true},
 		{Name: "sync_status", Type: field.TypeString, Default: "synced"},
 		{Name: "last_sync_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
@@ -496,7 +498,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "hospital_users_tenants_users",
-				Columns:    []*schema.Column{HospitalUsersColumns[9]},
+				Columns:    []*schema.Column{HospitalUsersColumns[11]},
 				RefColumns: []*schema.Column{TenantsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -505,12 +507,12 @@ var (
 			{
 				Name:    "hospitaluser_tenant_id",
 				Unique:  false,
-				Columns: []*schema.Column{HospitalUsersColumns[9]},
+				Columns: []*schema.Column{HospitalUsersColumns[11]},
 			},
 			{
 				Name:    "hospitaluser_tenant_id_auth_service_user_id",
 				Unique:  true,
-				Columns: []*schema.Column{HospitalUsersColumns[9], HospitalUsersColumns[1]},
+				Columns: []*schema.Column{HospitalUsersColumns[11], HospitalUsersColumns[1]},
 			},
 			{
 				Name:    "hospitaluser_status",
@@ -520,7 +522,7 @@ var (
 			{
 				Name:    "hospitaluser_sync_status",
 				Unique:  false,
-				Columns: []*schema.Column{HospitalUsersColumns[5]},
+				Columns: []*schema.Column{HospitalUsersColumns[7]},
 			},
 		},
 	}

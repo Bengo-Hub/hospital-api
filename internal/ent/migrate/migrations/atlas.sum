@@ -1,4 +1,4 @@
-h1:DBpC1+5j0x8RcW5WsLdXA68WqUmSLgu6Jreos7inQds=
+h1:insW1d5wCTDGpU5EQBHPzb50YAMbqKen8Ud6HAMTHMw=
 20260731212101_add_rbac_and_sync_schemas.sql h1:k+F/1ko7AGn0h9CZoWquPgsfoCCH+wMm8/wdycvUnxs=
 20260829112442_tenant_facility_metadata.sql h1:NaPnpW01TiNmyX6U6hQR2bIZekD6r7QqiIjU+HM5Aaw=
 20260829120437_sprint1_patient_opd_triage.sql h1:Qya7Ud7B6bbQMJHBecWOtx5+KFtu74ROeeRFHnCrLPw=
@@ -21,3 +21,4 @@ h1:DBpC1+5j0x8RcW5WsLdXA68WqUmSLgu6Jreos7inQds=
 20260902213942_sprint4_pharmacy_refill.sql h1:lRN09pscfIRhgBgZwy/8dH3Ex0RwYpx66YzS9DVWxLo=
 20260902214838_sprint4_medication_administration.sql h1:Jji/dPp3K0cVtjpqzGH63lRZ4TgcuN8tTnJiAhc0v30=
 20260903052430_sprint5_admission_deposit_guarantee.sql h1:/TyLduTFAfnVYmsCTzD+pw5EyQSyXFyPKldkH98GeP0=
+20260903054426_rbac_professional_registration.sql h1:bzEzA3Kx0FBUGqSBANPxd8DYF+VW4k0lgniHkl/73uk=
