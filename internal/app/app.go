@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	sharedcache "github.com/Bengo-Hub/cache"
+	ratelimit "github.com/Bengo-Hub/shared-ratelimit"
 	"net/http"
 	"time"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/schema"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nats-io/nats.go"
@@ -21,7 +22,6 @@ import (
 
 	"github.com/bengobox/hospital-service/internal/config"
 	"github.com/bengobox/hospital-service/internal/ent"
-	"github.com/bengobox/hospital-service/internal/ent/migrate"
 	handlers "github.com/bengobox/hospital-service/internal/http/handlers"
 	router "github.com/bengobox/hospital-service/internal/http/router"
 	"github.com/bengobox/hospital-service/internal/modules/auditlog"
@@ -31,9 +31,9 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/icu"
 	"github.com/bengobox/hospital-service/internal/modules/identity"
 	"github.com/bengobox/hospital-service/internal/modules/inpatient"
-	"github.com/bengobox/hospital-service/internal/modules/mar"
 	inventoryclient "github.com/bengobox/hospital-service/internal/modules/inventory"
 	"github.com/bengobox/hospital-service/internal/modules/lab"
+	"github.com/bengobox/hospital-service/internal/modules/mar"
 	"github.com/bengobox/hospital-service/internal/modules/patients"
 	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
 	"github.com/bengobox/hospital-service/internal/modules/rbac"
@@ -41,7 +41,6 @@ import (
 	"github.com/bengobox/hospital-service/internal/modules/tenant"
 	"github.com/bengobox/hospital-service/internal/modules/theatre"
 	treasuryclient "github.com/bengobox/hospital-service/internal/modules/treasury"
-	"github.com/bengobox/hospital-service/internal/platform/cache"
 	"github.com/bengobox/hospital-service/internal/platform/database"
 	"github.com/bengobox/hospital-service/internal/platform/events"
 	"github.com/bengobox/hospital-service/internal/platform/subscriptions"
@@ -83,11 +82,24 @@ func New(ctx context.Context) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("postgres init: %w", err)
 	}
-	redisClient := cache.NewClient(cfg.Redis)
+	redisClient, redisErr := sharedcache.NewRedis(ctx, sharedcache.RedisConfig{
+		Addr: cfg.Redis.Addr, Username: cfg.Redis.Username, Password: cfg.Redis.Password,
+		DB: cfg.Redis.DB, TLS: cfg.Redis.TLSRequired, DialTimeout: cfg.Redis.DialTimeout,
+	})
+	if redisErr != nil {
+		log.Warn("redis not reachable at startup", zap.Error(redisErr))
+	}
+	sharedcache.SetLeaseClient(redisClient)
 
 	natsConn, err := events.Connect(cfg.Events)
 	if err != nil {
 		log.Warn("event bus connection failed", zap.Error(err))
+	}
+	if natsConn != nil {
+		// Drop revoked/rotated API keys from every validator on this pod at once.
+		_ = eventslib.NewBroadcaster(log, natsConn, "auth").Subscribe("apikey.changed", func(m eventslib.BroadcastMessage) {
+			authclient.InvalidateAPIKeyHash(string(m.Data))
+		})
 	}
 	if natsConn != nil {
 		if streamErr := events.EnsureStream(natsConn, cfg.Events); streamErr != nil {
@@ -110,14 +122,8 @@ func New(ctx context.Context) (*App, error) {
 	drv := entsql.OpenDB(dialect.Postgres, sqlDB)
 	ormClient := ent.NewClient(ent.Driver(drv))
 
-	// Run versioned migrations only when explicitly enabled. In production, migrations are
-	// applied by the entrypoint (or a migration Job) before the server starts.
-	if cfg.Postgres.RunMigrations {
-		if err := ormClient.Schema.Create(ctx, schema.WithDir(migrate.Dir)); err != nil {
-			return nil, fmt.Errorf("ent schema create: %w", err)
-		}
-		log.Info("versioned migrations applied (POSTGRES_RUN_MIGRATIONS=true)")
-	}
+	// Migrations run once per rollout in hospital-migrate (entrypoint, advisory-locked, direct
+	// DSN); the optional in-app copy is gone so there is one migration path.
 
 	// Transactional outbox poller (first real business events, Sprint 1: patient.created,
 	// visit.admitted). Publishing = an outbox_events row inserted in the same Ent tx as the
@@ -271,6 +277,7 @@ func New(ctx context.Context) (*App, error) {
 	userOutletsHandler := handlers.NewUserOutletsHandler(identitySvc)
 
 	deps := router.Deps{
+		Limiter:        ratelimit.NewLimiter(redisClient, log, "hospital"),
 		Log:            log,
 		Health:         healthHandler,
 		AuthMiddleware: authMiddleware,

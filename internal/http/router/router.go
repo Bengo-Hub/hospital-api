@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	ratelimit "github.com/Bengo-Hub/shared-ratelimit"
 	"net/http"
 	"time"
 
@@ -26,6 +27,8 @@ import (
 // Deps bundles everything the router mounts. Sprint 4+ adds real domain
 // handlers here (Patient, Visit, Triage, ...) alongside Health/Ping/AuthMe.
 type Deps struct {
+	// Limiter is the shared per-IP request limiter (nil disables it, e.g. in tests).
+	Limiter        *ratelimit.Limiter
 	Log            *zap.Logger
 	Health         *handlers.HealthHandler
 	AuthMiddleware *authclient.AuthMiddleware
@@ -83,11 +86,12 @@ func New(d Deps) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	// Never chi RealIP: it trusts client-sent True-Client-IP/X-Forwarded-For.
+	r.Use(ratelimit.TrustedRealIP)
 	r.Use(httpware.RequestID)
 	r.Use(httpware.Logging(d.Log))
 	r.Use(httpware.Recover(d.Log))
-	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(httpware.BypassForStreaming(middleware.Timeout(30 * time.Second)))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   d.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -96,6 +100,10 @@ func New(d Deps) http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	// Per-IP abuse limit (hospital had none); after CORS so 429s carry CORS headers.
+	if d.Limiter != nil {
+		r.Use(d.Limiter.Middleware(ratelimit.IPKey, 300, time.Minute))
+	}
 
 	r.Get("/healthz", d.Health.Liveness)
 	r.Get("/readyz", d.Health.Readiness)
@@ -103,7 +111,12 @@ func New(d Deps) http.Handler {
 
 	// Serve uploaded media files (Patient.photo_url) — mirrors inventory-api's identical route.
 	if d.MediaRoot != "" {
-		r.Handle("/media/*", http.StripPrefix("/media", http.FileServer(http.Dir(d.MediaRoot))))
+		// Patient photos are health data: every file is private, no-store (never kept by the CDN,
+		// proxies or service workers) and directories are never listed. Moving them behind
+		// authentication is queued in the multi-pod plan (Q7).
+		r.Handle("/media/*", http.StripPrefix("/media", httpware.StaticMedia(d.MediaRoot, httpware.MediaOptions{
+			Private: func(string) bool { return true },
+		})))
 	}
 
 	r.Route("/api/v1/{tenant}/hospital", func(r chi.Router) {
