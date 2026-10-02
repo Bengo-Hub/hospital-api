@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/bengobox/hospital-service/internal/ent"
 	"net/http"
 	"time"
 
@@ -16,12 +17,13 @@ import (
 
 // PatientsHandler implements Sprint 1's patient/visit/triage HTTP surface.
 type PatientsHandler struct {
-	svc *patients.Service
+	svc    *patients.Service
+	signer *httpware.MediaSigner
 }
 
 // NewPatientsHandler creates a new PatientsHandler.
-func NewPatientsHandler(svc *patients.Service) *PatientsHandler {
-	return &PatientsHandler{svc: svc}
+func NewPatientsHandler(svc *patients.Service, signer *httpware.MediaSigner) *PatientsHandler {
+	return &PatientsHandler{svc: svc, signer: signer}
 }
 
 func tenantFromRequest(r *http.Request) (uuid.UUID, bool) {
@@ -87,7 +89,7 @@ func (h *PatientsHandler) RegisterPatient(w http.ResponseWriter, r *http.Request
 	p, err := h.svc.RegisterPatient(r.Context(), tenantID, patients.RegisterPatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
 		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
-		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: in.PhotoURL,
+		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: httpware.StripMediaSignature(in.PhotoURL),
 		Address: in.Address, NextOfKin: in.NextOfKin,
 		Allergies: in.Allergies, OutletID: outletID,
 	})
@@ -95,7 +97,16 @@ func (h *PatientsHandler) RegisterPatient(w http.ResponseWriter, r *http.Request
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusCreated, p)
+	respondJSON(w, http.StatusCreated, h.signPhoto(p))
+}
+
+// signPhoto returns p with a short-lived signed photo URL: patient photos are private media
+// that an <img> can only load with a valid signature (see httpware.MediaSigner).
+func (h *PatientsHandler) signPhoto(p *ent.Patient) *ent.Patient {
+	if p != nil && h.signer != nil {
+		p.PhotoURL = h.signer.Sign(p.PhotoURL)
+	}
+	return p
 }
 
 // ListPatients handles GET /{tenant}/hospital/patients?q=
@@ -111,6 +122,9 @@ func (h *PatientsHandler) ListPatients(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to list patients")
 		return
+	}
+	for _, p := range list {
+		h.signPhoto(p)
 	}
 	respondJSON(w, http.StatusOK, map[string]any{"data": list})
 }
@@ -132,7 +146,7 @@ func (h *PatientsHandler) GetPatient(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusNotFound, "patient not found")
 		return
 	}
-	respondJSON(w, http.StatusOK, p)
+	respondJSON(w, http.StatusOK, h.signPhoto(p))
 }
 
 type updatePatientRequest struct {
@@ -166,6 +180,10 @@ func (h *PatientsHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) 
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
+	if in.PhotoURL != nil {
+		plain := httpware.StripMediaSignature(*in.PhotoURL) // store the unsigned form
+		in.PhotoURL = &plain
+	}
 	p, err := h.svc.UpdatePatient(r.Context(), tenantID, patientID, patients.UpdatePatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
 		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
@@ -176,7 +194,7 @@ func (h *PatientsHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) 
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusOK, p)
+	respondJSON(w, http.StatusOK, h.signPhoto(p))
 }
 
 // CheckDuplicates handles GET /{tenant}/hospital/patients/check-duplicates?full_name=&phone=&id_number=

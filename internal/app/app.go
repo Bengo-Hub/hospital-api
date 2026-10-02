@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	sharedcache "github.com/Bengo-Hub/cache"
+	"github.com/Bengo-Hub/httpware"
 	ratelimit "github.com/Bengo-Hub/shared-ratelimit"
 	"net/http"
 	"time"
@@ -208,7 +209,13 @@ func New(ctx context.Context) (*App, error) {
 
 	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
 	patientsSvc := patients.NewService(ormClient, billingSvc, log)
-	patientsHandler := handlers.NewPatientsHandler(patientsSvc)
+	// Signed URLs for private media (patient photos); every replica shares the secret.
+	mediaSecret := cfg.Auth.MediaSigningSecret
+	if mediaSecret == "" {
+		mediaSecret = cfg.Auth.APIKey
+	}
+	mediaSigner := httpware.NewMediaSigner(mediaSecret, 12*time.Hour)
+	patientsHandler := handlers.NewPatientsHandler(patientsSvc, mediaSigner)
 
 	// ── Sprint 2: consultation / examination / diagnosis catalog / referrals ──
 	consultationSvc := consultation.NewService(ormClient, billingSvc, log)
@@ -265,6 +272,7 @@ func New(ctx context.Context) (*App, error) {
 	var mediaHandler *handlers.MediaHandler
 	if cfg.Media.Root != "" {
 		mediaHandler = handlers.NewMediaHandler(log, cfg.Media)
+		mediaHandler.SetSigner(mediaSigner)
 	}
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
@@ -277,6 +285,7 @@ func New(ctx context.Context) (*App, error) {
 	userOutletsHandler := handlers.NewUserOutletsHandler(identitySvc)
 
 	deps := router.Deps{
+		MediaSigner:    mediaSigner,
 		Limiter:        ratelimit.NewLimiter(redisClient, log, "hospital"),
 		Log:            log,
 		Health:         healthHandler,

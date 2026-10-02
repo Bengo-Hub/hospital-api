@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/Bengo-Hub/httpware"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -23,9 +24,13 @@ import (
 // approach — same size cap, same JPEG/PNG-only allowlist, same EXIF-stripping re-encode — so a
 // future engineer touching either doesn't need to relearn the pattern from scratch.
 type MediaHandler struct {
-	log *zap.Logger
-	cfg config.MediaConfig
+	log    *zap.Logger
+	cfg    config.MediaConfig
+	signer *httpware.MediaSigner
 }
+
+// SetSigner makes Upload return a signed URL, so the form can preview the private photo.
+func (h *MediaHandler) SetSigner(s *httpware.MediaSigner) { h.signer = s }
 
 // NewMediaHandler creates a new media handler.
 func NewMediaHandler(log *zap.Logger, cfg config.MediaConfig) *MediaHandler {
@@ -144,5 +149,7 @@ func (h *MediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.URLBase != "" {
 		url = strings.TrimRight(h.cfg.URLBase, "/") + relativePath
 	}
-	respondJSON(w, http.StatusCreated, map[string]string{"url": url, "filename": filename})
+	// Signed so the registration form can preview the private photo; patient create/update
+	// stores the unsigned form.
+	respondJSON(w, http.StatusCreated, map[string]string{"url": h.signer.Sign(url), "filename": filename})
 }

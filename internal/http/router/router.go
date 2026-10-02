@@ -28,7 +28,9 @@ import (
 // handlers here (Patient, Visit, Triage, ...) alongside Health/Ping/AuthMe.
 type Deps struct {
 	// Limiter is the shared per-IP request limiter (nil disables it, e.g. in tests).
-	Limiter        *ratelimit.Limiter
+	Limiter *ratelimit.Limiter
+	// MediaSigner verifies the signed URLs that private media (patient photos) require.
+	MediaSigner    *httpware.MediaSigner
 	Log            *zap.Logger
 	Health         *handlers.HealthHandler
 	AuthMiddleware *authclient.AuthMiddleware
@@ -112,10 +114,10 @@ func New(d Deps) http.Handler {
 	// Serve uploaded media files (Patient.photo_url) — mirrors inventory-api's identical route.
 	if d.MediaRoot != "" {
 		// Patient photos are health data: every file is private, no-store (never kept by the CDN,
-		// proxies or service workers) and directories are never listed. Moving them behind
-		// authentication is queued in the multi-pod plan (Q7).
+		// proxies or service workers) and directories are never listed.
 		r.Handle("/media/*", http.StripPrefix("/media", httpware.StaticMedia(d.MediaRoot, httpware.MediaOptions{
 			Private: func(string) bool { return true },
+			Signer:  d.MediaSigner,
 		})))
 	}
 
