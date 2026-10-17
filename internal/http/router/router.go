@@ -30,7 +30,7 @@ type Deps struct {
 	// Limiter is the shared per-IP request limiter (nil disables it, e.g. in tests).
 	Limiter *ratelimit.Limiter
 	// MediaFiles is objectstore's /media handler (nil when there is nothing to serve).
-	MediaFiles http.Handler
+	MediaFiles     http.Handler
 	Log            *zap.Logger
 	Health         *handlers.HealthHandler
 	AuthMiddleware *authclient.AuthMiddleware
