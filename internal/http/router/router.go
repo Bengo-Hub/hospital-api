@@ -29,8 +29,8 @@ import (
 type Deps struct {
 	// Limiter is the shared per-IP request limiter (nil disables it, e.g. in tests).
 	Limiter *ratelimit.Limiter
-	// MediaSigner verifies the signed URLs that private media (patient photos) require.
-	MediaSigner    *httpware.MediaSigner
+	// MediaFiles is objectstore's /media handler (nil when there is nothing to serve).
+	MediaFiles http.Handler
 	Log            *zap.Logger
 	Health         *handlers.HealthHandler
 	AuthMiddleware *authclient.AuthMiddleware
@@ -77,8 +77,7 @@ type Deps struct {
 	Assets *handlers.AssetsHandler
 	// Media upload (2026-09-03, MVP gap backlog) — currently only Patient.photo_url capture.
 	// Mirrors inventory-api's own top-level /media/* static-serve + authenticated upload route.
-	Media     *handlers.MediaHandler
-	MediaRoot string
+	Media *handlers.MediaHandler
 	// Medication Administration Record (2026-09-03, MVP gap backlog Sprint 4).
 	MAR *handlers.MARHandler
 }
@@ -111,14 +110,10 @@ func New(d Deps) http.Handler {
 	r.Get("/readyz", d.Health.Readiness)
 	r.Get("/metrics", d.Health.Metrics)
 
-	// Serve uploaded media files (Patient.photo_url) — mirrors inventory-api's identical route.
-	if d.MediaRoot != "" {
-		// Patient photos are health data: every file is private, no-store (never kept by the CDN,
-		// proxies or service workers) and directories are never listed.
-		r.Handle("/media/*", http.StripPrefix("/media", httpware.StaticMedia(d.MediaRoot, httpware.MediaOptions{
-			Private: func(string) bool { return true },
-			Signer:  d.MediaSigner,
-		})))
+	// /media: files of local development (private, signed links only); with object storage,
+	// patient photos are reached only through presigned links (objectstore.MediaHandler).
+	if d.MediaFiles != nil {
+		r.Handle("/media/*", http.StripPrefix("/media", d.MediaFiles))
 	}
 
 	r.Route("/api/v1/{tenant}/hospital", func(r chi.Router) {

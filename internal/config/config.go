@@ -19,14 +19,6 @@ type Config struct {
 	Events   EventsConfig
 	Auth     AuthConfig
 	Services ServicesConfig
-	Media    MediaConfig
-}
-
-// MediaConfig mirrors inventory-api's own MediaConfig (internal/config/config.go there) — same
-// upload-root/URL-base shape, reused here for Patient.photo_url uploads.
-type MediaConfig struct {
-	Root    string `envconfig:"MEDIA_ROOT" default:"./media"`
-	URLBase string `envconfig:"MEDIA_URL_BASE" default:""`
 }
 
 type AppConfig struct {
@@ -97,10 +89,6 @@ type AuthConfig struct {
 	// (INTERNAL_SERVICE_KEY) only to avoid a hard startup failure in dev/local environments —
 	// set this explicitly in production, mirroring pos-api's own fallback pattern.
 	WitnessTokenSecret string `envconfig:"PHARMACY_WITNESS_JWT_SECRET" default:""`
-	// MediaSigningSecret keys the signed URLs for private media (patient photos). Every replica
-	// must share it; falls back to INTERNAL_SERVICE_KEY (already shared) when unset. A
-	// purpose-specific key is derived from it (httpware.NewMediaSigner).
-	MediaSigningSecret string `envconfig:"MEDIA_SIGNING_SECRET" default:""`
 }
 
 // ServicesConfig holds the S2S base URLs for the services hospital-api calls

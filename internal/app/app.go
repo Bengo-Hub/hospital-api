@@ -7,6 +7,7 @@ import (
 	"fmt"
 	sharedcache "github.com/Bengo-Hub/cache"
 	"github.com/Bengo-Hub/httpware"
+	"github.com/Bengo-Hub/httpware/objectstore"
 	ratelimit "github.com/Bengo-Hub/shared-ratelimit"
 	"net/http"
 	"time"
@@ -209,13 +210,15 @@ func New(ctx context.Context) (*App, error) {
 
 	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
 	patientsSvc := patients.NewService(ormClient, billingSvc, log)
-	// Signed URLs for private media (patient photos); every replica shares the secret.
-	mediaSecret := cfg.Auth.MediaSigningSecret
-	if mediaSecret == "" {
-		mediaSecret = cfg.Auth.APIKey
+	// Patient photos on the shared object storage (httpware/objectstore), private: responses carry
+	// presigned links. Local development keeps files under MEDIA_ROOT with links signed by the
+	// service key.
+	mediaStore, err := objectstore.New("hospital", objectstore.FromEnv(),
+		objectstore.WithLocalSigner(httpware.NewMediaSigner(cfg.Auth.APIKey, 12*time.Hour)))
+	if err != nil {
+		return nil, fmt.Errorf("object storage: %w", err)
 	}
-	mediaSigner := httpware.NewMediaSigner(mediaSecret, 12*time.Hour)
-	patientsHandler := handlers.NewPatientsHandler(patientsSvc, mediaSigner)
+	patientsHandler := handlers.NewPatientsHandler(patientsSvc, mediaStore)
 
 	// ── Sprint 2: consultation / examination / diagnosis catalog / referrals ──
 	consultationSvc := consultation.NewService(ormClient, billingSvc, log)
@@ -269,11 +272,7 @@ func New(ctx context.Context) (*App, error) {
 	assetsHandler := handlers.NewAssetsHandler(inventorySvc)
 
 	// Media upload (2026-09-03) — Patient.photo_url capture, mirrors inventory-api's MediaHandler.
-	var mediaHandler *handlers.MediaHandler
-	if cfg.Media.Root != "" {
-		mediaHandler = handlers.NewMediaHandler(log, cfg.Media)
-		mediaHandler.SetSigner(mediaSigner)
-	}
+	mediaHandler := handlers.NewMediaHandler(log, mediaStore)
 
 	authEventHandler := identity.NewAuthEventHandler(ormClient, identitySvc, log)
 	authOutletEventHandler := identity.NewAuthOutletEventHandler(ormClient, tenantSyncer, log)
@@ -285,7 +284,7 @@ func New(ctx context.Context) (*App, error) {
 	userOutletsHandler := handlers.NewUserOutletsHandler(identitySvc)
 
 	deps := router.Deps{
-		MediaSigner:    mediaSigner,
+		MediaFiles:     mediaStore.MediaHandler(),
 		Limiter:        ratelimit.NewLimiter(redisClient, log, "hospital"),
 		Log:            log,
 		Health:         healthHandler,
@@ -310,7 +309,6 @@ func New(ctx context.Context) (*App, error) {
 		Assets:         assetsHandler,
 		TenantSyncer:   tenantSyncer,
 		Media:          mediaHandler,
-		MediaRoot:      cfg.Media.Root,
 		MAR:            marHandler,
 	}
 	chiRouter := router.New(deps)

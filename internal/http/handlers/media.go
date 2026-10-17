@@ -1,155 +1,58 @@
 package handlers
 
 import (
-	"fmt"
-	"github.com/Bengo-Hub/httpware"
-	"image"
-	"image/jpeg"
-	"image/png"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
+	"path"
 
-	"github.com/google/uuid"
+	"github.com/Bengo-Hub/httpware/objectstore"
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"go.uber.org/zap"
-
-	"github.com/bengobox/hospital-service/internal/config"
 )
 
-// MediaHandler handles media file uploads (currently: Patient.photo_url capture at
-// registration). Mirrors inventory-api's own internal/http/handlers/media.go byte-for-byte in
-// approach — same size cap, same JPEG/PNG-only allowlist, same EXIF-stripping re-encode — so a
-// future engineer touching either doesn't need to relearn the pattern from scratch.
+// MediaHandler handles media uploads (currently: Patient.photo_url capture at registration) on the
+// shared object storage (httpware/objectstore). Patient photos are private: stored under
+// hospital/<tenant>/patient-photos/..., handed out only as short-lived signed links.
 type MediaHandler struct {
-	log    *zap.Logger
-	cfg    config.MediaConfig
-	signer *httpware.MediaSigner
+	log   *zap.Logger
+	store *objectstore.Store
 }
 
-// SetSigner makes Upload return a signed URL, so the form can preview the private photo.
-func (h *MediaHandler) SetSigner(s *httpware.MediaSigner) { h.signer = s }
-
-// NewMediaHandler creates a new media handler.
-func NewMediaHandler(log *zap.Logger, cfg config.MediaConfig) *MediaHandler {
-	return &MediaHandler{log: log.Named("media.handler"), cfg: cfg}
+// NewMediaHandler creates the upload handler.
+func NewMediaHandler(log *zap.Logger, store *objectstore.Store) *MediaHandler {
+	return &MediaHandler{log: log.Named("media.handler"), store: store}
 }
 
-// Upload handles POST /api/v1/media/upload (multipart form, field "file"). Validates size/content
-// type, strips EXIF metadata via re-encoding, saves under {MEDIA_ROOT}/uploads/patients/.
+// Upload handles POST /api/v1/media/upload (multipart form, field "file"): one JPEG or PNG patient
+// photo up to 5 MB, checked from the bytes and re-encoded (EXIF removed). It answers a signed link
+// so the registration form can preview it; patient create/update stores the key.
 func (h *MediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024)
-	if err := r.ParseMultipartForm(2 * 1024 * 1024); err != nil {
-		h.log.Error("failed to parse multipart form", zap.Error(err))
-		respondError(w, http.StatusBadRequest, "file too large (max 2MB)")
+	claims, ok := authclient.ClaimsFromContext(r.Context())
+	if !ok || claims.TenantID == "" {
+		respondError(w, http.StatusUnauthorized, "sign in to an organisation to upload")
 		return
 	}
-
-	file, header, err := r.FormFile("file")
+	if !h.store.Enabled() {
+		respondError(w, http.StatusServiceUnavailable, "file storage is not configured")
+		return
+	}
+	up, err := objectstore.ReadUpload(w, r, "file", objectstore.TypePatientPhotos)
 	if err != nil {
-		h.log.Error("failed to get file from form", zap.Error(err))
-		respondError(w, http.StatusBadRequest, "invalid file upload")
-		return
-	}
-	defer file.Close()
-
-	buffer := make([]byte, 512)
-	n, _ := file.Read(buffer)
-	contentType := http.DetectContentType(buffer[:n])
-	if _, err := file.Seek(0, 0); err != nil {
-		respondError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	// Only JPEG/PNG — the re-encode below strips EXIF and neutralizes image-based exploits.
-	allowedTypes := map[string]bool{"image/jpeg": true, "image/jpg": true, "image/png": true}
-	if !allowedTypes[contentType] {
-		ext := strings.ToLower(filepath.Ext(header.Filename))
-		headerCT := header.Header.Get("Content-Type")
-		switch {
-		case ext == ".jpg" || ext == ".jpeg" || headerCT == "image/jpeg":
-			contentType = "image/jpeg"
-		case ext == ".png" || headerCT == "image/png":
-			contentType = "image/png"
-		}
-	}
-	if !allowedTypes[contentType] {
-		h.log.Warn("rejected file upload", zap.String("detected_type", contentType), zap.String("filename", header.Filename))
-		respondError(w, http.StatusBadRequest, "only JPEG and PNG images are allowed")
-		return
-	}
-
-	ext := strings.ToLower(filepath.Ext(header.Filename))
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		if contentType == "image/jpeg" {
-			ext = ".jpg"
-		} else {
-			ext = ".png"
-		}
-	}
-	filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
-
-	dir := filepath.Join(h.cfg.Root, "uploads", "patients")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		h.log.Error("failed to create upload directory", zap.Error(err))
-		respondError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	dstPath := filepath.Join(dir, filename)
-	dst, err := os.Create(dstPath)
-	if err != nil {
-		h.log.Error("failed to create destination file", zap.Error(err))
-		respondError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-	defer dst.Close()
-
-	written := false
-	if contentType == "image/jpeg" || contentType == "image/png" {
-		img, _, decErr := image.Decode(file)
-		if decErr == nil {
-			var encErr error
-			if contentType == "image/jpeg" {
-				encErr = jpeg.Encode(dst, img, &jpeg.Options{Quality: 85})
-			} else {
-				encErr = png.Encode(dst, img)
-			}
-			if encErr == nil {
-				written = true
-			} else {
-				h.log.Warn("re-encoding failed, falling back to direct copy", zap.Error(encErr))
-				if _, err := file.Seek(0, 0); err != nil {
-					respondError(w, http.StatusInternalServerError, "internal server error")
-					return
-				}
-				if err := dst.Truncate(0); err != nil {
-					respondError(w, http.StatusInternalServerError, "internal server error")
-					return
-				}
-				if _, err := dst.Seek(0, 0); err != nil {
-					respondError(w, http.StatusInternalServerError, "internal server error")
-					return
-				}
-			}
-		}
-	}
-	if !written {
-		if _, err := io.Copy(dst, file); err != nil {
-			h.log.Error("failed to copy file", zap.Error(err))
-			respondError(w, http.StatusInternalServerError, "internal server error")
+		if objectstore.IsUploadError(err) {
+			respondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		respondError(w, http.StatusInternalServerError, "failed to read the upload")
+		return
 	}
-
-	relativePath := fmt.Sprintf("/media/uploads/patients/%s", filename)
-	url := relativePath
-	if h.cfg.URLBase != "" {
-		url = strings.TrimRight(h.cfg.URLBase, "/") + relativePath
+	key, err := h.store.NewKey(objectstore.Owner{TenantID: claims.TenantID}, objectstore.TypePatientPhotos, up.Ext)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid organisation")
+		return
 	}
-	// Signed so the registration form can preview the private photo; patient create/update
-	// stores the unsigned form.
-	respondJSON(w, http.StatusCreated, map[string]string{"url": h.signer.Sign(url), "filename": filename})
+	if err := h.store.Put(r.Context(), key, up.Data, up.ContentType); err != nil {
+		h.log.Error("patient photo not stored", zap.Error(err))
+		respondError(w, http.StatusBadGateway, "file storage is unavailable")
+		return
+	}
+	respondJSON(w, http.StatusCreated, map[string]string{"url": h.store.URL(key), "filename": path.Base(key)})
 }

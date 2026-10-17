@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Bengo-Hub/httpware"
+	"github.com/Bengo-Hub/httpware/objectstore"
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -17,13 +18,13 @@ import (
 
 // PatientsHandler implements Sprint 1's patient/visit/triage HTTP surface.
 type PatientsHandler struct {
-	svc    *patients.Service
-	signer *httpware.MediaSigner
+	svc   *patients.Service
+	media *objectstore.Store // patient photos (private keys, signed links on read)
 }
 
-// NewPatientsHandler creates a new PatientsHandler.
-func NewPatientsHandler(svc *patients.Service, signer *httpware.MediaSigner) *PatientsHandler {
-	return &PatientsHandler{svc: svc, signer: signer}
+// NewPatientsHandler creates a new PatientsHandler. media may be nil (photos returned as stored).
+func NewPatientsHandler(svc *patients.Service, media *objectstore.Store) *PatientsHandler {
+	return &PatientsHandler{svc: svc, media: media}
 }
 
 func tenantFromRequest(r *http.Request) (uuid.UUID, bool) {
@@ -89,7 +90,7 @@ func (h *PatientsHandler) RegisterPatient(w http.ResponseWriter, r *http.Request
 	p, err := h.svc.RegisterPatient(r.Context(), tenantID, patients.RegisterPatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
 		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
-		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: httpware.StripMediaSignature(in.PhotoURL),
+		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: h.media.Normalize(in.PhotoURL),
 		Address: in.Address, NextOfKin: in.NextOfKin,
 		Allergies: in.Allergies, OutletID: outletID,
 	})
@@ -100,11 +101,11 @@ func (h *PatientsHandler) RegisterPatient(w http.ResponseWriter, r *http.Request
 	respondJSON(w, http.StatusCreated, h.signPhoto(p))
 }
 
-// signPhoto returns p with a short-lived signed photo URL: patient photos are private media
-// that an <img> can only load with a valid signature (see httpware.MediaSigner).
+// signPhoto returns p with a short-lived signed photo link: patient photos are private media an
+// <img> can only load through a presigned link.
 func (h *PatientsHandler) signPhoto(p *ent.Patient) *ent.Patient {
-	if p != nil && h.signer != nil {
-		p.PhotoURL = h.signer.Sign(p.PhotoURL)
+	if p != nil {
+		p.PhotoURL = h.media.URL(p.PhotoURL)
 	}
 	return p
 }
@@ -181,7 +182,7 @@ func (h *PatientsHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if in.PhotoURL != nil {
-		plain := httpware.StripMediaSignature(*in.PhotoURL) // store the unsigned form
+		plain := h.media.Normalize(*in.PhotoURL) // store the key, not the signed link
 		in.PhotoURL = &plain
 	}
 	p, err := h.svc.UpdatePatient(r.Context(), tenantID, patientID, patients.UpdatePatientRequest{
