@@ -8,6 +8,7 @@ import (
 	sharedcache "github.com/Bengo-Hub/cache"
 	"github.com/Bengo-Hub/httpware"
 	"github.com/Bengo-Hub/httpware/objectstore"
+	"github.com/Bengo-Hub/httpware/tenantexport"
 	ratelimit "github.com/Bengo-Hub/shared-ratelimit"
 	"net/http"
 	"time"
@@ -70,6 +71,15 @@ type App struct {
 }
 
 // New constructs and wires the application.
+// tenantExportHandler serves auth-api's SSO tenant backups (httpware/tenantexport). Nil without an
+// INTERNAL_SERVICE_KEY, so the export is never reachable unauthenticated.
+func tenantExportHandler(db *sql.DB, internalKey string) http.Handler {
+	if internalKey == "" {
+		return nil
+	}
+	return tenantexport.Handler(db, tenantexport.Options{Service: "hospital", InternalKey: internalKey})
+}
+
 func New(ctx context.Context) (*App, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -285,6 +295,7 @@ func New(ctx context.Context) (*App, error) {
 
 	deps := router.Deps{
 		MediaFiles:     mediaStore.MediaHandler(),
+		TenantExport:   tenantExportHandler(sqlDB, cfg.Auth.APIKey),
 		Limiter:        ratelimit.NewLimiter(redisClient, log, "hospital"),
 		Log:            log,
 		Health:         healthHandler,
