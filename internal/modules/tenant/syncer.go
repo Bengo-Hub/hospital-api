@@ -16,6 +16,7 @@ import (
 
 	"go.uber.org/zap"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/bengobox/hospital-service/internal/ent"
 	enttenant "github.com/bengobox/hospital-service/internal/ent/tenant"
 	"github.com/bengobox/hospital-service/internal/modules/refdata"
@@ -52,6 +53,7 @@ type Syncer struct {
 	authURL string
 	db      *sql.DB
 	subs    *subscriptions.Client
+	entitle *authclient.EntitlementClient
 	log     *zap.Logger
 
 	driftMu       sync.Mutex
@@ -79,6 +81,21 @@ func (s *Syncer) WithDB(db *sql.DB) *Syncer {
 func (s *Syncer) WithSubscriptions(c *subscriptions.Client) *Syncer {
 	s.subs = c
 	return s
+}
+
+// ServiceTag is the subscriptions service tag every hospital plan and feature is seeded with.
+const ServiceTag = "hospital"
+
+// WithEntitlements attaches the plan check that keeps tenants outside the hospital plan out of
+// this database: SyncTenant refuses them with authclient.ErrServiceNotEntitled before it writes
+// a tenant row or seeds a catalog. Nil leaves the check off (local development).
+func (s *Syncer) WithEntitlements(c *authclient.EntitlementClient) *Syncer {
+	s.entitle = c
+	return s
+}
+
+func (s *Syncer) requireEntitled(ctx context.Context, tenantID uuid.UUID) error {
+	return s.entitle.Require(ctx, tenantID.String(), ServiceTag)
 }
 
 // WithLogger attaches a logger for best-effort background work (currently just the billable-item
@@ -152,6 +169,12 @@ func (s *Syncer) effectiveLogger() *zap.Logger {
 func (s *Syncer) syncTenantID(ctx context.Context, slug string) (uuid.UUID, error) {
 	existingFast, fastErr := s.client.Tenant.Query().Where(enttenant.SlugEQ(slug)).Only(ctx)
 	hasLocal := fastErr == nil && existingFast != nil
+	if hasLocal {
+		// A projection that predates the plan check must not keep feeding seeds and syncs.
+		if err := s.requireEntitled(ctx, existingFast.ID); err != nil {
+			return uuid.Nil, err
+		}
+	}
 
 	authAPIURL := s.resolvedAuthAPIURL()
 	endpoint := strings.TrimRight(authAPIURL, "/") + "/api/v1/tenants/by-slug/" + slug
@@ -198,6 +221,10 @@ func (s *Syncer) syncTenantID(ctx context.Context, slug string) (uuid.UUID, erro
 	realID, err := uuid.Parse(remote.ID)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("tenant.Syncer: invalid UUID %q: %w", remote.ID, err)
+	}
+	// Nothing is written for a tenant whose plan does not include the hospital service.
+	if err := s.requireEntitled(ctx, realID); err != nil {
+		return uuid.Nil, err
 	}
 
 	now := time.Now()

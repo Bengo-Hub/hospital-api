@@ -2,11 +2,13 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/google/uuid"
 
 	"github.com/bengobox/hospital-service/internal/ent"
@@ -103,6 +105,9 @@ func (s *Service) EnsureUserFromToken(ctx context.Context, authServiceID uuid.UU
 	// not per auth user alone, so the existence check itself must be tenant-scoped. Cheap on
 	// the steady-state path: tenantSyncer.SyncTenant is a single indexed local lookup.
 	tenantID, err := s.tenantSyncer.SyncTenant(ctx, tenantSlug)
+	if errors.Is(err, authclient.ErrServiceNotEntitled) {
+		return nil, nil // plan does not include hospital: no user row is created
+	}
 	if err != nil {
 		return nil, fmt.Errorf("identity.Service: sync tenant %q: %w", tenantSlug, err)
 	}

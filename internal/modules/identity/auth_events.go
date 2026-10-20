@@ -2,9 +2,11 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	authclient "github.com/Bengo-Hub/shared-auth-client"
 	sharedevents "github.com/Bengo-Hub/shared-events"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -373,6 +375,9 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 	var tenantID uuid.UUID
 	if tenantSlug != "" && h.tenantSyncer != nil {
 		tenantID, err = h.tenantSyncer.SyncTenant(ctx, tenantSlug)
+		if errors.Is(err, authclient.ErrServiceNotEntitled) {
+			return nil // plan does not include hospital: nothing is created for this tenant
+		}
 		if err != nil {
 			h.logger.Warn("failed to sync tenant from slug, using event tenant_id",
 				zap.String("slug", tenantSlug), zap.Error(err))
@@ -463,7 +468,11 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 		// new tenant membership arrives via its own auth.user.created event, not here.
 		tenantID := evt.TenantID
 		if tenantSlug != "" && h.tenantSyncer != nil {
-			if tid, syncErr := h.tenantSyncer.SyncTenant(ctx, tenantSlug); syncErr == nil {
+			tid, syncErr := h.tenantSyncer.SyncTenant(ctx, tenantSlug)
+			if errors.Is(syncErr, authclient.ErrServiceNotEntitled) {
+				return nil
+			}
+			if syncErr == nil {
 				tenantID = tid
 			}
 		}

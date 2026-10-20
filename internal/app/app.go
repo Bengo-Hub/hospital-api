@@ -166,6 +166,7 @@ func New(ctx context.Context) (*App, error) {
 	tenantSyncer := tenant.NewSyncer(ormClient, cfg.Auth.ServiceURL).
 		WithDB(sqlDB).
 		WithSubscriptions(subscriptionsClient).
+		WithEntitlements(authclient.NewEntitlementClient(cfg.Services.SubscriptionsURL, cfg.Auth.APIKey)).
 		WithLogger(log)
 
 	rbacRepo := rbac.NewEntRepository(ormClient)
