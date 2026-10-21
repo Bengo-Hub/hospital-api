@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 
 	httpware "github.com/Bengo-Hub/httpware"
@@ -96,14 +95,7 @@ func New(d Deps) http.Handler {
 	r.Use(httpware.Logging(d.Log))
 	r.Use(httpware.Recover(d.Log))
 	r.Use(httpware.BypassForStreaming(middleware.Timeout(30 * time.Second)))
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   d.AllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Origin", "X-Request-ID", "X-Tenant-ID", "X-Tenant-Slug", "X-API-Key", "Idempotency-Key", "X-Outlet-ID"},
-		ExposedHeaders:   []string{"Link", "Retry-After"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
+	r.Use(httpware.CORS(httpware.StandardCORS(d.AllowedOrigins)))
 	// Per-IP abuse limit (hospital had none); after CORS so 429s carry CORS headers.
 	if d.Limiter != nil {
 		r.Use(d.Limiter.Middleware(ratelimit.IPKey, 300, time.Minute))
