@@ -129,7 +129,8 @@ func New(d Deps) http.Handler {
 				prot.Use(func(next http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						claims, ok := authclient.ClaimsFromContext(r.Context())
-						if ok && claims.Subject != "" {
+						// Only members whose token lets hospital keep them (user_services claim).
+						if ok && claims.Subject != "" && claims.AllowsUserService("hospital") {
 							subject, _ := uuid.Parse(claims.Subject)
 							slug := claims.GetTenantSlug()
 							if slug != "" {

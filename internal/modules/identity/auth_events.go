@@ -130,43 +130,75 @@ func (h *AuthEventHandler) handleUserDeleted(ctx context.Context, evt *sharedeve
 	if err != nil {
 		return fmt.Errorf("invalid user_id %q: %w", userIDStr, err)
 	}
+	n, err := h.removeLocalUser(ctx, nil, authServiceUserID)
+	if err != nil {
+		return err
+	}
+	h.logger.Info("user hard-deleted from auth.user.deleted event",
+		zap.String("user_id", userIDStr), zap.Int("tenant_rows_deleted", n))
+	return nil
+}
 
+// removeLocalUser hard-deletes the user's hospital rows in one tenant (tenantID set: auth-api says
+// the member is not meant to use hospital there) or in every tenant (nil: the account was deleted):
+// role assignments and outlet links (NO ACTION FKs to hospital_users) first, then the users.
+func (h *AuthEventHandler) removeLocalUser(ctx context.Context, tenantID *uuid.UUID, authServiceUserID uuid.UUID) (int, error) {
 	tx, err := h.client.Tx(ctx)
 	if err != nil {
-		return fmt.Errorf("start tx: %w", err)
+		return 0, fmt.Errorf("start tx: %w", err)
 	}
-
-	rows, err := tx.HospitalUser.Query().Where(hospitaluser.AuthServiceUserID(authServiceUserID)).All(ctx)
+	q := tx.HospitalUser.Query().Where(hospitaluser.AuthServiceUserID(authServiceUserID))
+	if tenantID != nil {
+		q = q.Where(hospitaluser.TenantID(*tenantID))
+	}
+	rows, err := q.All(ctx)
 	if err != nil {
 		_ = tx.Rollback()
-		return fmt.Errorf("query hospital users: %w", err)
+		return 0, fmt.Errorf("query hospital users: %w", err)
 	}
-	if len(rows) > 0 {
-		localIDs := make([]uuid.UUID, len(rows))
-		for i, u := range rows {
-			localIDs[i] = u.ID
-		}
-		if _, err := tx.UserRoleAssignment.Delete().Where(userroleassignment.UserIDIn(localIDs...)).Exec(ctx); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("delete user role assignments: %w", err)
-		}
-		if _, err := tx.HospitalUserOutlet.Delete().Where(hospitaluseroutlet.UserIDIn(localIDs...)).Exec(ctx); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("delete user outlet assignments: %w", err)
-		}
-	}
-	if _, err := tx.HospitalUser.Delete().Where(hospitaluser.AuthServiceUserID(authServiceUserID)).Exec(ctx); err != nil {
+	if len(rows) == 0 {
 		_ = tx.Rollback()
-		return fmt.Errorf("delete hospital user: %w", err)
+		return 0, nil
 	}
-
+	localIDs := make([]uuid.UUID, len(rows))
+	for i, u := range rows {
+		localIDs[i] = u.ID
+	}
+	if _, err := tx.UserRoleAssignment.Delete().Where(userroleassignment.UserIDIn(localIDs...)).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return 0, fmt.Errorf("delete user role assignments: %w", err)
+	}
+	if _, err := tx.HospitalUserOutlet.Delete().Where(hospitaluseroutlet.UserIDIn(localIDs...)).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return 0, fmt.Errorf("delete user outlet assignments: %w", err)
+	}
+	if _, err := tx.HospitalUser.Delete().Where(hospitaluser.IDIn(localIDs...)).Exec(ctx); err != nil {
+		_ = tx.Rollback()
+		return 0, fmt.Errorf("delete hospital user: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit: %w", err)
+		return 0, fmt.Errorf("commit: %w", err)
 	}
+	return len(rows), nil
+}
 
-	h.logger.Info("user hard-deleted from auth.user.deleted event",
-		zap.String("user_id", userIDStr), zap.Int("tenant_rows_deleted", len(rows)))
-	return nil
+// hospitalRelevance reads auth-api's services list on auth.user events (shared-events).
+var hospitalRelevance = sharedevents.UserRelevance{Service: "hospital"}
+
+// revoked removes the member's hospital rows in the event's tenant when its services list leaves
+// hospital out. Reports whether the event was handled that way; events without the list never are.
+func (h *AuthEventHandler) revoked(ctx context.Context, evt *sharedevents.Event, authServiceUserID uuid.UUID) (bool, error) {
+	if !hospitalRelevance.Revoked(evt.Payload) {
+		return false, nil
+	}
+	if evt.TenantID == uuid.Nil {
+		return true, nil
+	}
+	tenantID := evt.TenantID
+	if _, err := h.removeLocalUser(ctx, &tenantID, authServiceUserID); err != nil {
+		return true, fmt.Errorf("remove user outside hospital: %w", err)
+	}
+	return true, nil
 }
 
 // eventRoles extracts the "roles" array from an event payload.
@@ -368,6 +400,9 @@ func (h *AuthEventHandler) handleUserCreated(ctx context.Context, evt *sharedeve
 	if err != nil {
 		return fmt.Errorf("invalid user_id %q: %w", userIDStr, err)
 	}
+	if handled, err := h.revoked(ctx, evt, authServiceUserID); handled {
+		return err
+	}
 
 	// Resolve tenant ID FIRST — prefer tenant_slug from payload, fallback to event tenant_id.
 	// A HospitalUser row is unique per (tenant, auth user), not per auth user alone, so the
@@ -453,6 +488,9 @@ func (h *AuthEventHandler) handleUserUpdated(ctx context.Context, evt *sharedeve
 	authServiceUserID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		return fmt.Errorf("invalid user_id %q: %w", userIDStr, err)
+	}
+	if handled, err := h.revoked(ctx, evt, authServiceUserID); handled {
+		return err
 	}
 
 	rows, err := h.client.HospitalUser.Query().
