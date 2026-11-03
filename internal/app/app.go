@@ -155,6 +155,17 @@ func New(ctx context.Context) (*App, error) {
 		log.Info("outbox background publisher started")
 	}
 
+	// tenant.purge (dormancy, a deleted tenant, a declined registration): delete every row this
+	// service holds for the tenant, by the shared schema-driven purger.
+	if natsConn != nil {
+		if js, err := natsConn.JetStream(); err == nil {
+			purger := &eventslib.TenantPurger{DB: sqlDB, Log: log.Named("tenant-purge"), Service: "hospital"}
+			if err := purger.Subscribe(js); err != nil {
+				log.Warn("tenant purge consumer not started", zap.Error(err))
+			}
+		}
+	}
+
 	// ── Tenant/outlet sync + RBAC + JIT identity ──────────────────────────────
 	// Same S2S subscriptions-api client shape as the rest of the platform (see
 	// internal/platform/subscriptions.Client) — used here only to resolve a newly-seen tenant's
