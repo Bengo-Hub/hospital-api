@@ -345,6 +345,26 @@ func (_u *PatientUpdate) ClearCrmContactID() *PatientUpdate {
 	return _u
 }
 
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (_u *PatientUpdate) SetCrmConsentAt(v time.Time) *PatientUpdate {
+	_u.mutation.SetCrmConsentAt(v)
+	return _u
+}
+
+// SetNillableCrmConsentAt sets the "crm_consent_at" field if the given value is not nil.
+func (_u *PatientUpdate) SetNillableCrmConsentAt(v *time.Time) *PatientUpdate {
+	if v != nil {
+		_u.SetCrmConsentAt(*v)
+	}
+	return _u
+}
+
+// ClearCrmConsentAt clears the value of the "crm_consent_at" field.
+func (_u *PatientUpdate) ClearCrmConsentAt() *PatientUpdate {
+	_u.mutation.ClearCrmConsentAt()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PatientUpdate) SetStatus(v string) *PatientUpdate {
 	_u.mutation.SetStatus(v)
@@ -563,6 +583,12 @@ func (_u *PatientUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CrmContactIDCleared() {
 		_spec.ClearField(patient.FieldCrmContactID, field.TypeUUID)
+	}
+	if value, ok := _u.mutation.CrmConsentAt(); ok {
+		_spec.SetField(patient.FieldCrmConsentAt, field.TypeTime, value)
+	}
+	if _u.mutation.CrmConsentAtCleared() {
+		_spec.ClearField(patient.FieldCrmConsentAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(patient.FieldStatus, field.TypeString, value)
@@ -949,6 +975,26 @@ func (_u *PatientUpdateOne) ClearCrmContactID() *PatientUpdateOne {
 	return _u
 }
 
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (_u *PatientUpdateOne) SetCrmConsentAt(v time.Time) *PatientUpdateOne {
+	_u.mutation.SetCrmConsentAt(v)
+	return _u
+}
+
+// SetNillableCrmConsentAt sets the "crm_consent_at" field if the given value is not nil.
+func (_u *PatientUpdateOne) SetNillableCrmConsentAt(v *time.Time) *PatientUpdateOne {
+	if v != nil {
+		_u.SetCrmConsentAt(*v)
+	}
+	return _u
+}
+
+// ClearCrmConsentAt clears the value of the "crm_consent_at" field.
+func (_u *PatientUpdateOne) ClearCrmConsentAt() *PatientUpdateOne {
+	_u.mutation.ClearCrmConsentAt()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *PatientUpdateOne) SetStatus(v string) *PatientUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -1197,6 +1243,12 @@ func (_u *PatientUpdateOne) sqlSave(ctx context.Context) (_node *Patient, err er
 	}
 	if _u.mutation.CrmContactIDCleared() {
 		_spec.ClearField(patient.FieldCrmContactID, field.TypeUUID)
+	}
+	if value, ok := _u.mutation.CrmConsentAt(); ok {
+		_spec.SetField(patient.FieldCrmConsentAt, field.TypeTime, value)
+	}
+	if _u.mutation.CrmConsentAtCleared() {
+		_spec.ClearField(patient.FieldCrmConsentAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(patient.FieldStatus, field.TypeString, value)

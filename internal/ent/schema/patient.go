@@ -44,6 +44,8 @@ func (Patient) Fields() []ent.Field {
 			Comment("DHA/Taifa Care Client Registry ID (CR...), reserved so treasury-api's claims never need a second lookup — see docs/integrations.md §2.4"),
 		field.UUID("crm_contact_id", uuid.UUID{}).Optional().Nillable().
 			Comment("Pointer only — marketflow/CRM remains the source of truth for contact identity, no PII duplication"),
+		field.Time("crm_consent_at").Optional().Nillable().
+			Comment("When the patient agreed to join the customer list (Kenya Data Protection Act consent). Null means no consent, so the patient is never linked to the CRM"),
 		field.String("status").Default("active").
 			Comment("active|inactive|merged — Kenya DPA mandates a 20-year retention minimum, patients are never hard-deleted"),
 		field.Time("created_at").Default(time.Now).Immutable(),

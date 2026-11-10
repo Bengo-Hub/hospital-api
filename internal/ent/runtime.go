@@ -650,15 +650,15 @@ func init() {
 	// patient.DefaultAllergyFlags holds the default value on creation for the allergy_flags field.
 	patient.DefaultAllergyFlags = patientDescAllergyFlags.Default.([]string)
 	// patientDescStatus is the schema descriptor for status field.
-	patientDescStatus := patientFields[18].Descriptor()
+	patientDescStatus := patientFields[19].Descriptor()
 	// patient.DefaultStatus holds the default value on creation for the status field.
 	patient.DefaultStatus = patientDescStatus.Default.(string)
 	// patientDescCreatedAt is the schema descriptor for created_at field.
-	patientDescCreatedAt := patientFields[19].Descriptor()
+	patientDescCreatedAt := patientFields[20].Descriptor()
 	// patient.DefaultCreatedAt holds the default value on creation for the created_at field.
 	patient.DefaultCreatedAt = patientDescCreatedAt.Default.(func() time.Time)
 	// patientDescUpdatedAt is the schema descriptor for updated_at field.
-	patientDescUpdatedAt := patientFields[20].Descriptor()
+	patientDescUpdatedAt := patientFields[21].Descriptor()
 	// patient.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	patient.DefaultUpdatedAt = patientDescUpdatedAt.Default.(func() time.Time)
 	// patient.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

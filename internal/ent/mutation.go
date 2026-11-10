@@ -24751,6 +24751,7 @@ type PatientMutation struct {
 	appendallergy_flags    []string
 	client_registry_id     *string
 	crm_contact_id         *uuid.UUID
+	crm_consent_at         *time.Time
 	status                 *string
 	created_at             *time.Time
 	updated_at             *time.Time
@@ -25664,6 +25665,55 @@ func (m *PatientMutation) ResetCrmContactID() {
 	delete(m.clearedFields, patient.FieldCrmContactID)
 }
 
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (m *PatientMutation) SetCrmConsentAt(t time.Time) {
+	m.crm_consent_at = &t
+}
+
+// CrmConsentAt returns the value of the "crm_consent_at" field in the mutation.
+func (m *PatientMutation) CrmConsentAt() (r time.Time, exists bool) {
+	v := m.crm_consent_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCrmConsentAt returns the old "crm_consent_at" field's value of the Patient entity.
+// If the Patient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PatientMutation) OldCrmConsentAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCrmConsentAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCrmConsentAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCrmConsentAt: %w", err)
+	}
+	return oldValue.CrmConsentAt, nil
+}
+
+// ClearCrmConsentAt clears the value of the "crm_consent_at" field.
+func (m *PatientMutation) ClearCrmConsentAt() {
+	m.crm_consent_at = nil
+	m.clearedFields[patient.FieldCrmConsentAt] = struct{}{}
+}
+
+// CrmConsentAtCleared returns if the "crm_consent_at" field was cleared in this mutation.
+func (m *PatientMutation) CrmConsentAtCleared() bool {
+	_, ok := m.clearedFields[patient.FieldCrmConsentAt]
+	return ok
+}
+
+// ResetCrmConsentAt resets all changes to the "crm_consent_at" field.
+func (m *PatientMutation) ResetCrmConsentAt() {
+	m.crm_consent_at = nil
+	delete(m.clearedFields, patient.FieldCrmConsentAt)
+}
+
 // SetStatus sets the "status" field.
 func (m *PatientMutation) SetStatus(s string) {
 	m.status = &s
@@ -25860,7 +25910,7 @@ func (m *PatientMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PatientMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.tenant_id != nil {
 		fields = append(fields, patient.FieldTenantID)
 	}
@@ -25911,6 +25961,9 @@ func (m *PatientMutation) Fields() []string {
 	}
 	if m.crm_contact_id != nil {
 		fields = append(fields, patient.FieldCrmContactID)
+	}
+	if m.crm_consent_at != nil {
+		fields = append(fields, patient.FieldCrmConsentAt)
 	}
 	if m.status != nil {
 		fields = append(fields, patient.FieldStatus)
@@ -25963,6 +26016,8 @@ func (m *PatientMutation) Field(name string) (ent.Value, bool) {
 		return m.ClientRegistryID()
 	case patient.FieldCrmContactID:
 		return m.CrmContactID()
+	case patient.FieldCrmConsentAt:
+		return m.CrmConsentAt()
 	case patient.FieldStatus:
 		return m.Status()
 	case patient.FieldCreatedAt:
@@ -26012,6 +26067,8 @@ func (m *PatientMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldClientRegistryID(ctx)
 	case patient.FieldCrmContactID:
 		return m.OldCrmContactID(ctx)
+	case patient.FieldCrmConsentAt:
+		return m.OldCrmConsentAt(ctx)
 	case patient.FieldStatus:
 		return m.OldStatus(ctx)
 	case patient.FieldCreatedAt:
@@ -26146,6 +26203,13 @@ func (m *PatientMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCrmContactID(v)
 		return nil
+	case patient.FieldCrmConsentAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCrmConsentAt(v)
+		return nil
 	case patient.FieldStatus:
 		v, ok := value.(string)
 		if !ok {
@@ -26236,6 +26300,9 @@ func (m *PatientMutation) ClearedFields() []string {
 	if m.FieldCleared(patient.FieldCrmContactID) {
 		fields = append(fields, patient.FieldCrmContactID)
 	}
+	if m.FieldCleared(patient.FieldCrmConsentAt) {
+		fields = append(fields, patient.FieldCrmConsentAt)
+	}
 	return fields
 }
 
@@ -26288,6 +26355,9 @@ func (m *PatientMutation) ClearField(name string) error {
 		return nil
 	case patient.FieldCrmContactID:
 		m.ClearCrmContactID()
+		return nil
+	case patient.FieldCrmConsentAt:
+		m.ClearCrmConsentAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Patient nullable field %s", name)
@@ -26347,6 +26417,9 @@ func (m *PatientMutation) ResetField(name string) error {
 		return nil
 	case patient.FieldCrmContactID:
 		m.ResetCrmContactID()
+		return nil
+	case patient.FieldCrmConsentAt:
+		m.ResetCrmConsentAt()
 		return nil
 	case patient.FieldStatus:
 		m.ResetStatus()

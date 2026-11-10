@@ -14,7 +14,7 @@ require (
 	github.com/Bengo-Hub/shared-auth-client v0.0.0-00010101000000-000000000000
 	github.com/Bengo-Hub/shared-events v0.10.1
 	github.com/Bengo-Hub/shared-ratelimit v0.2.1
-	github.com/Bengo-Hub/shared-service-client v0.3.1
+	github.com/Bengo-Hub/shared-service-client v0.5.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -71,6 +71,7 @@ require (
 	github.com/nats-io/nkeys v0.4.16 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/nyaruka/phonenumbers v1.8.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect

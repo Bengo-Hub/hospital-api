@@ -53,6 +53,8 @@ type Patient struct {
 	ClientRegistryID string `json:"client_registry_id,omitempty"`
 	// Pointer only — marketflow/CRM remains the source of truth for contact identity, no PII duplication
 	CrmContactID *uuid.UUID `json:"crm_contact_id,omitempty"`
+	// When the patient agreed to join the customer list (Kenya Data Protection Act consent). Null means no consent, so the patient is never linked to the CRM
+	CrmConsentAt *time.Time `json:"crm_consent_at,omitempty"`
 	// active|inactive|merged — Kenya DPA mandates a 20-year retention minimum, patients are never hard-deleted
 	Status string `json:"status,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -94,7 +96,7 @@ func (*Patient) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case patient.FieldMrn, patient.FieldFullName, patient.FieldSex, patient.FieldPhone, patient.FieldIDNumber, patient.FieldIdentificationType, patient.FieldShaBeneficiaryNumber, patient.FieldPhotoURL, patient.FieldAddress, patient.FieldNextOfKin, patient.FieldClientRegistryID, patient.FieldStatus:
 			values[i] = new(sql.NullString)
-		case patient.FieldDob, patient.FieldCreatedAt, patient.FieldUpdatedAt:
+		case patient.FieldDob, patient.FieldCrmConsentAt, patient.FieldCreatedAt, patient.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case patient.FieldID, patient.FieldTenantID, patient.FieldOutletID:
 			values[i] = new(uuid.UUID)
@@ -226,6 +228,13 @@ func (_m *Patient) assignValues(columns []string, values []any) error {
 				_m.CrmContactID = new(uuid.UUID)
 				*_m.CrmContactID = *value.S.(*uuid.UUID)
 			}
+		case patient.FieldCrmConsentAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field crm_consent_at", values[i])
+			} else if value.Valid {
+				_m.CrmConsentAt = new(time.Time)
+				*_m.CrmConsentAt = value.Time
+			}
 		case patient.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
@@ -340,6 +349,11 @@ func (_m *Patient) String() string {
 	if v := _m.CrmContactID; v != nil {
 		builder.WriteString("crm_contact_id=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CrmConsentAt; v != nil {
+		builder.WriteString("crm_consent_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")

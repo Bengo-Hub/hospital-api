@@ -954,6 +954,7 @@ var (
 		{Name: "allergy_flags", Type: field.TypeJSON, Nullable: true},
 		{Name: "client_registry_id", Type: field.TypeString, Nullable: true},
 		{Name: "crm_contact_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "crm_consent_at", Type: field.TypeTime, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: "active"},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},

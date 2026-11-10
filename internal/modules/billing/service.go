@@ -19,6 +19,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/admission"
 	"github.com/bengobox/hospital-service/internal/ent/billablecharge"
 	"github.com/bengobox/hospital-service/internal/ent/billableitemcatalog"
+	"github.com/bengobox/hospital-service/internal/ent/patient"
 	"github.com/bengobox/hospital-service/internal/ent/patientaccount"
 	"github.com/bengobox/hospital-service/internal/ent/patientnextofkin"
 	"github.com/bengobox/hospital-service/internal/ent/patientvisit"
@@ -229,6 +230,33 @@ type CollectChargeRequest struct {
 	OutletID      *uuid.UUID
 }
 
+// applyLinkedCustomer puts the CRM customer on an invoice when the account's patient agreed to
+// join the customer list and is linked, so the patient gets statements. An unlinked patient's
+// invoice is left without a customer, as before. Lookup errors are logged and ignored: they
+// must never block a payment.
+func (s *Service) applyLinkedCustomer(ctx context.Context, tenantID, accountID uuid.UUID, req *treasury.CreateInvoiceRequest) {
+	acct, err := s.client.PatientAccount.Query().
+		Where(patientaccount.ID(accountID), patientaccount.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		s.log.Warn("invoice customer: load account failed", zap.String("account_id", accountID.String()), zap.Error(err))
+		return
+	}
+	p, err := s.client.Patient.Query().
+		Where(patient.ID(acct.PatientID), patient.TenantID(tenantID)).
+		Only(ctx)
+	if err != nil {
+		s.log.Warn("invoice customer: load patient failed", zap.String("account_id", accountID.String()), zap.Error(err))
+		return
+	}
+	if p.CrmContactID == nil || p.CrmConsentAt == nil {
+		return
+	}
+	req.CustomerID = p.CrmContactID.String()
+	req.CustomerName = p.FullName
+	req.CustomerPhone = p.Phone
+}
+
 // CollectCharge creates a treasury invoice + payment intent for one pending charge and marks it
 // paid. Permission (collect_own vs collect_any) is enforced by the caller (HTTP handler) before
 // this is invoked — this method assumes the caller is already authorized to collect this charge.
@@ -246,7 +274,7 @@ func (s *Service) CollectCharge(ctx context.Context, tenantID, chargeID uuid.UUI
 		return nil, fmt.Errorf("billing: treasury client not configured")
 	}
 
-	inv, err := s.treasury.CreateInvoice(ctx, tenantID, treasury.CreateInvoiceRequest{
+	invReq := treasury.CreateInvoiceRequest{
 		ReferenceID:   &charge.ID,
 		ReferenceType: "hospital_billable_charge",
 		OutletID:      req.OutletID,
@@ -255,7 +283,9 @@ func (s *Service) CollectCharge(ctx context.Context, tenantID, chargeID uuid.UUI
 			Quantity:    1,
 			UnitPrice:   charge.Amount,
 		}},
-	})
+	}
+	s.applyLinkedCustomer(ctx, tenantID, charge.PatientAccountID, &invReq)
+	inv, err := s.treasury.CreateInvoice(ctx, tenantID, invReq)
 	if err != nil {
 		return nil, fmt.Errorf("billing: create invoice: %w", err)
 	}

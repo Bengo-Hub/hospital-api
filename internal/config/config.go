@@ -98,6 +98,8 @@ type ServicesConfig struct {
 	TreasuryURL      string `envconfig:"TREASURY_SERVICE_URL" default:"https://booksapi.codevertexafrica.com"`
 	NotificationsURL string `envconfig:"NOTIFICATIONS_SERVICE_URL" default:"https://notificationsapi.codevertexafrica.com"`
 	SubscriptionsURL string `envconfig:"SUBSCRIPTION_BASE_URL" default:"https://pricingapi.codevertexafrica.com"`
+	// MarketflowURL is the CRM that owns customer identity. Patients are linked only with consent.
+	MarketflowURL string `envconfig:"MARKETFLOW_SERVICE_URL" default:"https://marketflowapi.codevertexafrica.com"`
 }
 
 // Load gathers configuration from environment variables and optional .env files.

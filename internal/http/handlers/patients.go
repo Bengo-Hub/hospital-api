@@ -67,6 +67,14 @@ type registerPatientRequest struct {
 	NextOfKin            string     `json:"next_of_kin,omitempty"`
 	Allergies            []string   `json:"allergy_flags,omitempty"`
 	OutletID             string     `json:"outlet_id,omitempty"`
+	CRMConsent           bool       `json:"crm_consent,omitempty"`
+}
+
+// patientResponse is the patient plus an optional note about the customer list link, shown to
+// the user when a consenting patient could not be linked.
+type patientResponse struct {
+	*ent.Patient
+	CRMNotice string `json:"crm_notice,omitempty"`
 }
 
 // RegisterPatient handles POST /{tenant}/hospital/patients
@@ -87,18 +95,18 @@ func (h *PatientsHandler) RegisterPatient(w http.ResponseWriter, r *http.Request
 			outletID = id
 		}
 	}
-	p, err := h.svc.RegisterPatient(r.Context(), tenantID, patients.RegisterPatientRequest{
+	p, link, err := h.svc.RegisterPatientWithCRMLink(r.Context(), tenantID, patients.RegisterPatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
 		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
 		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: h.media.Normalize(in.PhotoURL),
 		Address: in.Address, NextOfKin: in.NextOfKin,
-		Allergies: in.Allergies, OutletID: outletID,
+		Allergies: in.Allergies, OutletID: outletID, CRMConsent: in.CRMConsent,
 	})
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusCreated, h.signPhoto(p))
+	respondJSON(w, http.StatusCreated, patientResponse{Patient: h.signPhoto(p), CRMNotice: link.Notice})
 }
 
 // signPhoto returns p with a short-lived signed photo link: patient photos are private media an
@@ -162,6 +170,7 @@ type updatePatientRequest struct {
 	Address              *string    `json:"address,omitempty"`
 	NextOfKin            *string    `json:"next_of_kin,omitempty"`
 	Allergies            *[]string  `json:"allergy_flags,omitempty"`
+	CRMConsent           *bool      `json:"crm_consent,omitempty"` // absent means unchanged
 }
 
 // UpdatePatient handles PUT /{tenant}/hospital/patients/{patientID}
@@ -185,17 +194,18 @@ func (h *PatientsHandler) UpdatePatient(w http.ResponseWriter, r *http.Request) 
 		plain := h.media.Normalize(*in.PhotoURL) // store the key, not the signed link
 		in.PhotoURL = &plain
 	}
-	p, err := h.svc.UpdatePatient(r.Context(), tenantID, patientID, patients.UpdatePatientRequest{
+	p, link, err := h.svc.UpdatePatientWithCRMLink(r.Context(), tenantID, patientID, patients.UpdatePatientRequest{
 		FullName: in.FullName, DOB: in.DOB, Sex: in.Sex, Phone: in.Phone,
 		IDNumber: in.IDNumber, IdentificationType: in.IdentificationType,
 		SHABeneficiaryNumber: in.SHABeneficiaryNumber, PhotoURL: in.PhotoURL,
 		Address: in.Address, NextOfKin: in.NextOfKin, Allergies: in.Allergies,
+		CRMConsent: in.CRMConsent, ActorID: currentUserID(r),
 	})
 	if err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	respondJSON(w, http.StatusOK, h.signPhoto(p))
+	respondJSON(w, http.StatusOK, patientResponse{Patient: h.signPhoto(p), CRMNotice: link.Notice})
 }
 
 // CheckDuplicates handles GET /{tenant}/hospital/patients/check-duplicates?full_name=&phone=&id_number=

@@ -22,6 +22,7 @@ import (
 	"go.uber.org/zap"
 
 	authclient "github.com/Bengo-Hub/shared-auth-client"
+	"github.com/Bengo-Hub/shared-service-client/crm"
 
 	"github.com/bengobox/hospital-service/internal/config"
 	"github.com/bengobox/hospital-service/internal/ent"
@@ -232,6 +233,9 @@ func New(ctx context.Context) (*App, error) {
 
 	// ── Sprint 1: patients / OPD reception / triage ───────────────────────────
 	patientsSvc := patients.NewService(ormClient, billingSvc, log)
+	// Consenting patients are linked to the tenant's CRM contact (name and phone only).
+	patientsSvc.SetCRMClient(crm.New(cfg.Services.MarketflowURL, cfg.Auth.APIKey, log))
+	patientsSvc.SetAuditWriter(auditWriter)
 	// Patient photos on the shared object storage (httpware/objectstore), private: responses carry
 	// presigned links. Local development keeps files under MEDIA_ROOT with links signed by the
 	// service key.

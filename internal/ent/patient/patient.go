@@ -49,6 +49,8 @@ const (
 	FieldClientRegistryID = "client_registry_id"
 	// FieldCrmContactID holds the string denoting the crm_contact_id field in the database.
 	FieldCrmContactID = "crm_contact_id"
+	// FieldCrmConsentAt holds the string denoting the crm_consent_at field in the database.
+	FieldCrmConsentAt = "crm_consent_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -88,6 +90,7 @@ var Columns = []string{
 	FieldAllergyFlags,
 	FieldClientRegistryID,
 	FieldCrmContactID,
+	FieldCrmConsentAt,
 	FieldStatus,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -208,6 +211,11 @@ func ByClientRegistryID(opts ...sql.OrderTermOption) OrderOption {
 // ByCrmContactID orders the results by the crm_contact_id field.
 func ByCrmContactID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCrmContactID, opts...).ToFunc()
+}
+
+// ByCrmConsentAt orders the results by the crm_consent_at field.
+func ByCrmConsentAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCrmConsentAt, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

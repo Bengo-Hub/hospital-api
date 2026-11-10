@@ -223,6 +223,20 @@ func (_c *PatientCreate) SetNillableCrmContactID(v *uuid.UUID) *PatientCreate {
 	return _c
 }
 
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (_c *PatientCreate) SetCrmConsentAt(v time.Time) *PatientCreate {
+	_c.mutation.SetCrmConsentAt(v)
+	return _c
+}
+
+// SetNillableCrmConsentAt sets the "crm_consent_at" field if the given value is not nil.
+func (_c *PatientCreate) SetNillableCrmConsentAt(v *time.Time) *PatientCreate {
+	if v != nil {
+		_c.SetCrmConsentAt(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *PatientCreate) SetStatus(v string) *PatientCreate {
 	_c.mutation.SetStatus(v)
@@ -487,6 +501,10 @@ func (_c *PatientCreate) createSpec() (*Patient, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CrmContactID(); ok {
 		_spec.SetField(patient.FieldCrmContactID, field.TypeUUID, value)
 		_node.CrmContactID = &value
+	}
+	if value, ok := _c.mutation.CrmConsentAt(); ok {
+		_spec.SetField(patient.FieldCrmConsentAt, field.TypeTime, value)
+		_node.CrmConsentAt = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(patient.FieldStatus, field.TypeString, value)
@@ -847,6 +865,24 @@ func (u *PatientUpsert) UpdateCrmContactID() *PatientUpsert {
 // ClearCrmContactID clears the value of the "crm_contact_id" field.
 func (u *PatientUpsert) ClearCrmContactID() *PatientUpsert {
 	u.SetNull(patient.FieldCrmContactID)
+	return u
+}
+
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (u *PatientUpsert) SetCrmConsentAt(v time.Time) *PatientUpsert {
+	u.Set(patient.FieldCrmConsentAt, v)
+	return u
+}
+
+// UpdateCrmConsentAt sets the "crm_consent_at" field to the value that was provided on create.
+func (u *PatientUpsert) UpdateCrmConsentAt() *PatientUpsert {
+	u.SetExcluded(patient.FieldCrmConsentAt)
+	return u
+}
+
+// ClearCrmConsentAt clears the value of the "crm_consent_at" field.
+func (u *PatientUpsert) ClearCrmConsentAt() *PatientUpsert {
+	u.SetNull(patient.FieldCrmConsentAt)
 	return u
 }
 
@@ -1251,6 +1287,27 @@ func (u *PatientUpsertOne) UpdateCrmContactID() *PatientUpsertOne {
 func (u *PatientUpsertOne) ClearCrmContactID() *PatientUpsertOne {
 	return u.Update(func(s *PatientUpsert) {
 		s.ClearCrmContactID()
+	})
+}
+
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (u *PatientUpsertOne) SetCrmConsentAt(v time.Time) *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetCrmConsentAt(v)
+	})
+}
+
+// UpdateCrmConsentAt sets the "crm_consent_at" field to the value that was provided on create.
+func (u *PatientUpsertOne) UpdateCrmConsentAt() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateCrmConsentAt()
+	})
+}
+
+// ClearCrmConsentAt clears the value of the "crm_consent_at" field.
+func (u *PatientUpsertOne) ClearCrmConsentAt() *PatientUpsertOne {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearCrmConsentAt()
 	})
 }
 
@@ -1826,6 +1883,27 @@ func (u *PatientUpsertBulk) UpdateCrmContactID() *PatientUpsertBulk {
 func (u *PatientUpsertBulk) ClearCrmContactID() *PatientUpsertBulk {
 	return u.Update(func(s *PatientUpsert) {
 		s.ClearCrmContactID()
+	})
+}
+
+// SetCrmConsentAt sets the "crm_consent_at" field.
+func (u *PatientUpsertBulk) SetCrmConsentAt(v time.Time) *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.SetCrmConsentAt(v)
+	})
+}
+
+// UpdateCrmConsentAt sets the "crm_consent_at" field to the value that was provided on create.
+func (u *PatientUpsertBulk) UpdateCrmConsentAt() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.UpdateCrmConsentAt()
+	})
+}
+
+// ClearCrmConsentAt clears the value of the "crm_consent_at" field.
+func (u *PatientUpsertBulk) ClearCrmConsentAt() *PatientUpsertBulk {
+	return u.Update(func(s *PatientUpsert) {
+		s.ClearCrmConsentAt()
 	})
 }
 

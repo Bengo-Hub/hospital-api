@@ -22,6 +22,7 @@ import (
 	"github.com/bengobox/hospital-service/internal/ent/predicate"
 	"github.com/bengobox/hospital-service/internal/ent/prescription"
 	events "github.com/bengobox/hospital-service/internal/events"
+	"github.com/bengobox/hospital-service/internal/modules/auditlog"
 	"github.com/bengobox/hospital-service/internal/modules/billing"
 	"github.com/bengobox/hospital-service/internal/modules/pharmacy"
 	"github.com/bengobox/hospital-service/internal/modules/sequence"
@@ -32,6 +33,8 @@ type Service struct {
 	client   *ent.Client
 	billing  *billing.Service
 	pharmacy *pharmacy.Service
+	crm      crmUpserter      // optional, see SetCRMClient
+	audit    *auditlog.Writer // optional, see SetAuditWriter
 	log      *zap.Logger
 }
 
@@ -62,10 +65,29 @@ type RegisterPatientRequest struct {
 	NextOfKin            string
 	Allergies            []string
 	OutletID             uuid.UUID
+	// CRMConsent is the patient's agreement to join the customer list for receipts and
+	// statements. Only then are their name and phone sent to the CRM.
+	CRMConsent bool
 }
 
 // RegisterPatient creates a new Patient with a sequence-allocated MRN.
 func (s *Service) RegisterPatient(ctx context.Context, tenantID uuid.UUID, req RegisterPatientRequest) (*ent.Patient, error) {
+	p, _, err := s.RegisterPatientWithCRMLink(ctx, tenantID, req)
+	return p, err
+}
+
+// RegisterPatientWithCRMLink is RegisterPatient that also reports what happened to the CRM
+// link, so the caller can tell the user when a consenting patient could not be linked.
+func (s *Service) RegisterPatientWithCRMLink(ctx context.Context, tenantID uuid.UUID, req RegisterPatientRequest) (*ent.Patient, CRMLinkResult, error) {
+	p, err := s.registerPatient(ctx, tenantID, req)
+	if err != nil {
+		return nil, CRMLinkResult{}, err
+	}
+	p, link := s.linkToCRM(ctx, tenantID, p)
+	return p, link, nil
+}
+
+func (s *Service) registerPatient(ctx context.Context, tenantID uuid.UUID, req RegisterPatientRequest) (*ent.Patient, error) {
 	if req.FullName == "" {
 		return nil, fmt.Errorf("patients: full_name is required")
 	}
@@ -102,6 +124,9 @@ func (s *Service) RegisterPatient(ctx context.Context, tenantID uuid.UUID, req R
 	}
 	if req.Allergies != nil {
 		create = create.SetAllergyFlags(req.Allergies)
+	}
+	if req.CRMConsent {
+		create = create.SetCrmConsentAt(time.Now())
 	}
 
 	p, err := create.Save(ctx)
@@ -443,20 +468,50 @@ type UpdatePatientRequest struct {
 	Address              *string
 	NextOfKin            *string
 	Allergies            *[]string
+	// CRMConsent nil leaves consent as it is. True records consent (keeping the first consent
+	// time) and links the patient if not linked yet. False withdraws it: the local link is
+	// cleared, the CRM contact is left alone, and the withdrawal is written to the audit log.
+	CRMConsent *bool
+	// ActorID is the user making the change, for the audit log.
+	ActorID uuid.UUID
 }
 
 // UpdatePatient applies a partial update to a patient's demographic/chart fields.
 func (s *Service) UpdatePatient(ctx context.Context, tenantID, patientID uuid.UUID, req UpdatePatientRequest) (*ent.Patient, error) {
+	p, _, err := s.UpdatePatientWithCRMLink(ctx, tenantID, patientID, req)
+	return p, err
+}
+
+// UpdatePatientWithCRMLink is UpdatePatient that also reports what happened to the CRM link.
+func (s *Service) UpdatePatientWithCRMLink(ctx context.Context, tenantID, patientID uuid.UUID, req UpdatePatientRequest) (*ent.Patient, CRMLinkResult, error) {
+	existing, updated, err := s.updatePatient(ctx, tenantID, patientID, req)
+	if err != nil {
+		return nil, CRMLinkResult{}, err
+	}
+	if req.CRMConsent == nil {
+		return updated, CRMLinkResult{Linked: updated.CrmContactID != nil}, nil
+	}
+	if !*req.CRMConsent {
+		if existing.CrmConsentAt != nil || existing.CrmContactID != nil {
+			s.recordConsentWithdrawal(ctx, tenantID, req.ActorID, existing, time.Now())
+		}
+		return updated, CRMLinkResult{}, nil
+	}
+	updated, link := s.linkToCRM(ctx, tenantID, updated)
+	return updated, link, nil
+}
+
+func (s *Service) updatePatient(ctx context.Context, tenantID, patientID uuid.UUID, req UpdatePatientRequest) (*ent.Patient, *ent.Patient, error) {
 	existing, err := s.client.Patient.Query().
 		Where(patient.ID(patientID), patient.TenantID(tenantID)).
 		Only(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("patients: patient not found: %w", err)
+		return nil, nil, fmt.Errorf("patients: patient not found: %w", err)
 	}
 	upd := s.client.Patient.UpdateOneID(existing.ID)
 	if req.FullName != nil {
 		if *req.FullName == "" {
-			return nil, fmt.Errorf("patients: full_name cannot be empty")
+			return nil, nil, fmt.Errorf("patients: full_name cannot be empty")
 		}
 		upd = upd.SetFullName(*req.FullName)
 	}
@@ -490,15 +545,25 @@ func (s *Service) UpdatePatient(ctx context.Context, tenantID, patientID uuid.UU
 	if req.Allergies != nil {
 		upd = upd.SetAllergyFlags(*req.Allergies)
 	}
+	if req.CRMConsent != nil {
+		if *req.CRMConsent {
+			// Keep the first consent time, it is the proof of when consent was given.
+			if existing.CrmConsentAt == nil {
+				upd = upd.SetCrmConsentAt(time.Now())
+			}
+		} else {
+			upd = upd.ClearCrmConsentAt().ClearCrmContactID()
+		}
+	}
 	updated, err := upd.Save(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("patients: update patient: %w", err)
+		return nil, nil, fmt.Errorf("patients: update patient: %w", err)
 	}
 
 	if req.Allergies != nil && !allergyFlagsEqual(existing.AllergyFlags, *req.Allergies) {
 		s.recheckOpenPrescriptions(ctx, tenantID, patientID, *req.Allergies)
 	}
-	return updated, nil
+	return existing, updated, nil
 }
 
 // allergyFlagsEqual reports whether two allergy-flag sets are the same, order-insensitive.

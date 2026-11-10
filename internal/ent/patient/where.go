@@ -136,6 +136,11 @@ func CrmContactID(v uuid.UUID) predicate.Patient {
 	return predicate.Patient(sql.FieldEQ(FieldCrmContactID, v))
 }
 
+// CrmConsentAt applies equality check predicate on the "crm_consent_at" field. It's identical to CrmConsentAtEQ.
+func CrmConsentAt(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldCrmConsentAt, v))
+}
+
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.Patient {
 	return predicate.Patient(sql.FieldEQ(FieldStatus, v))
@@ -1194,6 +1199,56 @@ func CrmContactIDIsNil() predicate.Patient {
 // CrmContactIDNotNil applies the NotNil predicate on the "crm_contact_id" field.
 func CrmContactIDNotNil() predicate.Patient {
 	return predicate.Patient(sql.FieldNotNull(FieldCrmContactID))
+}
+
+// CrmConsentAtEQ applies the EQ predicate on the "crm_consent_at" field.
+func CrmConsentAtEQ(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldEQ(FieldCrmConsentAt, v))
+}
+
+// CrmConsentAtNEQ applies the NEQ predicate on the "crm_consent_at" field.
+func CrmConsentAtNEQ(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldNEQ(FieldCrmConsentAt, v))
+}
+
+// CrmConsentAtIn applies the In predicate on the "crm_consent_at" field.
+func CrmConsentAtIn(vs ...time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldIn(FieldCrmConsentAt, vs...))
+}
+
+// CrmConsentAtNotIn applies the NotIn predicate on the "crm_consent_at" field.
+func CrmConsentAtNotIn(vs ...time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldNotIn(FieldCrmConsentAt, vs...))
+}
+
+// CrmConsentAtGT applies the GT predicate on the "crm_consent_at" field.
+func CrmConsentAtGT(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldGT(FieldCrmConsentAt, v))
+}
+
+// CrmConsentAtGTE applies the GTE predicate on the "crm_consent_at" field.
+func CrmConsentAtGTE(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldGTE(FieldCrmConsentAt, v))
+}
+
+// CrmConsentAtLT applies the LT predicate on the "crm_consent_at" field.
+func CrmConsentAtLT(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldLT(FieldCrmConsentAt, v))
+}
+
+// CrmConsentAtLTE applies the LTE predicate on the "crm_consent_at" field.
+func CrmConsentAtLTE(v time.Time) predicate.Patient {
+	return predicate.Patient(sql.FieldLTE(FieldCrmConsentAt, v))
+}
+
+// CrmConsentAtIsNil applies the IsNil predicate on the "crm_consent_at" field.
+func CrmConsentAtIsNil() predicate.Patient {
+	return predicate.Patient(sql.FieldIsNull(FieldCrmConsentAt))
+}
+
+// CrmConsentAtNotNil applies the NotNil predicate on the "crm_consent_at" field.
+func CrmConsentAtNotNil() predicate.Patient {
+	return predicate.Patient(sql.FieldNotNull(FieldCrmConsentAt))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
