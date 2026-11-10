@@ -545,6 +545,18 @@ Credit-gated SMS follows the same pattern notifications-api already uses for `is
 
 ---
 
+## 5A. MarketFlow CRM Integration (November 2026)
+
+marketflow-api owns customer identity, but a patient reaches it only with consent.
+
+- **Consent.** Registering or updating a patient takes a `crm_consent` flag, stored as `crm_consent_at`. Without it the patient is never sent to the CRM. Only name and phone are shared. Clinical data, MRN and diagnoses never leave hospital-api.
+- **Withdrawal.** Withdrawing consent removes the link and is written to the RBAC audit log as `patient.crm_consent_withdrawn`. There is no dedicated patient consent log yet.
+- **Client.** `github.com/Bengo-Hub/shared-service-client/crm` (v0.5.0), configured with `MARKETFLOW_SERVICE_URL` (default `https://marketflowapi.codevertexafrica.com`) and `INTERNAL_SERVICE_KEY`.
+- **Refusal versus outage.** A CRM answer of 400 or 422 is shown to the user. An outage (401, 403, 429, 5xx, no answer) saves the patient unlinked and a reconciler links it later. Registration never waits on the CRM.
+- **Billing.** An invoice for a linked patient carries the CRM contact id as its customer id.
+
+---
+
 ## 6. Migration ADR — Pharmacy/Clinical Logic Currently in pos-api
 
 **See the dedicated plan: [`docs/migration-pos-pharmacy.md`](migration-pos-pharmacy.md).**
