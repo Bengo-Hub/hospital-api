@@ -556,6 +556,7 @@ marketflow-api owns customer identity, but a patient reaches it only with consen
 - **Client.** `github.com/Bengo-Hub/shared-service-client/crm` (v0.5.0), configured with `MARKETFLOW_SERVICE_URL` (default `https://marketflowapi.codevertexafrica.com`) and `INTERNAL_SERVICE_KEY`.
 - **Refusal versus outage.** A CRM answer of 400 or 422 is shown to the user. An outage (401, 403, 429, 5xx, no answer) saves the patient unlinked and a reconciler links it later. Registration never waits on the CRM.
 - **Billing.** An invoice for a linked patient carries the CRM contact id as its customer id.
+- **Link check.** `GET /api/v1/s2s/{tenant}/crm-links/{contact_id}` (X-API-Key with `INTERNAL_SERVICE_KEY`; `{tenant}` is the UUID or slug) answers `{"referenced": true|false}`: whether any patient still carries that contact id. The id is matched in every tenant, not only the one asked: CRM contact ids are random UUIDs minted by marketflow, so a match anywhere is the same person, and a tenant mismatch can only answer "referenced", which keeps the contact. marketflow asks it when a person's details are erased elsewhere; patients are kept for the retention period, so a linked contact is stripped to a minimal record instead of deleted. A tenant the hospital has no local row for (unknown slug, or a UUID it does not hold, as after a tenant id drift) answers 404, which marketflow treats as "cannot answer" and keeps the contact. The answer is the flag only and the logs carry ids only.
 
 ---
 

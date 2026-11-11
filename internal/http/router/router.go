@@ -32,7 +32,11 @@ type Deps struct {
 	MediaFiles http.Handler
 	// TenantExport streams one tenant's rows for auth-api's SSO tenant backups; it checks
 	// INTERNAL_SERVICE_KEY itself (nil when no key is set).
-	TenantExport   http.Handler
+	TenantExport http.Handler
+	// CRMLinks answers marketflow's "does the hospital still link this contact" check, behind
+	// INTERNAL_SERVICE_KEY (InternalKey). The route is left out when either is unset.
+	CRMLinks       *handlers.CRMLinksHandler
+	InternalKey    string
 	Log            *zap.Logger
 	Health         *handlers.HealthHandler
 	AuthMiddleware *authclient.AuthMiddleware
@@ -104,6 +108,10 @@ func New(d Deps) http.Handler {
 	r.Get("/healthz", d.Health.Liveness)
 	if d.TenantExport != nil {
 		r.Get("/api/v1/s2s/tenant-export", d.TenantExport.ServeHTTP)
+	}
+	if d.CRMLinks != nil && d.InternalKey != "" {
+		r.With(httpware.RequireServiceKey(d.InternalKey)).
+			Get("/api/v1/s2s/{tenant}/crm-links/{contactID}", d.CRMLinks.Referenced)
 	}
 	r.Get("/readyz", d.Health.Readiness)
 	r.Get("/metrics", d.Health.Metrics)

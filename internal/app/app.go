@@ -312,6 +312,8 @@ func New(ctx context.Context) (*App, error) {
 	deps := router.Deps{
 		MediaFiles:     mediaStore.MediaHandler(),
 		TenantExport:   tenantExportHandler(sqlDB, cfg.Auth.APIKey),
+		CRMLinks:       handlers.NewCRMLinksHandler(ormClient, log),
+		InternalKey:    cfg.Auth.APIKey,
 		Limiter:        ratelimit.NewLimiter(redisClient, log, "hospital"),
 		Log:            log,
 		Health:         healthHandler,
