@@ -166,6 +166,22 @@ func New(d Deps) http.Handler {
 				URLParamFunc: chi.URLParam,
 				URLParamName: "tenant",
 				Required:     true,
+				// Report-only until the logs show no legitimate caller is refused, then remove
+				// ReportOnly so a tenant that differs from the token's gets a 403.
+				ReportOnly: true,
+				OnMismatch: func(r *http.Request, source, supplied, claimed string) {
+					fields := []zap.Field{
+						zap.String("source", source),
+						zap.String("supplied", supplied),
+						zap.String("claimed", claimed),
+						zap.String("method", r.Method),
+						zap.String("path", r.URL.Path),
+					}
+					if c, ok := authclient.ClaimsFromContext(r.Context()); ok && c != nil {
+						fields = append(fields, zap.String("subject", c.Subject))
+					}
+					d.Log.Warn("tenant mismatch (report-only)", fields...)
+				},
 			}))
 
 			// JIT tenant sync (2026-08-30): resolves slug -> real UUID whenever TenantV2 left the

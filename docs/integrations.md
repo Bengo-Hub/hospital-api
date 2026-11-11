@@ -462,6 +462,8 @@ RBAC tables (`internal/modules/rbac`, ent schemas `HospitalPermission`/`Hospital
 (`internal/modules/tenant/syncer.go`), `auth.user.*`/`auth.outlet.*` NATS event subscribers
 (`internal/modules/identity`), and the full middleware chain (`RequireAuth` → `SubscriptionGate`
 → JIT → `TenantV2` → `OutletContext` → route) are all wired in `internal/http/router/router.go`.
+`TenantV2` (httpware v0.19.1) runs report-only: a header or URL tenant that differs from the token's
+is logged as `tenant mismatch (report-only)` and will be refused with 403 once the logs show no legitimate caller.
 auth-service registers `hospital-ui` as an OAuth client and a `"hospital"` outlet use_case
 (`ApplicableServices("hospital") -> ["hospital-api"]`) — outlet-sync events now actually reach
 this service. **Update (2026-08-29):** the clinical ent schemas this section once described as
